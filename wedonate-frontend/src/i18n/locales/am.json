@@ -82,7 +82,8 @@
     "register_btn": "መለያ ይፍጠሩ",
     "no_account": "መለያ የለዎት?",
     "have_account": "መለያ አለዎት?",
-    "forgot_password": "የይለፍ ቃል ተረስቶዎ?"
+    "forgot_password": "የይለፍ ቃል ተረስቶዎ?",
+    "login_required": "ለመስጠት እባክዎን ይግቡ ወይም መለያ ይፍጠኑ"
   },
   "dashboard": {
     "welcome": "እንኳን ተመለሱ",
@@ -248,6 +249,7 @@
     "hide": "ያስImageContext",
     "view_details": "ዝርዝር ይመልከቱ",
     "admin_note_placeholder": "የአስተዳዳሪ ማስታወሻ (አማራጭ)...",
+    "rejection_reason_required": "እባክዎን ለማቋቋም ምክንያት ያቅርቡ",
     "approve": "ያረጋግጡ",
     "reject": "ይቃወሙ",
     "admin_note_label": "የአስተዳዳሪ ማስታወሻ:",

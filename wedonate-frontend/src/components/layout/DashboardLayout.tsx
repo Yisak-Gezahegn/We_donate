@@ -4,7 +4,9 @@ import { useTranslation } from 'react-i18next';
 import {
   LayoutDashboard, FileText, Bell, User,
   LogOut, Menu, X, Users, BarChart2, ClipboardList, ChevronRight, Heart, Target, Image, Quote, Images,
+  Sun, Moon, Globe, ChevronDown,
 } from 'lucide-react';
+import i18n from '../../i18n';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { cn } from '../../lib/utils';
@@ -19,25 +21,34 @@ interface SidebarProps {
   onLogout: () => void;
   logoutLabel: string;
   isDark: boolean;
+  collapsed?: boolean;
 }
 
-function SidebarContent({ links, user, location, onClose, onLogout, logoutLabel, isDark }: SidebarProps) {
+function SidebarContent({ links, user, location, onClose, onLogout, logoutLabel, isDark, collapsed }: SidebarProps) {
   return (
     <div className="flex flex-col h-full">
       {/* Brand */}
-      <div className={cn('px-6 py-5 border-b', isDark ? 'border-slate-700' : 'border-gray-100')}>
-        <Link to="/" className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl overflow-hidden border-2 border-green-200 shadow-sm">
-            <img src="/adama_logo.png" alt="Logo" className="w-full h-full object-cover" />
-          </div>
-          <span className={cn('font-extrabold text-lg', isDark ? 'text-green-400' : 'text-green-800')}>
-            We<span className="text-amber-500">Donate</span>
-          </span>
-        </Link>
+      <div className={cn('px-6 py-5 border-b', isDark ? 'border-slate-700' : 'border-gray-100', collapsed && 'px-3 py-4 flex justify-center')}>
+        {collapsed ? (
+          <Link to="/" className="flex items-center justify-center">
+            <div className="w-9 h-9 rounded-xl overflow-hidden border-2 border-green-200 shadow-sm">
+              <img src="/adama_logo.png" alt="Logo" className="w-full h-full object-cover" />
+            </div>
+          </Link>
+        ) : (
+          <Link to="/" className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl overflow-hidden border-2 border-green-200 shadow-sm">
+              <img src="/adama_logo.png" alt="Logo" className="w-full h-full object-cover" />
+            </div>
+            <span className={cn('font-extrabold text-lg', isDark ? 'text-green-400' : 'text-green-800')}>
+              We<span className="text-amber-500">Donate</span>
+            </span>
+          </Link>
+        )}
       </div>
 
       {/* User Info */}
-      {user && (
+      {user && !collapsed && (
         <div className={cn('px-6 py-4 border-b', isDark ? 'bg-slate-700/50 border-slate-700' : 'bg-gradient-to-r from-green-50 to-emerald-50 border-gray-100')}>
           <div className="flex items-center gap-3">
             {(user as any)?.profileImage ? (
@@ -58,15 +69,28 @@ function SidebarContent({ links, user, location, onClose, onLogout, logoutLabel,
           </div>
         </div>
       )}
+      {user && collapsed && (
+        <div className={cn('px-3 py-4 border-b flex justify-center', isDark ? 'bg-slate-700/50 border-slate-700' : 'bg-gradient-to-r from-green-50 to-emerald-50 border-gray-100')}>
+          {(user as any)?.profileImage ? (
+            <img src={(user as any).profileImage} alt="" className="w-10 h-10 rounded-full object-cover" />
+          ) : (
+            <div className="w-10 h-10 rounded-full bg-green-700 flex items-center justify-center text-white font-bold text-sm">
+              {user.firstName?.[0] ?? '?'}{user.lastName?.[0] ?? ''}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Nav Links */}
-      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+      <nav className={cn('flex-1 py-4 space-y-1 overflow-y-auto', collapsed ? 'px-2' : 'px-3')}>
         {links.map(({ to, icon: Icon, label }) => {
           const active = location.pathname === to;
           return (
             <Link key={to} to={to} onClick={onClose}
+              title={collapsed ? label : undefined}
               className={cn(
-                'flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all',
+                'flex items-center gap-3 rounded-xl text-sm font-medium transition-all',
+                collapsed ? 'justify-center px-3 py-3' : 'px-4 py-3',
                 active
                   ? 'bg-green-700 text-white shadow-md'
                   : cn(
@@ -74,8 +98,12 @@ function SidebarContent({ links, user, location, onClose, onLogout, logoutLabel,
                   ),
               )}>
               <Icon className="w-4 h-4 shrink-0" />
-              <span className="flex-1">{label}</span>
-              {active && <ChevronRight className="w-3 h-3 opacity-70" />}
+              {!collapsed && (
+                <>
+                  <span className="flex-1">{label}</span>
+                  {active && <ChevronRight className="w-3 h-3 opacity-70" />}
+                </>
+              )}
             </Link>
           );
         })}
@@ -84,10 +112,12 @@ function SidebarContent({ links, user, location, onClose, onLogout, logoutLabel,
       {/* Logout */}
       <div className={cn('px-3 py-4 border-t', isDark ? 'border-slate-700' : 'border-gray-100')}>
         <button onClick={onLogout}
-          className={cn('w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-red-500 transition-colors',
+          title={collapsed ? logoutLabel : undefined}
+          className={cn('w-full flex items-center gap-3 rounded-xl text-sm font-medium text-red-500 transition-colors',
+            collapsed ? 'justify-center px-3 py-3' : 'px-4 py-3',
             isDark ? 'hover:bg-red-900/30' : 'hover:bg-red-50')}>
           <LogOut className="w-4 h-4" />
-          {logoutLabel}
+          {!collapsed && logoutLabel}
         </button>
       </div>
     </div>
@@ -97,10 +127,19 @@ function SidebarContent({ links, user, location, onClose, onLogout, logoutLabel,
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { t } = useTranslation();
   const { user, logout } = useAuth();
-  const { isDark } = useTheme();
+  const { isDark, toggleTheme } = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarExpanded, setSidebarExpanded] = useState(true);
+  const [langOpen, setLangOpen] = useState(false);
+
+  const LANGUAGES = [
+    { code: 'en', label: 'English', flag: '🇬🇧' },
+    { code: 'am', label: 'አማርኛ', flag: '🇪🇹' },
+    { code: 'or', label: 'Afaan Oromo', flag: '🇪🇹' },
+  ];
+  const currentLang = LANGUAGES.find(l => l.code === i18n.language) || LANGUAGES[0];
 
   const isAdmin = user && ADMIN_ROLES.includes(user.role);
 
@@ -148,10 +187,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <div className={cn('min-h-screen flex transition-colors duration-300', isDark ? 'bg-slate-900' : 'bg-gray-50')}>
       {/* Desktop Sidebar */}
       <aside className={cn(
-        'hidden lg:flex flex-col w-64 fixed inset-y-0 left-0 z-40 border-r shadow-sm',
+        'hidden lg:flex flex-col fixed inset-y-0 left-0 z-40 border-r shadow-sm transition-all duration-300',
+        sidebarExpanded ? 'w-64' : 'w-20',
         isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-100',
       )}>
-        <SidebarContent {...sidebarProps} />
+        <SidebarContent {...sidebarProps} collapsed={!sidebarExpanded} />
       </aside>
 
       {/* Mobile Overlay */}
@@ -171,7 +211,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       )}
 
       {/* Main */}
-      <div className="flex-1 lg:ml-64 flex flex-col min-h-screen">
+      <div className={cn('flex-1 flex flex-col min-h-screen transition-all duration-300', sidebarExpanded ? 'lg:ml-64' : 'lg:ml-20')}>
         {/* Top Bar */}
         <header className={cn(
           'sticky top-0 z-30 px-4 lg:px-8 py-4 flex items-center justify-between border-b shadow-sm',
@@ -182,12 +222,55 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               isDark ? 'hover:bg-slate-700 text-slate-300' : 'hover:bg-gray-100 text-gray-700')}>
             <Menu className="w-5 h-5" />
           </button>
+          <button onClick={() => setSidebarExpanded(!sidebarExpanded)}
+            className={cn('hidden lg:block p-2 rounded-xl transition-colors',
+              isDark ? 'hover:bg-slate-700 text-slate-300' : 'hover:bg-gray-100 text-gray-700')}>
+            <Menu className="w-5 h-5" />
+          </button>
           <div className="flex-1 lg:flex-none">
             <p className={cn('text-sm font-semibold hidden lg:block', isDark ? 'text-slate-400' : 'text-gray-500')}>
               {t('dashboard.welcome')},{' '}
               <span className={isDark ? 'text-white' : 'text-gray-900'}>{user?.firstName}</span> 👋
             </p>
           </div>
+          {/* Dark mode toggle */}
+          <button onClick={toggleTheme}
+            className={cn('p-2 rounded-xl transition-colors',
+              isDark ? 'hover:bg-slate-700 text-yellow-400' : 'hover:bg-gray-100 text-gray-600')}>
+            {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+          </button>
+
+          {/* Language switcher */}
+          <div className="relative">
+            <button onClick={() => setLangOpen(!langOpen)}
+              className={cn('flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-colors',
+                isDark ? 'hover:bg-slate-700 text-slate-300' : 'hover:bg-gray-100 text-gray-600')}>
+              <Globe className="w-4 h-4" />
+              <span className="hidden sm:inline">{currentLang.flag} {currentLang.label}</span>
+              <span className="sm:hidden">{currentLang.flag}</span>
+              <ChevronDown className={cn('w-3 h-3 transition-transform', langOpen && 'rotate-180')} />
+            </button>
+            {langOpen && (
+              <div className={cn(
+                'absolute right-0 top-full mt-2 rounded-2xl shadow-2xl border py-2 min-w-[170px] z-50',
+                isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-100',
+              )}>
+                {LANGUAGES.map(lang => (
+                  <button key={lang.code}
+                    onClick={() => { i18n.changeLanguage(lang.code); setLangOpen(false); }}
+                    className={cn(
+                      'w-full text-left px-4 py-2.5 text-sm flex items-center gap-2 transition-colors',
+                      i18n.language === lang.code
+                        ? 'text-green-600 font-semibold bg-green-50 dark:bg-green-900/30'
+                        : (isDark ? 'text-slate-200 hover:bg-slate-700' : 'text-gray-700 hover:bg-green-50'),
+                    )}>
+                    <span>{lang.flag}</span> {lang.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
           <Link to="/dashboard/notifications"
             className={cn('relative p-2 rounded-xl transition-colors',
               isDark ? 'hover:bg-slate-700 text-slate-300' : 'hover:bg-gray-100 text-gray-600')}>

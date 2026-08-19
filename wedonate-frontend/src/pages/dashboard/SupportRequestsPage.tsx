@@ -150,11 +150,11 @@ export default function SupportRequestsPage() {
                   <div>
                     <label className={lbl}>Urgency Level *</label>
                     <select {...register('urgencyLevel')} className={sel}>
-                      <option value="1">1 — Minimal</option>
-                      <option value="2">2 — Low</option>
-                      <option value="3">3 — Medium</option>
-                      <option value="4">4 — High</option>
-                      <option value="5">5 — Critical 🚨</option>
+                      <option value="1">🟢 Standard — General needs</option>
+                      <option value="2">🟡 Medium — Moderate priority</option>
+                      <option value="3">🟠 High — Important, time-sensitive</option>
+                      <option value="4">🔴 Critical — Urgent, needs immediate help</option>
+                      <option value="5">🚨 Emergency — Life-threatening situation</option>
                     </select>
                   </div>
                 </div>

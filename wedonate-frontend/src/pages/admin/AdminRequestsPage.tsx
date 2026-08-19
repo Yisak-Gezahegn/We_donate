@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { CheckCircle, XCircle, ChevronDown, ChevronUp, Eye, ExternalLink } from 'lucide-react';
+import { CheckCircle, XCircle, ChevronDown, ChevronUp, Eye, ExternalLink, BadgeCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import api from '../../lib/api';
@@ -12,6 +12,14 @@ import Badge, { statusVariant } from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
 
 type ViewMode = 'requests' | 'campaigns';
+
+const URGENCY_MAP: Record<number, { label: string; color: string }> = {
+  5: { label: '🚨 Emergency', color: 'bg-red-100 text-red-700 border-red-200' },
+  4: { label: '🔴 Critical', color: 'bg-orange-100 text-orange-700 border-orange-200' },
+  3: { label: '🟠 High', color: 'bg-amber-100 text-amber-700 border-amber-200' },
+  2: { label: '🟡 Medium', color: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
+  1: { label: '🟢 Standard', color: 'bg-green-100 text-green-700 border-green-200' },
+};
 
 function DetailRow({ label, value, isDark }: { label: string; value?: string | null; isDark: boolean }) {
   if (!value) return null;
@@ -76,6 +84,16 @@ export default function AdminRequestsPage() {
 
   const toggleExpand = (id: string) => setExpanded(prev => prev === id ? null : id);
 
+  const handleReject = (id: string, type: 'requests' | 'campaigns') => {
+    const reason = notes[id]?.trim();
+    if (!reason) {
+      toast.error(t('admin.rejection_reason_required'));
+      return;
+    }
+    const mutate = type === 'requests' ? updateReq : updateCamp;
+    mutate.mutate({ id, status: 'REJECTED', adminNote: reason });
+  };
+
   const ItemCard = ({ item, type }: { item: any; type: 'requests' | 'campaigns' }) => {
     const isOpen = expanded === item.id;
     const mutate = type === 'requests' ? updateReq : updateCamp;
@@ -95,8 +113,8 @@ export default function AdminRequestsPage() {
                   </span>
                 )}
                 {item.urgencyLevel && (
-                  <span className="text-xs bg-red-50 text-red-600 px-2 py-0.5 rounded-full">
-                    {t('admin.urgency')} {item.urgencyLevel}/5
+                  <span className={cn('text-xs px-2 py-0.5 rounded-full border font-semibold', URGENCY_MAP[item.urgencyLevel]?.color || 'bg-gray-100 text-gray-600')}>
+                    {URGENCY_MAP[item.urgencyLevel]?.label || `Level ${item.urgencyLevel}`}
                   </span>
                 )}
               </div>
@@ -112,7 +130,7 @@ export default function AdminRequestsPage() {
                   </div>
                 )}
                 <span className={isDark ? 'text-slate-400' : 'text-gray-500'}>
-                  {item.user?.firstName} {item.user?.lastName} · {item.user?.email}
+                  {item.user?.firstName} {item.user?.lastName} {item.user?.isVerified && <BadgeCheck className="w-3.5 h-3.5 inline text-blue-500" />} · {item.user?.email}
                 </span>
                 <span className={isDark ? 'text-slate-600' : 'text-gray-300'}>·</span>
                 <span className={isDark ? 'text-slate-500' : 'text-gray-400'}>{formatDate(item.createdAt)}</span>
@@ -145,7 +163,7 @@ export default function AdminRequestsPage() {
                     {t('admin.approve')}
                   </Button>
                   <Button size="sm" variant="danger" leftIcon={<XCircle className="w-3.5 h-3.5" />}
-                    onClick={() => mutate.mutate({ id: item.id, status: 'REJECTED', adminNote: notes[item.id] })}>
+                    onClick={() => handleReject(item.id, type)}>
                     {t('admin.reject')}
                   </Button>
                 </div>

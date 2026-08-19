@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import {
   Heart, Users, TrendingUp, Shield, ArrowRight,
-  Star, Quote, ChevronLeft, ChevronRight, Target, Clock,
+  Star, Quote, ChevronLeft, ChevronRight, Target, Clock, Share2,
 } from 'lucide-react';
 import api from '../lib/api';
 import { formatCurrency, formatDate } from '../lib/utils';
@@ -466,8 +466,14 @@ export default function HomePage() {
             <div className="grid md:grid-cols-3 gap-6 mb-8">
               {featuredRequests.map((req: any, i: number) => {
                 const pct = req.goalAmount ? Math.min((req.raisedAmount / req.goalAmount) * 100, 100) : 0;
-                const urgencyLabels = ['','Low','Normal','Medium','High','Critical'];
-                const urgencyColors = ['','text-gray-500','text-blue-500','text-yellow-600','text-orange-500','text-red-500'];
+                const urgencyMap: Record<number, { label: string; color: string }> = {
+                  5: { label: '🚨 Emergency', color: 'text-red-600' },
+                  4: { label: '🔴 Critical', color: 'text-orange-600' },
+                  3: { label: '🟠 High', color: 'text-amber-600' },
+                  2: { label: '🟡 Medium', color: 'text-yellow-600' },
+                  1: { label: '🟢 Standard', color: 'text-green-600' },
+                };
+                const urgency = urgencyMap[req.urgencyLevel] || urgencyMap[1];
                 return (
                   <motion.div key={req.id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }} transition={{ delay: i * 0.1 }}>
@@ -479,8 +485,8 @@ export default function HomePage() {
                           <h3 className={cn('font-bold text-sm flex-1', isDark ? 'text-white' : 'text-gray-900')}>
                             {req.title}
                           </h3>
-                          <span className={cn('text-xs font-semibold shrink-0', urgencyColors[req.urgencyLevel] || urgencyColors[1])}>
-                            {urgencyLabels[req.urgencyLevel] || 'Normal'}
+                          <span className={cn('text-xs font-semibold shrink-0', urgency.color)}>
+                            {urgency.label}
                           </span>
                         </div>
                         <p className={cn('text-xs leading-relaxed line-clamp-3 flex-1 mb-4', isDark ? 'text-slate-400' : 'text-gray-500')}>
@@ -506,11 +512,18 @@ export default function HomePage() {
                           {req.user?.firstName} {req.user?.lastName}
                           <span className="ml-auto">{req.category}</span>
                         </div>
-                        <Link to={`/donate?tab=requests`}>
-                          <Button size="sm" className="w-full" rightIcon={<Heart className="w-3.5 h-3.5" />}>
-                            Support Now
-                          </Button>
-                        </Link>
+                        <div className="flex gap-2">
+                          <Link to={`/donate?tab=requests`} className="flex-1">
+                            <Button size="sm" className="w-full" rightIcon={<Heart className="w-3.5 h-3.5" />}>
+                              Support Now
+                            </Button>
+                          </Link>
+                          <a href={`https://t.me/share/url?url=${encodeURIComponent(`https://wedonate.et/donate/request/${req.id}`)}&text=${encodeURIComponent(`Help: ${req.title}`)}`}
+                            target="_blank" rel="noopener noreferrer"
+                            className="p-2 rounded-xl bg-blue-500 text-white hover:opacity-80 transition-opacity">
+                            <Share2 className="w-4 h-4" />
+                          </a>
+                        </div>
                       </div>
                     </Card>
                   </motion.div>

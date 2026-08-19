@@ -82,7 +82,8 @@
     "register_btn": "Create Account",
     "no_account": "Don't have an account?",
     "have_account": "Already have an account?",
-    "forgot_password": "Forgot password?"
+    "forgot_password": "Forgot password?",
+    "login_required": "Please login or create an account to donate"
   },
   "dashboard": {
     "welcome": "Welcome back",
@@ -248,6 +249,7 @@
     "hide": "Hide",
     "view_details": "View Details",
     "admin_note_placeholder": "Admin note (optional)...",
+    "rejection_reason_required": "Please provide a reason for rejection",
     "approve": "Approve",
     "reject": "Reject",
     "admin_note_label": "Admin note:",

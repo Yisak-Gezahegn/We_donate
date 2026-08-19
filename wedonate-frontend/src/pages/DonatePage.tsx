@@ -1,12 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
+import CampaignUpdates from '../components/CampaignUpdates';
+import ImpactGallery from '../components/ImpactGallery';
 import {
   Heart, Target, Users, ArrowRight, Lock, Plus,
   Search, Calendar, ChevronRight, X, Copy, Check,
-  Smartphone, Building2, Package, CreditCard, Eye,
+  Smartphone, Building2, Package, CreditCard, Eye, BadgeCheck,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../lib/api';
@@ -38,24 +40,58 @@ const REQUEST_CATEGORIES = [
   { value: 'OTHER',    label: '🤲 Other' },
 ];
 
-function ProgressBar({ raised, goal, className }: { raised: number; goal: number; className?: string }) {
+function ProgressBar({ raised, goal, deadline, isDark, className }: { raised: number; goal: number; deadline?: string | null; isDark?: boolean; className?: string }) {
   const pct = Math.min((raised / goal) * 100, 100);
+  const goalMet = raised >= goal;
+  const daysLeft = deadline ? Math.max(0, Math.ceil((new Date(deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24))) : null;
+
   return (
     <div className={cn('w-full', className)}>
       <div className="flex justify-between text-xs mb-1.5 font-medium">
         <span className="text-green-500">{formatCurrency(raised)} raised</span>
-        <span className="opacity-60">{Math.round(pct)}%</span>
+        <span className={cn(goalMet ? 'text-green-600 font-bold' : 'opacity-60')}>{Math.round(pct)}%</span>
       </div>
-      <div className="h-2 rounded-full bg-gray-200 dark:bg-slate-600 overflow-hidden">
+      <div className={cn('h-2.5 rounded-full overflow-hidden', isDark ? 'bg-slate-600' : 'bg-gray-200')}>
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: `${pct}%` }}
           transition={{ duration: 0.8, ease: 'easeOut' }}
-          className="h-full rounded-full bg-gradient-to-r from-green-500 to-emerald-400"
+          className={cn('h-full rounded-full', goalMet
+            ? 'bg-gradient-to-r from-green-400 to-emerald-300'
+            : 'bg-gradient-to-r from-green-500 to-emerald-400')}
         />
       </div>
-      <div className="text-xs mt-1 opacity-60">Goal: {formatCurrency(goal)}</div>
+      <div className="flex justify-between text-xs mt-1.5">
+        <span className={cn('opacity-60')}>Goal: {formatCurrency(goal)}</span>
+        {goalMet ? (
+          <span className="text-green-600 font-bold">✓ Goal Reached!</span>
+        ) : daysLeft !== null ? (
+          <span className={cn(daysLeft <= 3 ? 'text-red-500 font-semibold' : 'opacity-60')}>
+            {daysLeft === 0 ? '⏰ Ends today' : `${daysLeft} day${daysLeft === 1 ? '' : 's'} left`}
+          </span>
+        ) : null}
+      </div>
     </div>
+  );
+}
+
+function ShareButton({ platform, label, color, url, title, isDark }: {
+  platform: string; label: string; color: string; url: string; title: string; isDark: boolean;
+}) {
+  const shareUrls: Record<string, string> = {
+    telegram: `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(`Check this out: ${title}`)}`,
+    whatsapp: `https://api.whatsapp.com/send?text=${encodeURIComponent(`Check this out: ${title}\n${url}`)}`,
+    facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
+  };
+  return (
+    <a href={shareUrls[platform]} target="_blank" rel="noopener noreferrer"
+      className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-white transition-opacity hover:opacity-80"
+      style={{ backgroundColor: color }}>
+      {platform === 'telegram' && <span>✈</span>}
+      {platform === 'whatsapp' && <span>💬</span>}
+      {platform === 'facebook' && <span>f</span>}
+      {label}
+    </a>
   );
 }
 
@@ -98,7 +134,7 @@ function CampaignCard({ camp, onDonate, onDetail, isDark }: { camp: any; onDonat
           {camp.description}
         </p>
 
-        <ProgressBar raised={camp.raisedAmount} goal={camp.goalAmount} className="mb-4" />
+        <ProgressBar raised={camp.raisedAmount} goal={camp.goalAmount} deadline={camp.deadline} isDark={isDark} className="mb-4" />
 
         <div className="flex items-center justify-between mb-4 text-xs">
           <span className={cn('flex items-center gap-1', isDark ? 'text-slate-400' : 'text-gray-500')}>
@@ -106,7 +142,7 @@ function CampaignCard({ camp, onDonate, onDetail, isDark }: { camp: any; onDonat
             {camp._count?.donations ?? 0} donors
           </span>
           <span className={cn(isDark ? 'text-slate-400' : 'text-gray-500')}>
-            by {camp.user?.firstName} {camp.user?.lastName}
+            by {camp.user?.firstName} {camp.user?.lastName} {camp.user?.isVerified && <span className="inline-flex items-center gap-0.5 text-blue-500"><BadgeCheck className="w-3 h-3" /></span>}
           </span>
         </div>
 
@@ -126,7 +162,14 @@ function CampaignCard({ camp, onDonate, onDetail, isDark }: { camp: any; onDonat
 }
 
 function RequestCard({ req, onDonate, onDetail, isDark }: { req: any; onDonate: (id: string, title: string, data: any) => void; onDetail: (data: any) => void; isDark: boolean }) {
-  const urgencyColors = ['', 'bg-gray-100 text-gray-600', 'bg-blue-100 text-blue-600', 'bg-yellow-100 text-yellow-700', 'bg-orange-100 text-orange-700', 'bg-red-100 text-red-700'];
+  const urgencyMap: Record<number, { label: string; color: string }> = {
+    5: { label: '🚨 Emergency', color: 'bg-red-100 text-red-700 border border-red-200' },
+    4: { label: '🔴 Critical', color: 'bg-orange-100 text-orange-700 border border-orange-200' },
+    3: { label: '🟠 High', color: 'bg-amber-100 text-amber-700 border border-amber-200' },
+    2: { label: '🟡 Medium', color: 'bg-yellow-100 text-yellow-700 border border-yellow-200' },
+    1: { label: '🟢 Standard', color: 'bg-green-100 text-green-700 border border-green-200' },
+  };
+  const urgency = urgencyMap[req.urgencyLevel] || urgencyMap[1];
 
   return (
     <Card className="overflow-hidden flex flex-col h-full" padding="none">
@@ -136,8 +179,8 @@ function RequestCard({ req, onDonate, onDetail, isDark }: { req: any; onDonate: 
           : <div className="absolute inset-0 flex items-center justify-center text-5xl opacity-30">🤲</div>
         }
         <div className="absolute top-3 left-3">
-          <span className={cn('text-xs font-semibold px-2.5 py-1 rounded-full', urgencyColors[req.urgencyLevel] || urgencyColors[1])}>
-            {req.urgencyLevel === 5 ? '🚨 Critical' : req.urgencyLevel >= 4 ? 'High' : req.urgencyLevel >= 3 ? 'Medium' : 'Low'}
+          <span className={cn('text-xs font-semibold px-2.5 py-1 rounded-full', urgency.color)}>
+            {urgency.label}
           </span>
         </div>
         <div className="absolute top-3 right-3">
@@ -157,7 +200,7 @@ function RequestCard({ req, onDonate, onDetail, isDark }: { req: any; onDonate: 
         </p>
 
         {req.goalAmount && (
-          <ProgressBar raised={req.raisedAmount} goal={req.goalAmount} className="mb-4" />
+          <ProgressBar raised={req.raisedAmount} goal={req.goalAmount} isDark={isDark} className="mb-4" />
         )}
 
         <div className="flex items-center justify-between mb-4 text-xs">
@@ -169,7 +212,7 @@ function RequestCard({ req, onDonate, onDetail, isDark }: { req: any; onDonate: 
                 {req.user?.firstName?.[0]}
               </div>
             )}
-            <span>{req.user?.firstName} {req.user?.lastName}</span>
+            <span>{req.user?.firstName} {req.user?.lastName} {req.user?.isVerified && <BadgeCheck className="w-3 h-3 inline text-blue-500" />}</span>
           </div>
           <span className={isDark ? 'text-slate-500' : 'text-gray-400'}>{formatDate(req.createdAt)}</span>
         </div>
@@ -265,9 +308,13 @@ function DetailModal({ data, type, onClose, isDark }: { data: any; type: 'campai
               </span>
             )}
             {data.urgencyLevel && (
-              <span className={cn('text-xs font-semibold px-2.5 py-1 rounded-full',
-                data.urgencyLevel >= 4 ? 'bg-red-100 text-red-700' : data.urgencyLevel >= 3 ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600')}>
-                Urgency: {urgencyLabels[data.urgencyLevel]}
+              <span className={cn('text-xs font-semibold px-2.5 py-1 rounded-full border',
+                data.urgencyLevel === 5 ? 'bg-red-100 text-red-700 border-red-200' :
+                data.urgencyLevel === 4 ? 'bg-orange-100 text-orange-700 border-orange-200' :
+                data.urgencyLevel === 3 ? 'bg-amber-100 text-amber-700 border-amber-200' :
+                data.urgencyLevel === 2 ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :
+                'bg-green-100 text-green-700 border-green-200')}>
+                {data.urgencyLevel === 5 ? '🚨 Emergency' : data.urgencyLevel === 4 ? '🔴 Critical' : data.urgencyLevel === 3 ? '🟠 High' : data.urgencyLevel === 2 ? '🟡 Medium' : '🟢 Standard'}
               </span>
             )}
           </div>
@@ -280,16 +327,32 @@ function DetailModal({ data, type, onClose, isDark }: { data: any; type: 'campai
             <div className={cn('p-4 rounded-2xl mb-5', isDark ? 'bg-slate-700/50' : 'bg-gray-50')}>
               <div className="flex justify-between text-sm mb-2 font-semibold">
                 <span className="text-green-500">{formatCurrency(data.raisedAmount)} raised</span>
-                <span className={isDark ? 'text-slate-400' : 'text-gray-500'}>{Math.round(pct)}%</span>
+                <span className={pct >= 100 ? 'text-green-600 font-bold' : (isDark ? 'text-slate-400' : 'text-gray-500')}>{Math.round(pct)}%</span>
               </div>
               <div className={cn('h-3 rounded-full overflow-hidden', isDark ? 'bg-slate-600' : 'bg-gray-200')}>
                 <motion.div initial={{ width: 0 }} animate={{ width: `${pct}%` }}
                   transition={{ duration: 1, ease: 'easeOut' }}
-                  className="h-full rounded-full bg-gradient-to-r from-green-500 to-emerald-400" />
+                  className={cn('h-full rounded-full', pct >= 100
+                    ? 'bg-gradient-to-r from-green-400 to-emerald-300'
+                    : 'bg-gradient-to-r from-green-500 to-emerald-400')} />
               </div>
               <div className="flex justify-between text-xs mt-2">
                 <span className={isDark ? 'text-slate-400' : 'text-gray-500'}>Goal: {formatCurrency(data.goalAmount)}</span>
-                <span className={isDark ? 'text-slate-400' : 'text-gray-500'}>{data._count?.donations ?? 0} donations</span>
+                {pct >= 100 ? (
+                  <span className="text-green-600 font-bold">✓ Goal Reached!</span>
+                ) : data.deadline ? (
+                  <span className={cn(
+                    Math.ceil((new Date(data.deadline).getTime() - Date.now()) / 86400000) <= 3
+                      ? 'text-red-500 font-semibold' : (isDark ? 'text-slate-400' : 'text-gray-500')
+                  )}>
+                    {(() => {
+                      const d = Math.max(0, Math.ceil((new Date(data.deadline).getTime() - Date.now()) / 86400000));
+                      return d === 0 ? '⏰ Ends today' : `${d} day${d === 1 ? '' : 's'} left`;
+                    })()}
+                  </span>
+                ) : (
+                  <span className={isDark ? 'text-slate-400' : 'text-gray-500'}>{data._count?.donations ?? 0} donations</span>
+                )}
               </div>
             </div>
           )}
@@ -338,6 +401,28 @@ function DetailModal({ data, type, onClose, isDark }: { data: any; type: 'campai
             </div>
           )}
 
+          {/* Impact Gallery */}
+          {type === 'campaign' && <ImpactGallery campaign={data} />}
+
+          {/* Campaign Updates Timeline */}
+          {type === 'campaign' && <CampaignUpdates campaignId={data.id} />}
+
+          {/* Social Share */}
+          <div className={cn('p-4 rounded-2xl mb-5', isDark ? 'bg-slate-700/50' : 'bg-gray-50')}>
+            <p className={cn('text-xs font-semibold mb-3', isDark ? 'text-slate-400' : 'text-gray-500')}>Share this cause</p>
+            <div className="flex gap-2">
+              <ShareButton platform="telegram" label="Telegram" color="#229ED9"
+                url={`${window.location.origin}/donate/${type}/${data.id}`}
+                title={data.title} isDark={isDark} />
+              <ShareButton platform="whatsapp" label="WhatsApp" color="#25D366"
+                url={`${window.location.origin}/donate/${type}/${data.id}`}
+                title={data.title} isDark={isDark} />
+              <ShareButton platform="facebook" label="Facebook" color="#1877F2"
+                url={`${window.location.origin}/donate/${type}/${data.id}`}
+                title={data.title} isDark={isDark} />
+            </div>
+          </div>
+
           <Button className="w-full" onClick={onClose}>Close</Button>
         </div>
       </motion.div>
@@ -367,9 +452,14 @@ function DonationModal({
   const [refCode, setRefCode]       = useState('');
   const [proofUrl, setProofUrl]     = useState('');
   const [itemDesc, setItemDesc]     = useState('');
+  const [itemCategory, setItemCategory] = useState('OTHER');
   const [itemImgUrl, setItemImgUrl] = useState('');
   const [delivery, setDelivery]     = useState('BRING_TO_OFFICE');
   const [loading, setLoading]       = useState(false);
+
+  useEffect(() => {
+    if (step === 2 && donateType === 'ITEM') setStep(3);
+  }, [step, donateType]);
 
   const AMOUNTS = [50, 100, 200, 500, 1000, 2000];
   const finalAmount = parseFloat(amount || custom) || 0;
@@ -390,14 +480,20 @@ function DonationModal({
 
   const handleSubmit = async () => {
     if (!isAuthenticated) { toast.error('Please login to donate'); navigate('/login'); return; }
-    if (donateType === 'MONEY' && finalAmount < 1) { toast.error('Enter a valid amount (min 1 ETB)'); return; }
+    if (donateType === 'MONEY') {
+      if (finalAmount < 1) { toast.error('Enter a valid amount (min 1 ETB)'); return; }
+      if (!refCode.trim()) { toast.error('Please enter the transaction reference code'); return; }
+      if (!proofUrl.trim()) { toast.error('Please upload a payment proof screenshot'); return; }
+    }
+    if (donateType === 'ITEM') {
+      if (!itemDesc.trim()) { toast.error('Please describe the items you are donating'); return; }
+      if (!itemImgUrl.trim()) { toast.error('Please upload a photo of the items'); return; }
+    }
 
     setLoading(true);
     try {
       const payload: any = {
-        donationType: donateType === 'ITEM'
-          ? (itemDesc.toLowerCase().includes('food') ? 'FOOD' : itemDesc.toLowerCase().includes('cloth') ? 'CLOTHES' : itemDesc.toLowerCase().includes('med') ? 'MEDICINE' : 'OTHER')
-          : 'MONEY',
+        donationType: donateType === 'ITEM' ? itemCategory : 'MONEY',
         description: note || itemDesc,
         isAnonymous: anon,
         paymentMethod: donateType === 'ITEM' ? 'ITEM' : method,
@@ -549,9 +645,6 @@ function DonationModal({
             </motion.div>
           )}
 
-          {/* ════ STEP 2B: Item → auto advance to step 3 ════ */}
-          {step === 2 && donateType === 'ITEM' && (() => { setStep(3); return null; })()}
-
           {/* ════ STEP 3: Money details ════ */}
           {step === 3 && donateType === 'MONEY' && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
@@ -618,6 +711,25 @@ function DonationModal({
                 <span className={cn('text-sm', isDark ? 'text-slate-300' : 'text-gray-700')}>Donate anonymously</span>
               </label>
 
+              {/* Fee Breakdown */}
+              <div className={cn('p-3 rounded-xl text-xs space-y-1', isDark ? 'bg-slate-700/50' : 'bg-gray-50')}>
+                <div className="flex justify-between">
+                  <span className={isDark ? 'text-slate-400' : 'text-gray-500'}>Donation amount</span>
+                  <span className="font-medium">{formatCurrency(finalAmount)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className={isDark ? 'text-slate-400' : 'text-gray-500'}>Platform fee</span>
+                  <span className="text-green-600 font-semibold">0% (Free)</span>
+                </div>
+                <div className={cn('flex justify-between pt-1 border-t font-semibold', isDark ? 'border-slate-600' : 'border-gray-200')}>
+                  <span className={isDark ? 'text-white' : 'text-gray-900'}>Amount to beneficiary</span>
+                  <span className="text-green-600">{formatCurrency(finalAmount)}</span>
+                </div>
+                <p className={cn('pt-1', isDark ? 'text-slate-500' : 'text-gray-400')}>
+                  100% of your donation goes directly to the cause. We charge 0% platform fees.
+                </p>
+              </div>
+
               <Button className="w-full" size="lg" isLoading={loading} onClick={handleSubmit}>
                 Confirm Donation {finalAmount > 0 ? `- ${formatCurrency(finalAmount)}` : ''}
               </Button>
@@ -632,6 +744,28 @@ function DonationModal({
                   isDark ? 'text-slate-400 hover:text-white' : 'text-gray-500 hover:text-gray-800')}>
                 ← Back
               </button>
+
+              <div>
+                <label className={cn('block text-sm font-semibold mb-1.5', isDark ? 'text-slate-300' : 'text-gray-700')}>
+                  Item Category *
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { v: 'FOOD', l: '🍚 Food & Groceries' },
+                    { v: 'CLOTHES', l: '👕 Clothes & Shoes' },
+                    { v: 'MEDICINE', l: '💊 Medicine & Health' },
+                    { v: 'OTHER', l: '📦 Other Items' },
+                  ].map(c => (
+                    <button key={c.v} onClick={() => setItemCategory(c.v)}
+                      className={cn('p-2 rounded-xl text-xs font-medium text-left transition-all border',
+                        itemCategory === c.v
+                          ? 'bg-green-600 text-white border-green-600'
+                          : (isDark ? 'bg-slate-700 border-slate-600 text-slate-300 hover:border-green-500' : 'bg-white border-gray-200 text-gray-700 hover:border-green-500'))}>
+                      {c.l}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
               <div>
                 <label className={cn('block text-sm font-semibold mb-1.5', isDark ? 'text-slate-300' : 'text-gray-700')}>
@@ -946,6 +1080,15 @@ export default function DonatePage() {
   const [donateTarget, setDonateTarget] = useState<{ id: string; title: string; type: 'campaign'|'request'; data: any } | null>(null);
   const [detailTarget, setDetailTarget] = useState<{ data: any; type: 'campaign'|'request' } | null>(null);
 
+  const requireAuth = (callback: () => void) => {
+    if (!isAuthenticated) {
+      toast.error(t('auth.login_required'));
+      navigate('/login?from=' + encodeURIComponent('/donate'));
+      return;
+    }
+    callback();
+  };
+
   const urlTab = searchParams.get('tab');
   const activeTab = (urlTab === 'requests' || urlTab === 'campaigns') ? urlTab : tab;
 
@@ -1053,7 +1196,7 @@ export default function DonatePage() {
                   {filteredCamps.map((camp: any) => (
                     <motion.div key={camp.id} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}>
                       <CampaignCard camp={camp} isDark={isDark}
-                        onDonate={(id, title, data) => setDonateTarget({ id, title, type: 'campaign', data })}
+                        onDonate={(id, title, data) => requireAuth(() => setDonateTarget({ id, title, type: 'campaign', data }))}
                         onDetail={(data) => setDetailTarget({ data, type: 'campaign' })} />
                     </motion.div>
                   ))}
@@ -1101,7 +1244,7 @@ export default function DonatePage() {
                   {filteredReqs.map((req: any) => (
                     <motion.div key={req.id} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}>
                       <RequestCard req={req} isDark={isDark}
-                        onDonate={(id, title, data) => setDonateTarget({ id, title, type: 'request', data })}
+                        onDonate={(id, title, data) => requireAuth(() => setDonateTarget({ id, title, type: 'request', data }))}
                         onDetail={(data) => setDetailTarget({ data, type: 'request' })} />
                     </motion.div>
                   ))}

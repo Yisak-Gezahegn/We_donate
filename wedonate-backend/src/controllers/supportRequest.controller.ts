@@ -124,6 +124,9 @@ export const getMyRequests = async (req: AuthRequest, res: Response, next: NextF
 export const updateRequestStatus = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { status, adminNote } = req.body;
+    if (status === 'REJECTED' && (!adminNote || !adminNote.trim())) {
+      return next(createError('Rejection reason is required', 400));
+    }
     const request = await prisma.supportRequest.update({
       where: { id: req.params.id },
       data: { status, adminNote: adminNote || null },
@@ -132,7 +135,7 @@ export const updateRequestStatus = async (req: AuthRequest, res: Response, next:
       data: {
         id: uuidv4(), userId: request.userId,
         title: `Request ${status}`,
-        message: `Your support request "${request.title}" has been ${status.toLowerCase()}.${adminNote ? ` Note: ${adminNote}` : ''}`,
+        message: `Your support request "${request.title}" has been ${status.toLowerCase()}.${adminNote ? ` Reason: ${adminNote}` : ''}`,
         type: status === 'APPROVED' ? 'SUCCESS' : status === 'REJECTED' ? 'ERROR' : 'INFO',
       },
     });

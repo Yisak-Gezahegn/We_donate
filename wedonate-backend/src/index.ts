@@ -20,6 +20,7 @@ import galleryRoutes        from './routes/gallery.routes';
 import uploadRoutes         from './routes/upload.routes';
 import testimonialRoutes    from './routes/testimonial.routes';
 import heroImageRoutes      from './routes/heroImage.routes';
+import campaignUpdateRoutes from './routes/campaignUpdate.routes';
 import { errorHandler }     from './middleware/errorHandler';
 
 const app  = express();
@@ -49,6 +50,7 @@ app.use('/api/gallery',         galleryRoutes);
 app.use('/api/upload',          uploadRoutes);
 app.use('/api/testimonials',    testimonialRoutes);
 app.use('/api/hero-images',     heroImageRoutes);
+app.use('/api/campaign-updates', campaignUpdateRoutes);
 
 app.get('/api/health', (_req, res) => res.json({ status: 'ok', message: 'We Donate API running', timestamp: new Date().toISOString() }));
 

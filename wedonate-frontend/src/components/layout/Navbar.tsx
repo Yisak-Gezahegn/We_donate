@@ -3,8 +3,10 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   Menu, X, ChevronDown, Globe,
-  User, LogOut, LayoutDashboard, Sun, Moon,
+  User, LogOut, LayoutDashboard, Sun, Moon, Bell,
 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import api from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { cn } from '../../lib/utils';
@@ -38,6 +40,16 @@ export default function Navbar() {
   const handleLogout = () => { logout(); navigate('/'); setUserOpen(false); };
   const currentLang  = LANGUAGES.find(l => l.code === i18n.language) ?? LANGUAGES[0];
   const isAdmin      = user && ['KEBELE_ADMIN','WOREDA_ADMIN','CITY_ADMIN','SUPER_ADMIN'].includes(user.role);
+
+  const { data: unreadCount = 0 } = useQuery({
+    queryKey: ['notifications-unread'],
+    queryFn: async () => {
+      const r = await api.get('/notifications');
+      return r.data.data?.filter((n: any) => !n.isRead).length ?? 0;
+    },
+    enabled: isAuthenticated,
+    refetchInterval: 30000,
+  });
 
   /* background when scrolled differs between light/dark */
   const navBg = scrolled
@@ -150,7 +162,18 @@ export default function Navbar() {
 
             {/* Auth */}
             {isAuthenticated ? (
-              <div className="relative">
+              <>
+                {/* Notification Bell */}
+                <Link to="/dashboard/notifications"
+                  className={cn('relative p-2.5 rounded-xl transition-all', txtBase, hoverBg)}>
+                  <Bell className="w-4.5 h-4.5" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center bg-red-500 text-white text-[10px] font-bold rounded-full px-1">
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
+                  )}
+                </Link>
+                <div className="relative">
                 <button
                   onClick={() => { setUserOpen(!userOpen); setLangOpen(false); }}
                   className={cn(
@@ -212,6 +235,7 @@ export default function Navbar() {
                   </div>
                 )}
               </div>
+              </>
             ) : (
               <div className="flex items-center gap-2 ml-1">
                 <Link to="/login"

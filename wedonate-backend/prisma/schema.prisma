@@ -61,6 +61,8 @@ model User {
   isVerified   Boolean  @default(false)
   isActive     Boolean  @default(true)
   profileImage String?
+  registrationExpiry DateTime?  // org registration license expiry
+  licenseExpiry      DateTime?  // org operating license expiry
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -142,12 +144,29 @@ model Campaign {
   fanNumber          String?   // Federal Admin Number
   additionalNotes    String?
 
+  // Impact gallery — success proof
+  successPhotoUrl String?
+  successNote     String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   donations Donation[]
+  updates   CampaignUpdate[]
 
   @@map("campaigns")
+}
+
+model CampaignUpdate {
+  id          String   @id @default(uuid())
+  campaignId  String
+  campaign    Campaign @relation(fields: [campaignId], references: [id])
+  title       String
+  content     String
+  imageUrl    String?
+  createdAt   DateTime @default(now())
+
+  @@map("campaign_updates")
 }
 
 model Donation {

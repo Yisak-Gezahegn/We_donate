@@ -67,6 +67,27 @@ export const createDonation = async (req: AuthRequest, res: Response, next: Next
       },
     });
 
+    // Notify beneficiary (campaign/request owner)
+    let beneficiaryId: string | null = null;
+    if (campaignId) {
+      const campaign = await prisma.campaign.findUnique({ where: { id: campaignId }, select: { userId: true } });
+      beneficiaryId = campaign?.userId ?? null;
+    } else if (supportRequestId) {
+      const req2 = await prisma.supportRequest.findUnique({ where: { id: supportRequestId }, select: { userId: true } });
+      beneficiaryId = req2?.userId ?? null;
+    }
+    if (beneficiaryId && beneficiaryId !== req.user!.userId) {
+      const donorName = isAnonymous ? 'Anonymous' : (await prisma.user.findUnique({ where: { id: req.user!.userId }, select: { firstName: true } }))?.firstName ?? 'Someone';
+      await prisma.notification.create({
+        data: {
+          id: uuidv4(), userId: beneficiaryId,
+          title: 'New Donation Received 💰',
+          message: `${donorName} has donated${donation.amount ? ` ${donation.amount} ETB` : ''} to your ${campaignId ? 'campaign' : 'support request'}.`,
+          type: 'SUCCESS',
+        },
+      });
+    }
+
     res.status(201).json({ success: true, data: donation });
   } catch (error) { next(error); }
 };

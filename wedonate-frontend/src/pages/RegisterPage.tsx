@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -53,6 +53,8 @@ export default function RegisterPage() {
   const { register: registerUser } = useAuth();
   const { isDark } = useTheme();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectTo = searchParams.get('from') || '/dashboard';
   const [showPw,  setShowPw]  = useState(false);
   const [loading, setLoading] = useState(false);
   const [step, setStep]       = useState(0); // animated step indicator
@@ -66,7 +68,7 @@ export default function RegisterPage() {
     try {
       await registerUser(data);
       toast.success('Account created! Welcome to WeDonate 🎉');
-      navigate('/dashboard');
+      navigate(redirectTo);
     } catch (err: any) {
       toast.error(err?.response?.data?.message || 'Registration failed. Please try again.');
     } finally { setLoading(false); }
@@ -185,7 +187,7 @@ export default function RegisterPage() {
 
           <p className={cn('text-center text-sm mt-5', isDark ? 'text-slate-400' : 'text-gray-500')}>
             Already have an account?{' '}
-            <Link to="/login" className="text-green-500 font-semibold hover:underline">
+            <Link to={`/login?from=${encodeURIComponent(redirectTo)}`} className="text-green-500 font-semibold hover:underline">
               {t('nav.login')}
             </Link>
           </p>

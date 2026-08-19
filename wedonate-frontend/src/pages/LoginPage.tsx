@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -29,6 +29,8 @@ export default function LoginPage() {
   const { login } = useAuth();
   const { isDark } = useTheme();
   const navigate   = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectTo = searchParams.get('from') || '/dashboard';
   const [showPw,  setShowPw]  = useState(false);
   const [loading, setLoading] = useState(false);
   const [heroImg, setHeroImg] = useState(0);
@@ -54,7 +56,7 @@ export default function LoginPage() {
     try {
       await login(data.email, data.password);
       toast.success('Welcome back!');
-      navigate('/dashboard');
+      navigate(redirectTo);
     } catch (err: any) {
       toast.error(err?.response?.data?.message || 'Invalid email or password');
     } finally { setLoading(false); }
@@ -171,7 +173,7 @@ export default function LoginPage() {
 
           <p className={cn('text-center text-sm mt-6', isDark ? 'text-slate-400' : 'text-gray-500')}>
             {t('auth.no_account')}{' '}
-            <Link to="/register" className="text-green-500 font-semibold hover:underline">
+            <Link to={`/register?from=${encodeURIComponent(redirectTo)}`} className="text-green-500 font-semibold hover:underline">
               Create free account
             </Link>
           </p>

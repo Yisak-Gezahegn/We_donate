@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Search, UserCog, Shield, ShieldOff, ShieldCheck } from 'lucide-react';
+import { Search, UserCog, Shield, ShieldOff, ShieldCheck, BadgeCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import api from '../../lib/api';
+import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { cn, formatDate } from '../../lib/utils';
 import Card from '../../components/ui/Card';
@@ -19,8 +20,8 @@ export default function ManageUsersPage() {
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
   const [assigningUser, setAssigningUser] = useState<string | null>(null);
+  const [editingExpiry, setEditingExpiry] = useState<string | null>(null);
   const { user: currentUser } = useAuth();
-  const { isDark } = useTheme();
   const qc = useQueryClient();
 
   const isSuperAdmin = currentUser?.role === 'SUPER_ADMIN';
@@ -48,6 +49,24 @@ export default function ManageUsersPage() {
       qc.invalidateQueries({ queryKey: ['admin-users'] });
     },
     onError: (e: any) => toast.error(e?.response?.data?.message || 'Failed to update user status'),
+  });
+
+  const toggleVerification = useMutation({
+    mutationFn: (userId: string) => api.patch(`/admin/users/${userId}/toggle-verification`),
+    onSuccess: (data) => {
+      toast.success(data.data.message || 'Verification updated');
+      qc.invalidateQueries({ queryKey: ['admin-users'] });
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.message || 'Failed to update verification'),
+  });
+
+  const updateExpiry = useMutation({
+    mutationFn: ({ userId, data }: { userId: string; data: any }) => api.patch(`/admin/users/${userId}/document-expiry`, data),
+    onSuccess: () => {
+      toast.success('Document expiry updated');
+      qc.invalidateQueries({ queryKey: ['admin-users'] });
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.message || 'Failed to update expiry'),
   });
 
   const roleColors: Record<string, string> = {
@@ -92,6 +111,9 @@ export default function ManageUsersPage() {
                   <th className={cn('text-left px-5 py-3.5 font-semibold', isDark ? 'text-slate-400' : 'text-gray-600')}>{t('admin.role')}</th>
                   <th className={cn('text-left px-5 py-3.5 font-semibold', isDark ? 'text-slate-400' : 'text-gray-600')}>{t('admin.joined')}</th>
                   <th className={cn('text-left px-5 py-3.5 font-semibold', isDark ? 'text-slate-400' : 'text-gray-600')}>{t('admin.status')}</th>
+                  {['NGO','ORGANIZATION','GOVERNMENTAL_ORG'].includes(roleFilter || '') && (
+                    <th className={cn('text-left px-5 py-3.5 font-semibold', isDark ? 'text-slate-400' : 'text-gray-600')}>Doc Expiry</th>
+                  )}
                   <th className={cn('text-left px-5 py-3.5 font-semibold', isDark ? 'text-slate-400' : 'text-gray-600')}>{t('admin.actions')}</th>
                 </tr>
               </thead>
@@ -105,6 +127,11 @@ export default function ManageUsersPage() {
                           {u.firstName[0]}{u.lastName[0]}
                         </div>
                         <span className={cn('font-medium', isDark ? 'text-white' : 'text-gray-800')}>{u.firstName} {u.lastName}</span>
+                        {u.isVerified && (
+                          <span className="inline-flex items-center gap-0.5 text-xs font-semibold text-blue-600 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400 px-1.5 py-0.5 rounded-full">
+                            <BadgeCheck className="w-3 h-3" /> Verified
+                          </span>
+                        )}
                       </div>
                     </td>
                     <td className={cn('px-5 py-3.5', isDark ? 'text-slate-400' : 'text-gray-500')}>{u.email}</td>
@@ -125,12 +152,56 @@ export default function ManageUsersPage() {
                     <td className="px-5 py-3.5">
                       <Badge variant={u.isActive ? 'success' : 'danger'}>{u.isActive ? t('admin.active') : t('admin.inactive')}</Badge>
                     </td>
+                    {['NGO','ORGANIZATION','GOVERNMENTAL_ORG'].includes(u.role) && (
+                      <td className="px-5 py-3.5">
+                        {editingExpiry === u.id ? (
+                          <div className="flex flex-col gap-1">
+                            <label className={cn('text-[10px]', isDark ? 'text-slate-500' : 'text-gray-400')}>Registration</label>
+                            <input type="date" defaultValue={u.registrationExpiry?.split('T')[0] || ''}
+                              onChange={e => updateExpiry.mutate({ userId: u.id, data: { registrationExpiry: e.target.value || null } })}
+                              className={cn('rounded-lg border px-2 py-1 text-xs', isDark ? 'bg-slate-700 border-slate-600 text-white' : 'border-gray-300')} />
+                            <label className={cn('text-[10px]', isDark ? 'text-slate-500' : 'text-gray-400')}>License</label>
+                            <input type="date" defaultValue={u.licenseExpiry?.split('T')[0] || ''}
+                              onChange={e => updateExpiry.mutate({ userId: u.id, data: { licenseExpiry: e.target.value || null } })}
+                              className={cn('rounded-lg border px-2 py-1 text-xs', isDark ? 'bg-slate-700 border-slate-600 text-white' : 'border-gray-300')} />
+                            <button onClick={() => setEditingExpiry(null)} className="text-xs text-green-500 hover:underline">Done</button>
+                          </div>
+                        ) : (
+                          <button onClick={() => setEditingExpiry(u.id)}
+                            className={cn('text-xs hover:underline cursor-pointer', isDark ? 'text-slate-400' : 'text-gray-500')}>
+                            {u.registrationExpiry ? (
+                              <span className={new Date(u.registrationExpiry) < new Date() ? 'text-red-500 font-semibold' : ''}>
+                                Reg: {new Date(u.registrationExpiry).toLocaleDateString()}
+                                {new Date(u.registrationExpiry) < new Date() && ' ⚠️'}
+                              </span>
+                            ) : <span className="opacity-50">Set dates</span>}
+                            {u.licenseExpiry && (
+                              <span className={cn('block', new Date(u.licenseExpiry) < new Date() ? 'text-red-500 font-semibold' : '')}>
+                                Lic: {new Date(u.licenseExpiry).toLocaleDateString()}
+                                {new Date(u.licenseExpiry) < new Date() && ' ⚠️'}
+                              </span>
+                            )}
+                          </button>
+                        )}
+                      </td>
+                    )}
                     <td className="px-5 py-3.5">
-                      <button onClick={() => setAssigningUser(u.id)}
-                        className={cn('flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors',
-                          isDark ? 'text-green-400 hover:text-green-300 bg-green-900/30 hover:bg-green-900/50' : 'text-green-700 hover:text-green-800 bg-green-50 hover:bg-green-100')}>
-                        <UserCog className="w-3.5 h-3.5" /> {t('admin.assign_role')}
-                      </button>
+                      <div className="flex items-center gap-2">
+                        {['NGO','ORGANIZATION','GOVERNMENTAL_ORG'].includes(u.role) && (
+                          <button onClick={() => toggleVerification.mutate(u.id)}
+                            className={cn('flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors',
+                              u.isVerified
+                                ? (isDark ? 'text-blue-400 hover:text-blue-300 bg-blue-900/30 hover:bg-blue-900/50' : 'text-blue-700 hover:text-blue-800 bg-blue-50 hover:bg-blue-100')
+                                : (isDark ? 'text-slate-400 hover:text-slate-300 bg-slate-700 hover:bg-slate-600' : 'text-gray-600 hover:text-gray-700 bg-gray-100 hover:bg-gray-200'))}>
+                            <BadgeCheck className="w-3.5 h-3.5" /> {u.isVerified ? 'Unverify' : 'Verify'}
+                          </button>
+                        )}
+                        <button onClick={() => setAssigningUser(u.id)}
+                          className={cn('flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors',
+                            isDark ? 'text-green-400 hover:text-green-300 bg-green-900/30 hover:bg-green-900/50' : 'text-green-700 hover:text-green-800 bg-green-50 hover:bg-green-100')}>
+                          <UserCog className="w-3.5 h-3.5" /> {t('admin.assign_role')}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

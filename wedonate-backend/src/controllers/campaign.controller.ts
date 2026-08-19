@@ -113,6 +113,9 @@ export const getAllCampaigns = async (_req: Request, res: Response, next: NextFu
 export const updateCampaignStatus = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { status, adminNote } = req.body;
+    if (status === 'REJECTED' && (!adminNote || !adminNote.trim())) {
+      return next(createError('Rejection reason is required', 400));
+    }
     const campaign = await prisma.campaign.update({
       where: { id: req.params.id },
       data: { status, adminNote: adminNote || null },
@@ -121,10 +124,48 @@ export const updateCampaignStatus = async (req: AuthRequest, res: Response, next
       data: {
         id: uuidv4(), userId: campaign.userId,
         title: `Campaign ${status}`,
-        message: `Your campaign "${campaign.title}" has been ${status.toLowerCase()}.${adminNote ? ` Note: ${adminNote}` : ''}`,
-        type: ['APPROVED','ACTIVE'].includes(status) ? 'SUCCESS' : 'INFO',
+        message: `Your campaign "${campaign.title}" has been ${status.toLowerCase()}.${adminNote ? ` Reason: ${adminNote}` : ''}`,
+        type: ['APPROVED','ACTIVE'].includes(status) ? 'SUCCESS' : status === 'REJECTED' ? 'ERROR' : 'INFO',
       },
     });
     res.json({ success: true, data: campaign });
+  } catch (error) { next(error); }
+};
+
+export const submitSuccessPhoto = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const { successPhotoUrl, successNote } = req.body;
+
+    if (!successPhotoUrl) return next(createError('Success photo URL is required', 400));
+
+    const campaign = await prisma.campaign.findUnique({ where: { id }, select: { userId: true, goalAmount: true, raisedAmount: true, status: true } });
+    if (!campaign) return next(createError('Campaign not found', 404));
+    if (campaign.userId !== req.user!.userId) return next(createError('Only the campaign creator can submit success photos', 403));
+
+    const updated = await prisma.campaign.update({
+      where: { id },
+      data: { successPhotoUrl, successNote: successNote || null, status: 'COMPLETED' },
+    });
+
+    const donors = await prisma.donation.findMany({
+      where: { campaignId: id, paymentStatus: 'SUCCESS' },
+      select: { donorId: true },
+      distinct: ['donorId'],
+    });
+    for (const d of donors) {
+      if (d.donorId !== req.user!.userId) {
+        await prisma.notification.create({
+          data: {
+            id: uuidv4(), userId: d.donorId,
+            title: 'Campaign Completed 🎉',
+            message: `A campaign you supported has been completed! Check out the impact photo.`,
+            type: 'SUCCESS',
+          },
+        });
+      }
+    }
+
+    res.json({ success: true, data: updated });
   } catch (error) { next(error); }
 };

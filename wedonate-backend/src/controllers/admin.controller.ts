@@ -18,7 +18,7 @@ export const getAllUsers = async (req: Request, res: Response, next: NextFunctio
           ],
         } : {}),
       },
-      select: { id: true, firstName: true, lastName: true, email: true, phone: true, role: true, isVerified: true, isActive: true, profileImage: true, createdAt: true },
+      select: { id: true, firstName: true, lastName: true, email: true, phone: true, role: true, isVerified: true, isActive: true, profileImage: true, registrationExpiry: true, licenseExpiry: true, createdAt: true },
       orderBy: { createdAt: 'desc' },
     });
     res.json({ success: true, data: users });
@@ -134,5 +134,64 @@ export const getAuditLogs = async (_req: Request, res: Response, next: NextFunct
       take: 100,
     });
     res.json({ success: true, data: logs });
+  } catch (error) { next(error); }
+};
+
+export const updateDocumentExpiry = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const { registrationExpiry, licenseExpiry } = req.body;
+    const user = await prisma.user.update({
+      where: { id: req.params.id },
+      data: {
+        registrationExpiry: registrationExpiry ? new Date(registrationExpiry) : null,
+        licenseExpiry: licenseExpiry ? new Date(licenseExpiry) : null,
+      },
+      select: { id: true, firstName: true, lastName: true, email: true, role: true, isVerified: true, registrationExpiry: true, licenseExpiry: true },
+    });
+    res.json({ success: true, data: user, message: 'Document expiry updated' });
+  } catch (error) { next(error); }
+};
+
+export const toggleVerification = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const targetUser = await prisma.user.findUnique({
+      where: { id: req.params.id },
+      select: { id: true, isVerified: true, firstName: true, lastName: true, role: true },
+    });
+    if (!targetUser) return next(createError('User not found', 404));
+
+    const ORG_ROLES = ['NGO', 'ORGANIZATION', 'GOVERNMENTAL_ORG'];
+    if (!ORG_ROLES.includes(targetUser.role)) {
+      return next(createError('Only organizations can be verified', 400));
+    }
+
+    const newVerifiedState = !targetUser.isVerified;
+    const user = await prisma.user.update({
+      where: { id: req.params.id },
+      data: { isVerified: newVerifiedState },
+      select: { id: true, firstName: true, lastName: true, email: true, role: true, isVerified: true },
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        id: uuidv4(), userId: req.user!.userId,
+        action: newVerifiedState ? 'VERIFY_ORG' : 'UNVERIFY_ORG',
+        resource: 'user', resourceId: req.params.id,
+        details: `${newVerifiedState ? 'Verified' : 'Unverified'} organization ${targetUser.firstName} ${targetUser.lastName}`,
+      },
+    });
+
+    await prisma.notification.create({
+      data: {
+        id: uuidv4(), userId: req.params.id,
+        title: newVerifiedState ? 'Organization Verified' : 'Verification Removed',
+        message: newVerifiedState
+          ? 'Your organization has been verified. A verified badge will now appear on your profile.'
+          : 'Your organization verification has been removed.',
+        type: newVerifiedState ? 'SUCCESS' : 'INFO',
+      },
+    });
+
+    res.json({ success: true, data: user, message: `Organization ${newVerifiedState ? 'verified' : 'unverified'} successfully` });
   } catch (error) { next(error); }
 };

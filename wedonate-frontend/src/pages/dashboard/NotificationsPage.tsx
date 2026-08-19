@@ -5,8 +5,6 @@ import { useTheme } from '../../context/ThemeContext';
 import { timeAgo, cn } from '../../lib/utils';
 import api from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
-import { useTheme } from '../../context/ThemeContext';
-import { cn } from '../../lib/utils';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 

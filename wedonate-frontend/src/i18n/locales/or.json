@@ -82,7 +82,8 @@
     "register_btn": "Meeshaalee Garagalchi",
     "no_account": "Meeshaalee hin qabdu?",
     "have_account": "Meeshaalee qabdu?",
-    "forgot_password": "Jechi darbaa irraanufatee?"
+    "forgot_password": "Jechi darbaa irraanufatee?",
+    "login_required": "Kuusaa qabuuf sechi jackii qabi"
   },
   "dashboard": {
     "welcome": "Baga Dufteen",
@@ -248,6 +249,7 @@
     "hide": "Diksi",
     "view_details": "Bal'ina Daawwadi",
     "admin_note_placeholder": "Meeshaalee Hoggannaa (optional)...",
+    "rejection_reason_required": "Meeshaa gad dhiisuuf fooyya'i seenaa qabi",
     "approve": "Milkaa'i",
     "reject": "Aduu",
     "admin_note_label": "Meeshaalee Hoggannaa:",

@@ -38,3 +38,14 @@ export const markAllRead = async (req: AuthRequest, res: Response, next: NextFun
     next(error);
   }
 };
+
+export const clearAll = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    await prisma.notification.deleteMany({
+      where: { userId: req.user!.userId },
+    });
+    res.json({ success: true, message: 'All notifications cleared' });
+  } catch (error) {
+    next(error);
+  }
+};

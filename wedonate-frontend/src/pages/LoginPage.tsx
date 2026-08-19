@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
@@ -10,6 +10,8 @@ import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { cn } from '../lib/utils';
+import { formatCurrency } from '../lib/utils';
+import api from '../lib/api';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 
@@ -18,14 +20,6 @@ const schema = z.object({
   password: z.string().min(6, 'At least 6 characters'),
 });
 type FormData = z.infer<typeof schema>;
-
-/* ── Floating stat bubbles on hero side ── */
-const BUBBLES = [
-  { icon: Heart,      label: 'Lives Touched',   value: '3,500+', color: 'bg-green-500',  delay: 0 },
-  { icon: Users,      label: 'Community Members',value: '1,200+', color: 'bg-blue-500',   delay: 0.4 },
-  { icon: TrendingUp, label: 'ETB Raised',       value: '2.5M+',  color: 'bg-amber-500',  delay: 0.8 },
-  { icon: Shield,     label: 'Verified Requests',value: '500+',   color: 'bg-purple-500', delay: 1.2 },
-];
 
 /* Slide images */
 const HERO_IMGS = ['/Adama_city3.jpg','/Adama_city2.jpg','/Adama-City.jpg'];
@@ -38,6 +32,18 @@ export default function LoginPage() {
   const [showPw,  setShowPw]  = useState(false);
   const [loading, setLoading] = useState(false);
   const [heroImg, setHeroImg] = useState(0);
+  const [statsData, setStatsData] = useState<any>(null);
+
+  useEffect(() => {
+    api.get('/donations/stats').then(r => setStatsData(r.data.data)).catch(() => {});
+  }, []);
+
+  const BUBBLES = [
+    { icon: Heart,      label: 'Lives Touched',   value: statsData?.totalDonations ? statsData.totalDonations.toLocaleString() : '3,500+', color: 'bg-green-500',  delay: 0 },
+    { icon: Users,      label: 'Community Members',value: statsData?.totalUsers ? statsData.totalUsers.toLocaleString() : '1,200+', color: 'bg-blue-500',   delay: 0.4 },
+    { icon: TrendingUp, label: 'ETB Raised',       value: statsData?.totalAmount ? formatCurrency(statsData.totalAmount) : 'ETB 2.5M+',  color: 'bg-amber-500',  delay: 0.8 },
+    { icon: Shield,     label: 'Verified Requests',value: statsData?.fulfilledRequests ? statsData.fulfilledRequests.toLocaleString() : '500+',   color: 'bg-purple-500', delay: 1.2 },
+  ];
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -155,7 +161,7 @@ export default function LoginPage() {
             </div>
 
             <div className="flex justify-end">
-              <a href="#" className="text-sm text-green-500 hover:underline">{t('auth.forgot_password')}</a>
+              <span className="text-sm text-gray-400 cursor-not-allowed" title="Coming soon">{t('auth.forgot_password')}</span>
             </div>
 
             <Button type="submit" className="w-full" size="lg" isLoading={loading}>

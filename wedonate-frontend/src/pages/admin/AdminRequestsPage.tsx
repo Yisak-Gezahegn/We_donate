@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { CheckCircle, XCircle, ChevronDown, ChevronUp, Eye, ExternalLink } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 import api from '../../lib/api';
 import { formatDate, formatCurrency } from '../../lib/utils';
 import { useTheme } from '../../context/ThemeContext';
@@ -23,14 +24,15 @@ function DetailRow({ label, value, isDark }: { label: string; value?: string | n
 }
 
 function AccountInfo({ data, isDark }: { data: any; isDark: boolean }) {
+  const { t } = useTranslation();
   const accounts = [
-    { label: 'TeleBirr', value: data.telebirrAccount },
-    { label: 'CBE', value: data.cbeAccount },
-    { label: 'BOA', value: data.boaAccount },
-    { label: 'Awash', value: data.awashAccount },
-    { label: data.otherBankName || 'Other Bank', value: data.otherBankAccount },
+    { label: t('admin.telebirr'), value: data.telebirrAccount },
+    { label: t('admin.cbe'), value: data.cbeAccount },
+    { label: t('admin.boa'), value: data.boaAccount },
+    { label: t('admin.awash'), value: data.awashAccount },
+    { label: data.otherBankName || t('admin.other_bank'), value: data.otherBankAccount },
   ].filter(a => a.value);
-  if (!accounts.length) return <span className={cn('text-xs', isDark ? 'text-slate-500' : 'text-gray-400')}>None provided</span>;
+  if (!accounts.length) return <span className={cn('text-xs', isDark ? 'text-slate-500' : 'text-gray-400')}>{t('admin.none_provided')}</span>;
   return (
     <div className="space-y-1">
       {accounts.map(a => (
@@ -45,6 +47,7 @@ function AccountInfo({ data, isDark }: { data: any; isDark: boolean }) {
 }
 
 export default function AdminRequestsPage() {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const { isDark } = useTheme();
   const [view, setView] = useState<ViewMode>('requests');
@@ -62,13 +65,13 @@ export default function AdminRequestsPage() {
 
   const updateReq = useMutation({
     mutationFn: ({ id, status, adminNote }: any) => api.patch(`/support-requests/${id}/status`, { status, adminNote }),
-    onSuccess: () => { toast.success('Updated'); qc.invalidateQueries({ queryKey: ['admin-requests'] }); },
-    onError: () => toast.error('Failed'),
+    onSuccess: () => { toast.success(t('admin.updated')); qc.invalidateQueries({ queryKey: ['admin-requests'] }); },
+    onError: () => toast.error(t('admin.failed')),
   });
   const updateCamp = useMutation({
     mutationFn: ({ id, status, adminNote }: any) => api.patch(`/campaigns/${id}/status`, { status, adminNote }),
-    onSuccess: () => { toast.success('Updated'); qc.invalidateQueries({ queryKey: ['admin-campaigns'] }); },
-    onError: () => toast.error('Failed'),
+    onSuccess: () => { toast.success(t('admin.updated')); qc.invalidateQueries({ queryKey: ['admin-campaigns'] }); },
+    onError: () => toast.error(t('admin.failed')),
   });
 
   const toggleExpand = (id: string) => setExpanded(prev => prev === id ? null : id);
@@ -93,7 +96,7 @@ export default function AdminRequestsPage() {
                 )}
                 {item.urgencyLevel && (
                   <span className="text-xs bg-red-50 text-red-600 px-2 py-0.5 rounded-full">
-                    Urgency {item.urgencyLevel}/5
+                    {t('admin.urgency')} {item.urgencyLevel}/5
                   </span>
                 )}
               </div>
@@ -121,7 +124,7 @@ export default function AdminRequestsPage() {
                 className={cn('flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg font-medium transition-colors',
                   isDark ? 'bg-slate-700 hover:bg-slate-600 text-slate-300' : 'bg-gray-100 hover:bg-gray-200 text-gray-600')}>
                 <Eye className="w-3.5 h-3.5" />
-                {isOpen ? 'Hide' : 'View Details'}
+                {isOpen ? t('admin.hide') : t('admin.view_details')}
                 {isOpen ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
               </button>
             </div>
@@ -131,7 +134,7 @@ export default function AdminRequestsPage() {
           {item.status === 'PENDING' && (
             <div className="mt-4 pt-4 border-t border-gray-100 dark:border-slate-700">
               <div className="flex flex-col sm:flex-row gap-3">
-                <textarea placeholder="Admin note (optional)..." value={notes[item.id] || ''} rows={2}
+                <textarea placeholder={t('admin.admin_note_placeholder')} value={notes[item.id] || ''} rows={2}
                   onChange={e => setNotes(p => ({ ...p, [item.id]: e.target.value }))}
                   className={cn('flex-1 rounded-xl border px-3 py-2 text-xs resize-none focus:outline-none focus:ring-2 focus:ring-green-500',
                     isDark ? 'bg-slate-700 border-slate-600 text-white placeholder-slate-500' : 'bg-white border-gray-200')} />
@@ -139,11 +142,11 @@ export default function AdminRequestsPage() {
                   <Button size="sm" leftIcon={<CheckCircle className="w-3.5 h-3.5" />}
                     isLoading={mutate.isPending}
                     onClick={() => mutate.mutate({ id: item.id, status: 'APPROVED', adminNote: notes[item.id] })}>
-                    Approve
+                    {t('admin.approve')}
                   </Button>
                   <Button size="sm" variant="danger" leftIcon={<XCircle className="w-3.5 h-3.5" />}
                     onClick={() => mutate.mutate({ id: item.id, status: 'REJECTED', adminNote: notes[item.id] })}>
-                    Reject
+                    {t('admin.reject')}
                   </Button>
                 </div>
               </div>
@@ -153,7 +156,7 @@ export default function AdminRequestsPage() {
           {item.adminNote && (
             <div className={cn('mt-3 text-xs px-3 py-2 rounded-lg',
               isDark ? 'bg-blue-900/30 text-blue-300' : 'bg-blue-50 text-blue-700')}>
-              <span className="font-semibold">Admin note: </span>{item.adminNote}
+              <span className="font-semibold">{t('admin.admin_note_label')}</span>{item.adminNote}
             </div>
           )}
         </div>
@@ -162,13 +165,13 @@ export default function AdminRequestsPage() {
         {isOpen && (
           <div className={cn('px-5 pb-5 border-t space-y-4', isDark ? 'border-slate-700 bg-slate-700/30' : 'border-gray-100 bg-gray-50/50')}>
             <p className={cn('text-xs font-bold pt-4 mb-3', isDark ? 'text-slate-300' : 'text-gray-600')}>
-              FULL DETAILS (Admin Only)
+              {t('admin.full_details')}
             </p>
 
             {/* Request image */}
             {item.imageUrl && (
               <div>
-                <p className={cn('text-xs font-semibold mb-2', isDark ? 'text-slate-400' : 'text-gray-500')}>Request Photo</p>
+                <p className={cn('text-xs font-semibold mb-2', isDark ? 'text-slate-400' : 'text-gray-500')}>{t('admin.request_photo')}</p>
                 <img src={item.imageUrl} alt="Request" className="rounded-xl max-h-48 object-cover w-full" />
               </div>
             )}
@@ -176,13 +179,13 @@ export default function AdminRequestsPage() {
             {/* Support letter */}
             {item.supportLetterUrl && (
               <div>
-                <p className={cn('text-xs font-semibold mb-2', isDark ? 'text-slate-400' : 'text-gray-500')}>Support Letter</p>
+                <p className={cn('text-xs font-semibold mb-2', isDark ? 'text-slate-400' : 'text-gray-500')}>{t('admin.support_letter')}</p>
                 <a href={item.supportLetterUrl} target="_blank" rel="noopener noreferrer">
                   <img src={item.supportLetterUrl} alt="Support Letter"
                     className="rounded-xl max-h-64 object-contain w-full border cursor-pointer hover:opacity-90 transition-opacity"
                     onError={e => (e.currentTarget.style.display='none')} />
                   <span className={cn('flex items-center gap-1 text-xs mt-1', isDark ? 'text-blue-400' : 'text-blue-600')}>
-                    <ExternalLink className="w-3 h-3" /> Open full image
+                    <ExternalLink className="w-3 h-3" /> {t('admin.open_full_image')}
                   </span>
                 </a>
               </div>
@@ -191,58 +194,33 @@ export default function AdminRequestsPage() {
             {/* National ID Front */}
             {item.nationalIdFrontUrl && (
               <div>
-                <p className={cn('text-xs font-semibold mb-2', isDark ? 'text-slate-400' : 'text-gray-500')}>National ID - Front Side</p>
-                <a href={item.nationalIdFrontUrl} target="_blank" rel="noopener noreferrer">
-                  <img src={item.nationalIdFrontUrl} alt="National ID Front"
-                    className="rounded-xl max-h-40 object-contain w-full border cursor-pointer hover:opacity-90 transition-opacity" />
-                  <span className={cn('flex items-center gap-1 text-xs mt-1', isDark ? 'text-blue-400' : 'text-blue-600')}>
-                    <ExternalLink className="w-3 h-3" /> Open full image
-                  </span>
-                </a>
-              </div>
-            )}
-
-            {/* National ID Back */}
-            {item.nationalIdBackUrl && (
-              <div>
-                <p className={cn('text-xs font-semibold mb-2', isDark ? 'text-slate-400' : 'text-gray-500')}>National ID - Back Side</p>
-                <a href={item.nationalIdBackUrl} target="_blank" rel="noopener noreferrer">
-                  <img src={item.nationalIdBackUrl} alt="National ID Back"
-                    className="rounded-xl max-h-40 object-contain w-full border cursor-pointer hover:opacity-90 transition-opacity" />
-                  <span className={cn('flex items-center gap-1 text-xs mt-1', isDark ? 'text-blue-400' : 'text-blue-600')}>
-                    <ExternalLink className="w-3 h-3" /> Open full image
-                  </span>
-                </a>
+                <p className={cn('text-xs font-semibold mb-2', isDark ? 'text-slate-400' : 'text-gray-500')}>{t('admin.national_id')}</p>
+                <img src={item.nationalIdUrl} alt="National ID"
+                  className="rounded-xl max-h-40 object-contain w-full border" />
               </div>
             )}
 
             {/* Registration doc (campaigns) */}
             {item.registrationUrl && (
               <div>
-                <p className={cn('text-xs font-semibold mb-2', isDark ? 'text-slate-400' : 'text-gray-500')}>Organization Registration</p>
-                <a href={item.registrationUrl} target="_blank" rel="noopener noreferrer">
-                  <img src={item.registrationUrl} alt="Registration"
-                    className="rounded-xl max-h-40 object-contain w-full border cursor-pointer hover:opacity-90 transition-opacity" />
-                  <span className={cn('flex items-center gap-1 text-xs mt-1', isDark ? 'text-blue-400' : 'text-blue-600')}>
-                    <ExternalLink className="w-3 h-3" /> Open full image
-                  </span>
-                </a>
+                <p className={cn('text-xs font-semibold mb-2', isDark ? 'text-slate-400' : 'text-gray-500')}>{t('admin.org_registration')}</p>
+                <img src={item.registrationUrl} alt="Registration"
+                  className="rounded-xl max-h-40 object-contain w-full border" />
               </div>
             )}
 
             {/* Info fields */}
             <div className={cn('rounded-xl p-4 space-y-2', isDark ? 'bg-slate-800' : 'bg-white border')}>
-              <DetailRow label="Location" value={item.location} isDark={isDark} />
-              <DetailRow label="Family Size" value={item.familySize ? `${item.familySize} people` : null} isDark={isDark} />
-              <DetailRow label="Goal Amount" value={item.goalAmount ? formatCurrency(item.goalAmount) : null} isDark={isDark} />
-              <DetailRow label="FAN Number" value={item.fanNumber} isDark={isDark} />
-              <DetailRow label="Additional Notes" value={item.additionalNotes} isDark={isDark} />
-              <DetailRow label="Phone" value={item.user?.phone} isDark={isDark} />
+              <DetailRow label={t('admin.location_label')} value={item.location} isDark={isDark} />
+              <DetailRow label={t('admin.family_size')} value={item.familySize ? `${item.familySize} people` : null} isDark={isDark} />
+              <DetailRow label={t('admin.goal_amount')} value={item.goalAmount ? formatCurrency(item.goalAmount) : null} isDark={isDark} />
+              <DetailRow label={t('admin.additional_notes')} value={item.additionalNotes} isDark={isDark} />
+              <DetailRow label={t('admin.phone')} value={item.user?.phone} isDark={isDark} />
             </div>
 
             {/* Payment accounts */}
             <div>
-              <p className={cn('text-xs font-semibold mb-2', isDark ? 'text-slate-400' : 'text-gray-500')}>Payment Accounts</p>
+              <p className={cn('text-xs font-semibold mb-2', isDark ? 'text-slate-400' : 'text-gray-500')}>{t('admin.payment_accounts')}</p>
               <AccountInfo data={item} isDark={isDark} />
             </div>
           </div>
@@ -255,9 +233,9 @@ export default function AdminRequestsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className={cn('text-2xl font-extrabold', isDark ? 'text-white' : 'text-gray-900')}>Approvals</h1>
+          <h1 className={cn('text-2xl font-extrabold', isDark ? 'text-white' : 'text-gray-900')}>{t('admin.approvals_title')}</h1>
           <p className={cn('text-sm mt-1', isDark ? 'text-slate-400' : 'text-gray-500')}>
-            Review and approve support requests and campaigns
+            {t('admin.approvals_subtitle')}
           </p>
         </div>
         <div className={cn('flex gap-1 p-1 rounded-xl', isDark ? 'bg-slate-800' : 'bg-gray-100')}>
@@ -279,7 +257,7 @@ export default function AdminRequestsPage() {
             <div className="w-8 h-8 border-4 border-green-600 border-t-transparent rounded-full animate-spin" />
           </div>
         ) : !requests?.length ? (
-          <Card className="text-center py-16 text-gray-400">No support requests found</Card>
+          <Card className={cn('text-center py-16', isDark ? 'text-slate-400' : 'text-gray-400')}>{t('admin.no_support_requests')}</Card>
         ) : (
           <div className="space-y-4">
             {requests.map((req: any) => <ItemCard key={req.id} item={req} type="requests" />)}
@@ -293,7 +271,7 @@ export default function AdminRequestsPage() {
             <div className="w-8 h-8 border-4 border-green-600 border-t-transparent rounded-full animate-spin" />
           </div>
         ) : !campaigns?.length ? (
-          <Card className="text-center py-16 text-gray-400">No campaigns found</Card>
+          <Card className={cn('text-center py-16', isDark ? 'text-slate-400' : 'text-gray-400')}>{t('admin.no_campaigns')}</Card>
         ) : (
           <div className="space-y-4">
             {campaigns.map((camp: any) => <ItemCard key={camp.id} item={camp} type="campaigns" />)}

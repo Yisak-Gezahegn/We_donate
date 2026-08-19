@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   LayoutDashboard, FileText, Bell, User,
-  LogOut, Menu, X, Users, BarChart2, ClipboardList, ChevronRight, Heart, Target, Image,
+  LogOut, Menu, X, Users, BarChart2, ClipboardList, ChevronRight, Heart, Target, Image, Quote, Images,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -110,8 +110,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const donorLinks = [
     { to: '/dashboard',               icon: LayoutDashboard, label: t('nav.dashboard') },
     { to: '/dashboard/donate',        icon: Heart,           label: t('nav.donate') },
-    { to: '/dashboard/requests',      icon: ClipboardList,   label: 'My Requests' },
-    ...(canCreateCampaign ? [{ to: '/dashboard/campaigns', icon: Target, label: 'My Campaigns' }] : []),
+    { to: '/dashboard/requests',      icon: ClipboardList,   label: t('dashboard.my_requests') },
+    ...(canCreateCampaign ? [{ to: '/dashboard/campaigns', icon: Target, label: t('dashboard.my_campaigns') }] : []),
     { to: '/dashboard/donations',     icon: FileText,        label: t('dashboard.my_donations') },
     { to: '/dashboard/notifications', icon: Bell,            label: t('dashboard.notifications') },
     { to: '/dashboard/profile',       icon: User,            label: t('nav.profile') },
@@ -120,12 +120,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const beneficiaryLinks = donorLinks;
 
   const adminLinks = [
-    { to: '/admin',              icon: BarChart2,    label: 'Overview' },
-    { to: '/admin/users',        icon: Users,        label: 'Manage Users' },
-    { to: '/admin/donations',    icon: Heart,        label: 'Donations' },
-    { to: '/admin/requests',     icon: ClipboardList,label: 'Approvals' },
-    { to: '/admin/gallery',      icon: Image,        label: 'Gallery' },
-    { to: '/admin/audit-logs',   icon: FileText,     label: 'Audit Logs' },
+    { to: '/admin',              icon: BarChart2,    label: t('admin.overview') },
+    { to: '/admin/users',        icon: Users,        label: t('admin.manage_users') },
+    { to: '/admin/donations',    icon: Heart,        label: t('admin.donations') },
+    { to: '/admin/requests',     icon: ClipboardList,label: t('admin.approvals') },
+    { to: '/admin/gallery',      icon: Image,        label: t('admin.gallery') },
+    { to: '/admin/testimonials', icon: Quote,        label: t('admin.testimonials') },
+    { to: '/admin/hero-images',  icon: Images,       label: t('admin.hero_images') },
+    { to: '/admin/audit-logs',   icon: FileText,     label: t('admin.audit_logs') },
   ];
 
   const links = isAdmin ? adminLinks

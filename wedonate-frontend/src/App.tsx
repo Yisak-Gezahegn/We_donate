@@ -30,6 +30,8 @@ import AdminDonationsPage from './pages/admin/AdminDonationsPage';
 import AdminRequestsPage from './pages/admin/AdminRequestsPage';
 import AuditLogsPage from './pages/admin/AuditLogsPage';
 import AdminGalleryPage from './pages/admin/AdminGalleryPage';
+import AdminTestimonialsPage from './pages/admin/AdminTestimonialsPage';
+import AdminHeroImagesPage from './pages/admin/AdminHeroImagesPage';
 
 const ADMIN_ROLES = ['KEBELE_ADMIN', 'WOREDA_ADMIN', 'CITY_ADMIN', 'SUPER_ADMIN'];
 
@@ -91,6 +93,8 @@ export default function App() {
         </ProtectedRoute>
       } />
       <Route path="/admin/gallery"       element={AR(<AdminGalleryPage />)} />
+      <Route path="/admin/testimonials"   element={AR(<AdminTestimonialsPage />)} />
+      <Route path="/admin/hero-images"    element={AR(<AdminHeroImagesPage />)} />
 
       {/* ── Fallback ──────────────────────────────── */}
       <Route path="*" element={<Navigate to="/" replace />} />

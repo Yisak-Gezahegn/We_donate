@@ -220,3 +220,27 @@ model AuditLog {
 
   @@map("audit_logs")
 }
+
+model Testimonial {
+  id        String   @id @default(uuid())
+  name      String
+  role      String
+  text      String
+  avatar    String?
+  rating    Int      @default(5)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@map("testimonials")
+}
+
+model HeroImage {
+  id        String   @id @default(uuid())
+  imageUrl  String
+  caption   String
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@map("hero_images")
+}

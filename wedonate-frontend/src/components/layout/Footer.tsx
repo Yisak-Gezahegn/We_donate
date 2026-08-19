@@ -37,12 +37,12 @@ export default function Footer() {
             {/* Social placeholders */}
             <div className="flex gap-3">
               {[
-                { label: 'f',  title: 'Facebook' },
-                { label: 'x',  title: 'X / Twitter' },
-                { label: 'in', title: 'LinkedIn' },
-                { label: 'yt', title: 'YouTube' },
+                { label: 'f',  title: 'Facebook',  href: 'https://facebook.com' },
+                { label: 'x',  title: 'X / Twitter', href: 'https://x.com' },
+                { label: 'in', title: 'LinkedIn',  href: 'https://linkedin.com' },
+                { label: 'yt', title: 'YouTube',   href: 'https://youtube.com' },
               ].map((s, i) => (
-                <a key={i} href="#" title={s.title}
+                <a key={i} href={s.href} title={s.title} target="_blank" rel="noopener noreferrer"
                   className={cn(
                     'w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold transition-colors',
                     isDark ? 'bg-slate-800 hover:bg-green-700 text-slate-300' : 'bg-gray-800 hover:bg-green-700 text-gray-300',

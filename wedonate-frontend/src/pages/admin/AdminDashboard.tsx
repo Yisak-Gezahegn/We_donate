@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { Users, Heart, TrendingUp, AlertCircle, BarChart3, Clock } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import api from '../../lib/api';
 import { useTheme } from '../../context/ThemeContext';
 import { cn } from '../../lib/utils';
@@ -9,6 +10,7 @@ import Card from '../../components/ui/Card';
 import Badge, { statusVariant } from '../../components/ui/Badge';
 
 export default function AdminDashboard() {
+  const { t } = useTranslation();
   const { data: stats, isLoading } = useQuery({
     queryKey: ['admin-dashboard'],
     queryFn: () => api.get('/admin/dashboard').then(r => r.data.data),
@@ -16,12 +18,12 @@ export default function AdminDashboard() {
   const { isDark } = useTheme();
 
   const statCards = stats ? [
-    { label: 'Total Users',       value: stats.totalUsers,              icon: Users,       color: 'text-blue-500',   bg: 'bg-blue-50',   trend: '' },
-    { label: 'Total Donations',   value: stats.totalDonations,          icon: Heart,       color: 'text-green-500',  bg: 'bg-green-50',  trend: '' },
-    { label: 'Total Raised',      value: formatCurrency(stats.totalAmount), icon: TrendingUp, color: 'text-amber-500',  bg: 'bg-amber-50',  trend: '' },
-    { label: 'Total Campaigns',   value: stats.totalCampaigns,          icon: BarChart3,   color: 'text-indigo-500', bg: 'bg-indigo-50', trend: '' },
-    { label: 'Pending Requests',  value: stats.pendingRequests,         icon: AlertCircle, color: 'text-orange-500', bg: 'bg-orange-50', trend: '' },
-    { label: 'Pending Campaigns', value: stats.pendingCampaigns,        icon: Clock,       color: 'text-red-500',    bg: 'bg-red-50',    trend: '' },
+    { label: t('admin.total_users'),       value: stats.totalUsers,              icon: Users,       color: 'text-blue-500',   bg: 'bg-blue-50',   trend: '' },
+    { label: t('admin.total_donations'),   value: stats.totalDonations,          icon: Heart,       color: 'text-green-500',  bg: 'bg-green-50',  trend: '' },
+    { label: t('admin.total_raised'),      value: formatCurrency(stats.totalAmount), icon: TrendingUp, color: 'text-amber-500',  bg: 'bg-amber-50',  trend: '' },
+    { label: t('admin.total_campaigns'),   value: stats.totalCampaigns,          icon: BarChart3,   color: 'text-indigo-500', bg: 'bg-indigo-50', trend: '' },
+    { label: t('admin.pending_requests'),  value: stats.pendingRequests,         icon: AlertCircle, color: 'text-orange-500', bg: 'bg-orange-50', trend: '' },
+    { label: t('admin.pending_campaigns'), value: stats.pendingCampaigns,        icon: Clock,       color: 'text-red-500',    bg: 'bg-red-50',    trend: '' },
   ] : [];
 
   const th = cn('text-left px-5 py-3.5 font-semibold text-sm', isDark ? 'text-slate-400' : 'text-gray-600');
@@ -30,8 +32,8 @@ export default function AdminDashboard() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className={cn('text-2xl font-extrabold', isDark ? 'text-white' : 'text-gray-900')}>Admin Dashboard</h1>
-        <p className={cn('text-sm mt-1', isDark ? 'text-slate-400' : 'text-gray-500')}>Overview of WeDonate platform activity</p>
+        <h1 className={cn('text-2xl font-extrabold', isDark ? 'text-white' : 'text-gray-900')}>{t('admin.dashboard_title')}</h1>
+        <p className={cn('text-sm mt-1', isDark ? 'text-slate-400' : 'text-gray-500')}>{t('admin.dashboard_subtitle')}</p>
       </div>
 
       {isLoading ? (
@@ -67,24 +69,24 @@ export default function AdminDashboard() {
       )}
 
       <div>
-        <h2 className={cn('text-lg font-bold mb-4', isDark ? 'text-white' : 'text-gray-900')}>Recent Donations</h2>
+        <h2 className={cn('text-lg font-bold mb-4', isDark ? 'text-white' : 'text-gray-900')}>{t('admin.recent_donations')}</h2>
         <Card padding="none" className="overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className={cn('border-b', isDark ? 'bg-slate-700/50 border-slate-700' : 'bg-gray-50 border-gray-100')}>
                 <tr>
-                  <th className={th}>Donor</th>
-                  <th className={th}>Amount</th>
-                  <th className={th}>Type</th>
-                  <th className={th}>Date</th>
-                  <th className={th}>Status</th>
+                  <th className={th}>{t('admin.donor')}</th>
+                  <th className={th}>{t('admin.amount')}</th>
+                  <th className={th}>{t('admin.type')}</th>
+                  <th className={th}>{t('admin.date')}</th>
+                  <th className={th}>{t('admin.status')}</th>
                 </tr>
               </thead>
               <tbody className={cn('divide-y', isDark ? 'divide-slate-700' : 'divide-gray-50')}>
                 {stats?.recentDonations?.map((d: any) => (
                   <tr key={d.id} className={cn('transition-colors', isDark ? 'hover:bg-slate-700/40' : 'hover:bg-gray-50')}>
                     <td className={cn(td, 'font-medium')}>
-                      {d.isAnonymous ? <span className="italic opacity-50">Anonymous</span> : `${d.donor?.firstName} ${d.donor?.lastName}`}
+                      {d.isAnonymous ? <span className="italic opacity-50">{t('admin.anonymous')}</span> : `${d.donor?.firstName} ${d.donor?.lastName}`}
                     </td>
                     <td className={cn(td, 'font-bold text-green-500')}>{d.amount ? formatCurrency(d.amount) : '—'}</td>
                     <td className={td}>{d.donationType}</td>
@@ -92,7 +94,7 @@ export default function AdminDashboard() {
                     <td className={td}><Badge variant={statusVariant(d.paymentStatus)}>{d.paymentStatus}</Badge></td>
                   </tr>
                 )) ?? (
-                  <tr><td colSpan={5} className={cn('text-center py-10', isDark ? 'text-slate-500' : 'text-gray-400')}>No data</td></tr>
+                  <tr><td colSpan={5} className={cn('text-center py-10', isDark ? 'text-slate-500' : 'text-gray-400')}>{t('admin.no_data')}</td></tr>
                 )}
               </tbody>
             </table>

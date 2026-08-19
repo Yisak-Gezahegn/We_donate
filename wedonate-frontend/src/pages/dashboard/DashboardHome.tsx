@@ -41,23 +41,23 @@ export default function DashboardHome() {
 
   const statCards = [
     {
-      label: 'My Donations',
+      label: t('dashboard.my_donations'),
       value: myDonations?.length ?? 0,
       sub: formatCurrency(myDonations?.reduce((s: number, d: any) => s + (d.amount || 0), 0) ?? 0),
       icon: Heart, color: 'text-green-500', bg: isDark ? 'bg-green-900/30' : 'bg-green-50',
       to: '/dashboard/donations',
     },
     {
-      label: 'My Requests',
+      label: t('dashboard.my_requests'),
       value: myRequests?.length ?? 0,
-      sub: `${myRequests?.filter((r: any) => r.status === 'PENDING').length ?? 0} pending`,
+      sub: `${myRequests?.filter((r: any) => r.status === 'PENDING').length ?? 0} ${t('dashboard.pending')}`,
       icon: FileText, color: 'text-blue-500', bg: isDark ? 'bg-blue-900/30' : 'bg-blue-50',
       to: '/dashboard/requests',
     },
     {
-      label: 'My Campaigns',
+      label: t('dashboard.my_campaigns'),
       value: myCampaigns?.length ?? 0,
-      sub: `${myCampaigns?.filter((c: any) => c.status === 'ACTIVE').length ?? 0} active`,
+      sub: `${myCampaigns?.filter((c: any) => c.status === 'ACTIVE').length ?? 0} ${t('dashboard.active')}`,
       icon: Target, color: 'text-amber-500', bg: isDark ? 'bg-amber-900/30' : 'bg-amber-50',
       to: '/dashboard/campaigns',
     },
@@ -67,7 +67,6 @@ export default function DashboardHome() {
 
   return (
     <div className="space-y-8">
-      {/* Welcome banner */}
       <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}
         className="gradient-hero rounded-3xl p-7 text-white relative overflow-hidden">
         <div className="absolute inset-0 opacity-10 bg-cover bg-center" style={{ backgroundImage: "url('/Adama-City.jpg')" }} />
@@ -79,38 +78,36 @@ export default function DashboardHome() {
           <div className="flex flex-wrap gap-3">
             <Link to="/donate">
               <Button variant="secondary" size="sm" rightIcon={<ArrowRight className="w-4 h-4" />}>
-                Donate Now
+                {t('dashboard.donate_now')}
               </Button>
             </Link>
             <Link to="/dashboard/requests">
               <Button size="sm" className="bg-white/20 hover:bg-white/30 text-white border-white/30"
                 variant="outline" leftIcon={<Plus className="w-4 h-4" />}>
-                Post Request
+                {t('dashboard.post_request')}
               </Button>
             </Link>
           </div>
         </div>
       </motion.div>
 
-      {/* Admin alert */}
       {isAdmin && adminStats && (adminStats.pendingRequests > 0 || adminStats.pendingCampaigns > 0) && (
         <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
           className={cn('flex items-center gap-4 p-4 rounded-2xl border',
             isDark ? 'bg-amber-900/20 border-amber-700/40 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-800')}>
           <Bell className="w-5 h-5 shrink-0" />
           <div className="flex-1 text-sm">
-            <span className="font-semibold">Pending approvals: </span>
-            {adminStats.pendingRequests > 0 && `${adminStats.pendingRequests} support request${adminStats.pendingRequests > 1 ? 's' : ''}`}
+            <span className="font-semibold">{t('dashboard.admin_alert')} </span>
+            {adminStats.pendingRequests > 0 && `${adminStats.pendingRequests} ${t('dashboard.support_request')}${adminStats.pendingRequests > 1 ? 's' : ''}`}
             {adminStats.pendingRequests > 0 && adminStats.pendingCampaigns > 0 && ' · '}
-            {adminStats.pendingCampaigns > 0 && `${adminStats.pendingCampaigns} campaign${adminStats.pendingCampaigns > 1 ? 's' : ''}`}
+            {adminStats.pendingCampaigns > 0 && `${adminStats.pendingCampaigns} ${t('dashboard.campaign')}${adminStats.pendingCampaigns > 1 ? 's' : ''}`}
           </div>
           <Link to="/admin/requests">
-            <Button size="sm" variant="secondary">Review</Button>
+            <Button size="sm" variant="secondary">{t('dashboard.review')}</Button>
           </Link>
         </motion.div>
       )}
 
-      {/* Stat cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
         {statCards.map((s, i) => (
           <motion.div key={i} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}
@@ -131,15 +128,12 @@ export default function DashboardHome() {
         ))}
       </div>
 
-      {/* Two-column: recent donations + recent requests */}
       <div className="grid lg:grid-cols-2 gap-6">
-
-        {/* Recent Donations */}
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h2 className={h2}>Recent Donations</h2>
+            <h2 className={h2}>{t('dashboard.recent_donations')}</h2>
             <Link to="/dashboard/donations" className="text-xs text-green-500 font-semibold hover:underline flex items-center gap-1">
-              View all <ArrowRight className="w-3 h-3" />
+              {t('dashboard.view_all')} <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
           <div className="space-y-3">
@@ -162,19 +156,18 @@ export default function DashboardHome() {
               </Card>
             )) ?? (
               <Card className="text-center py-10">
-                <p className={cn('text-sm', isDark ? 'text-slate-500' : 'text-gray-400')}>No donations yet</p>
-                <Link to="/donate"><Button size="sm" className="mt-3">Donate Now</Button></Link>
+                <p className={cn('text-sm', isDark ? 'text-slate-500' : 'text-gray-400')}>{t('dashboard.no_donations')}</p>
+                <Link to="/donate"><Button size="sm" className="mt-3">{t('dashboard.donate_now')}</Button></Link>
               </Card>
             )}
           </div>
         </div>
 
-        {/* Recent Requests */}
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h2 className={h2}>My Requests</h2>
+            <h2 className={h2}>{t('dashboard.my_requests')}</h2>
             <Link to="/dashboard/requests" className="text-xs text-green-500 font-semibold hover:underline flex items-center gap-1">
-              View all <ArrowRight className="w-3 h-3" />
+              {t('dashboard.view_all')} <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
           <div className="space-y-3">
@@ -192,21 +185,20 @@ export default function DashboardHome() {
               </Card>
             )) ?? (
               <Card className="text-center py-10">
-                <p className={cn('text-sm', isDark ? 'text-slate-500' : 'text-gray-400')}>No requests yet</p>
-                <Link to="/dashboard/requests"><Button size="sm" className="mt-3">Post Request</Button></Link>
+                <p className={cn('text-sm', isDark ? 'text-slate-500' : 'text-gray-400')}>{t('dashboard.no_requests')}</p>
+                <Link to="/dashboard/requests"><Button size="sm" className="mt-3">{t('dashboard.post_request')}</Button></Link>
               </Card>
             )}
           </div>
         </div>
       </div>
 
-      {/* My Campaigns */}
       {myCampaigns && myCampaigns.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h2 className={h2}>My Campaigns</h2>
+            <h2 className={h2}>{t('dashboard.my_campaigns')}</h2>
             <Link to="/dashboard/campaigns" className="text-xs text-green-500 font-semibold hover:underline flex items-center gap-1">
-              View all <ArrowRight className="w-3 h-3" />
+              {t('dashboard.view_all')} <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
           <div className="grid sm:grid-cols-2 gap-4">
@@ -228,7 +220,7 @@ export default function DashboardHome() {
                     </div>
                   </div>
                   <p className={cn('text-xs', isDark ? 'text-slate-500' : 'text-gray-400')}>
-                    Goal: {formatCurrency(camp.goalAmount)}
+                    {t('dashboard.goal')} {formatCurrency(camp.goalAmount)}
                   </p>
                 </Card>
               );

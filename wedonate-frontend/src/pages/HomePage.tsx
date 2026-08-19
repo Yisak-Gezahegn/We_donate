@@ -14,8 +14,8 @@ import { cn } from '../lib/utils';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 
-/* ── Hero images (all Adama photos in public/) ────────────────── */
-const HERO_IMAGES = [
+/* ── Hero images (fallback — replaced by API data) ─────────── */
+const FALLBACK_HERO_IMAGES = [
   { src: '/Adama-City.jpg',   caption: 'Adama City — Heart of Oromia' },
   { src: '/Adama_city2.jpg',  caption: 'Building a Stronger Community' },
   { src: '/Adama_city3.jpg',  caption: 'Together We Make a Difference' },
@@ -58,11 +58,25 @@ export default function HomePage() {
     queryFn: () => api.get('/donations/stats').then(r => r.data.data),
   });
 
+  const { data: apiHeroImages } = useQuery({
+    queryKey: ['hero-images'],
+    queryFn: () => api.get('/hero-images').then(r => r.data.data),
+  });
+
+  const { data: apiTestimonials } = useQuery({
+    queryKey: ['testimonials'],
+    queryFn: () => api.get('/testimonials').then(r => r.data.data),
+  });
+
   // Fetch 3 approved requests for home page
   const { data: featuredRequests } = useQuery({
     queryKey: ['featured-requests'],
     queryFn: () => api.get('/support-requests', { params: { limit: 3 } }).then(r => r.data.data),
   });
+
+  const HERO_IMAGES = apiHeroImages?.length
+    ? apiHeroImages.map((img: any) => ({ src: img.imageUrl, caption: img.caption }))
+    : FALLBACK_HERO_IMAGES;
 
   const stats = [
     { label: t('hero.stats_donors'),        value: statsData?.totalUsers ?? '1,200+',           icon: Users,    color: 'text-blue-500',   bg: 'bg-blue-50   dark:bg-blue-900/30' },
@@ -86,11 +100,18 @@ export default function HomePage() {
     { icon: '🤲', key: 'category_other',    color: 'from-purple-400 to-purple-600' },
   ];
 
-  const testimonials = [
-    { name: 'Liya Tadesse',   role: 'Donor',       text: 'WeDonate made it incredibly easy to help families in Adama. I can see exactly where my money goes.', avatar: 'LT' },
-    { name: 'Gemechu Alemu',  role: 'Beneficiary', text: 'Through this platform my family received food support during a very difficult time. We are grateful.', avatar: 'GA' },
-    { name: 'Amina Ibrahim',  role: 'NGO Partner', text: 'Coordination between our NGO and city admin has never been more streamlined. Outstanding platform.',   avatar: 'AI' },
-  ];
+  const testimonials = apiTestimonials?.length
+    ? apiTestimonials.map((t: any) => ({
+        name: t.name,
+        role: t.role,
+        text: t.text,
+        avatar: t.avatar || t.name.split(' ').map((n: string) => n[0]).join(''),
+      }))
+    : [
+        { name: 'Liya Tadesse',   role: 'Donor',       text: 'WeDonate made it incredibly easy to help families in Adama. I can see exactly where my money goes.', avatar: 'LT' },
+        { name: 'Gemechu Alemu',  role: 'Beneficiary', text: 'Through this platform my family received food support during a very difficult time. We are grateful.', avatar: 'GA' },
+        { name: 'Amina Ibrahim',  role: 'NGO Partner', text: 'Coordination between our NGO and city admin has never been more streamlined. Outstanding platform.',   avatar: 'AI' },
+      ];
 
   const slideVariants = {
     enter:  (dir: number) => ({ opacity: 0, x: dir > 0 ? 80 : -80 }),

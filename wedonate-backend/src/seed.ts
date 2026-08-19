@@ -1,5 +1,4 @@
 import { PrismaClient } from '@prisma/client';
-import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 
 const prisma = new PrismaClient();
@@ -7,31 +6,28 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('🌱 Seeding database...');
 
-  // Super Admin
-  const pw = (p: string) => bcrypt.hash(p, 12);
-
   await prisma.user.upsert({
     where: { email: 'superadmin@wedonate.et' },
     update: {},
-    create: { id: uuidv4(), firstName: 'Super', lastName: 'Admin', email: 'superadmin@wedonate.et', password: await pw('superadmin123'), role: 'SUPER_ADMIN', isVerified: true },
+    create: { id: uuidv4(), firstName: 'Super', lastName: 'Admin', email: 'superadmin@wedonate.et', password: 'superadmin123', role: 'SUPER_ADMIN', isVerified: true },
   });
 
   await prisma.user.upsert({
     where: { email: 'cityadmin@adama.et' },
     update: {},
-    create: { id: uuidv4(), firstName: 'City', lastName: 'Administrator', email: 'cityadmin@adama.et', password: await pw('cityadmin123'), role: 'CITY_ADMIN', isVerified: true },
+    create: { id: uuidv4(), firstName: 'City', lastName: 'Administrator', email: 'cityadmin@adama.et', password: 'cityadmin123', role: 'CITY_ADMIN', isVerified: true },
   });
 
   const donor = await prisma.user.upsert({
     where: { email: 'abebe@example.com' },
     update: {},
-    create: { id: uuidv4(), firstName: 'Abebe', lastName: 'Kebede', email: 'abebe@example.com', phone: '+251911234567', password: await pw('user123'), role: 'USER', isVerified: true },
+    create: { id: uuidv4(), firstName: 'Abebe', lastName: 'Kebede', email: 'abebe@example.com', phone: '+251911234567', password: 'user123', role: 'USER', isVerified: true },
   });
 
   const user2 = await prisma.user.upsert({
     where: { email: 'liya@example.com' },
     update: {},
-    create: { id: uuidv4(), firstName: 'Liya', lastName: 'Tadesse', email: 'liya@example.com', phone: '+251922345678', password: await pw('user123'), role: 'USER', isVerified: true },
+    create: { id: uuidv4(), firstName: 'Liya', lastName: 'Tadesse', email: 'liya@example.com', phone: '+251922345678', password: 'user123', role: 'USER', isVerified: true },
   });
 
   // Sample approved support requests

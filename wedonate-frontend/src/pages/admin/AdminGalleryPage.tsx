@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Image, Plus, Trash2, X } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 import api from '../../lib/api';
 import { useTheme } from '../../context/ThemeContext';
 import { cn } from '../../lib/utils';
@@ -10,6 +11,7 @@ import Button from '../../components/ui/Button';
 import ImageUpload from '../../components/ui/ImageUpload';
 
 export default function AdminGalleryPage() {
+  const { t } = useTranslation();
   const { isDark } = useTheme();
   const qc = useQueryClient();
   const [showForm, setShowForm] = useState(false);
@@ -23,18 +25,18 @@ export default function AdminGalleryPage() {
   const addPhoto = useMutation({
     mutationFn: () => api.post('/gallery', form),
     onSuccess: () => {
-      toast.success('Photo added to gallery');
+      toast.success(t('admin.photo_added'));
       qc.invalidateQueries({ queryKey: ['gallery'] });
       setForm({ imageUrl: '', title: '', description: '' });
       setShowForm(false);
     },
-    onError: (e: any) => toast.error(e?.response?.data?.message || 'Failed'),
+    onError: (e: any) => toast.error(e?.response?.data?.message || t('admin.failed')),
   });
 
   const deletePhoto = useMutation({
     mutationFn: (id: string) => api.delete(`/gallery/${id}`),
     onSuccess: () => {
-      toast.success('Photo removed');
+      toast.success(t('admin.photo_removed'));
       qc.invalidateQueries({ queryKey: ['gallery'] });
     },
   });
@@ -50,14 +52,14 @@ export default function AdminGalleryPage() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className={cn('text-2xl font-extrabold', isDark ? 'text-white' : 'text-gray-900')}>
-            Gallery Management
+            {t('admin.gallery_title')}
           </h1>
           <p className={cn('text-sm mt-1', isDark ? 'text-slate-400' : 'text-gray-500')}>
-            Photos shown in the About page community gallery
+            {t('admin.gallery_subtitle')}
           </p>
         </div>
         <Button leftIcon={<Plus className="w-4 h-4" />} onClick={() => setShowForm(true)}>
-          Add Photo
+          {t('admin.add_photo')}
         </Button>
       </div>
 
@@ -70,7 +72,7 @@ export default function AdminGalleryPage() {
               <div className={cn('flex items-center justify-between px-6 py-5 border-b',
                 isDark ? 'border-slate-700' : 'border-gray-100')}>
                 <h2 className={cn('text-lg font-bold', isDark ? 'text-white' : 'text-gray-900')}>
-                  Add Gallery Photo
+                  {t('admin.add_gallery_photo')}
                 </h2>
                 <button
                   onClick={() => { setShowForm(false); setForm({ imageUrl: '', title: '', description: '' }); }}
@@ -84,25 +86,25 @@ export default function AdminGalleryPage() {
               <div className="p-6 space-y-5">
                 {/* Image upload from folder */}
                 <ImageUpload
-                  label="Photo *"
+                  label={t('admin.photo_label')}
                   value={form.imageUrl}
                   onChange={url => setForm(p => ({ ...p, imageUrl: url }))}
-                  hint="Choose a photo from your computer"
+                  hint={t('admin.photo_hint')}
                 />
 
                 {/* Title */}
                 <div>
-                  <label className={lbl}>Title *</label>
-                  <input className={inp} placeholder="e.g. Adama City Center"
+                  <label className={lbl}>{t('admin.title_label')}</label>
+                  <input className={inp} placeholder={t('admin.title_placeholder')}
                     value={form.title}
                     onChange={e => setForm(p => ({ ...p, title: e.target.value }))} />
                 </div>
 
                 {/* Description */}
                 <div>
-                  <label className={lbl}>Description (optional)</label>
+                  <label className={lbl}>{t('admin.description_label')}</label>
                   <textarea rows={3} className={cn(inp, 'resize-none')}
-                    placeholder="Brief description shown on hover..."
+                    placeholder={t('admin.description_placeholder')}
                     value={form.description}
                     onChange={e => setForm(p => ({ ...p, description: e.target.value }))} />
                 </div>
@@ -114,11 +116,11 @@ export default function AdminGalleryPage() {
                     size="lg"
                     isLoading={addPhoto.isPending}
                     onClick={() => {
-                      if (!form.imageUrl) { toast.error('Please upload a photo first'); return; }
-                      if (!form.title) { toast.error('Title is required'); return; }
+                      if (!form.imageUrl) { toast.error(t('admin.upload_photo_first')); return; }
+                      if (!form.title) { toast.error(t('admin.title_required')); return; }
                       addPhoto.mutate();
                     }}>
-                    Add to Gallery
+                    {t('admin.add_to_gallery')}
                   </Button>
                   <Button
                     variant="outline"
@@ -142,12 +144,12 @@ export default function AdminGalleryPage() {
       ) : !photos?.length ? (
         <Card className="text-center py-16">
           <Image className={cn('w-12 h-12 mx-auto mb-3', isDark ? 'text-slate-600' : 'text-gray-300')} />
-          <p className={cn('font-medium mb-1', isDark ? 'text-slate-400' : 'text-gray-400')}>No photos yet</p>
+          <p className={cn('font-medium mb-1', isDark ? 'text-slate-400' : 'text-gray-400')}>{t('admin.no_photos')}</p>
           <p className={cn('text-sm mb-4', isDark ? 'text-slate-500' : 'text-gray-400')}>
-            Add photos to show in the About page gallery
+            {t('admin.no_photos_desc')}
           </p>
           <Button size="sm" onClick={() => setShowForm(true)}>
-            <Plus className="w-4 h-4 mr-2" /> Add First Photo
+            <Plus className="w-4 h-4 mr-2" /> {t('admin.add_first_photo')}
           </Button>
         </Card>
       ) : (

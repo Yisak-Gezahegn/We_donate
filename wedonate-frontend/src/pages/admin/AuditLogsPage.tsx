@@ -1,10 +1,14 @@
 import { useQuery } from '@tanstack/react-query';
 import { Shield } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import api from '../../lib/api';
-import { formatDate, timeAgo } from '../../lib/utils';
+import { useTheme } from '../../context/ThemeContext';
+import { cn, formatDate, timeAgo } from '../../lib/utils';
 import Card from '../../components/ui/Card';
 
 export default function AuditLogsPage() {
+  const { t } = useTranslation();
+  const { isDark } = useTheme();
   const { data: logs, isLoading } = useQuery({
     queryKey: ['audit-logs'],
     queryFn: () => api.get('/admin/audit-logs').then(r => r.data.data),
@@ -18,8 +22,8 @@ export default function AuditLogsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-extrabold text-gray-900">Audit Logs</h1>
-        <p className="text-sm text-gray-500 mt-1">System activity trail (last 100 events)</p>
+        <h1 className={cn('text-2xl font-extrabold', isDark ? 'text-white' : 'text-gray-900')}>{t('admin.audit_logs_title')}</h1>
+        <p className={cn('text-sm mt-1', isDark ? 'text-slate-400' : 'text-gray-500')}>{t('admin.audit_logs_subtitle')}</p>
       </div>
 
       {isLoading ? (
@@ -27,37 +31,37 @@ export default function AuditLogsPage() {
           <div className="w-8 h-8 border-4 border-green-600 border-t-transparent rounded-full animate-spin" />
         </div>
       ) : !logs?.length ? (
-        <Card className="text-center py-16 text-gray-400">
-          <Shield className="w-10 h-10 mx-auto mb-3 text-gray-200" />
-          No audit logs found
+        <Card className={cn('text-center py-16', isDark ? 'text-slate-400' : 'text-gray-400')}>
+          <Shield className={cn('w-10 h-10 mx-auto mb-3', isDark ? 'text-slate-600' : 'text-gray-200')} />
+          {t('admin.no_logs')}
         </Card>
       ) : (
         <Card padding="none" className="overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 border-b border-gray-100">
+              <thead className={cn('border-b', isDark ? 'bg-slate-700/50 border-slate-700' : 'bg-gray-50 border-gray-100')}>
                 <tr>
-                  <th className="text-left px-5 py-3.5 font-semibold text-gray-600">Action</th>
-                  <th className="text-left px-5 py-3.5 font-semibold text-gray-600">User</th>
-                  <th className="text-left px-5 py-3.5 font-semibold text-gray-600">Resource</th>
-                  <th className="text-left px-5 py-3.5 font-semibold text-gray-600">Details</th>
-                  <th className="text-left px-5 py-3.5 font-semibold text-gray-600">Time</th>
+                  <th className={cn('text-left px-5 py-3.5 font-semibold', isDark ? 'text-slate-400' : 'text-gray-600')}>{t('admin.action')}</th>
+                  <th className={cn('text-left px-5 py-3.5 font-semibold', isDark ? 'text-slate-400' : 'text-gray-600')}>{t('admin.user')}</th>
+                  <th className={cn('text-left px-5 py-3.5 font-semibold', isDark ? 'text-slate-400' : 'text-gray-600')}>{t('admin.resource')}</th>
+                  <th className={cn('text-left px-5 py-3.5 font-semibold', isDark ? 'text-slate-400' : 'text-gray-600')}>{t('admin.details')}</th>
+                  <th className={cn('text-left px-5 py-3.5 font-semibold', isDark ? 'text-slate-400' : 'text-gray-600')}>{t('admin.time')}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50">
+              <tbody className={cn('divide-y', isDark ? 'divide-slate-700' : 'divide-gray-50')}>
                 {logs.map((log: any) => (
-                  <tr key={log.id} className="hover:bg-gray-50">
+                  <tr key={log.id} className={cn('transition-colors', isDark ? 'hover:bg-slate-700/40' : 'hover:bg-gray-50')}>
                     <td className="px-5 py-3.5">
-                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${actionColors[log.action] || 'text-gray-600 bg-gray-100'}`}>
+                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${actionColors[log.action] || (isDark ? 'text-slate-300 bg-slate-700' : 'text-gray-600 bg-gray-100')}`}>
                         {log.action}
                       </span>
                     </td>
-                    <td className="px-5 py-3.5 text-gray-700">
-                      {log.user ? `${log.user.firstName} ${log.user.lastName}` : 'System'}
+                    <td className={cn('px-5 py-3.5', isDark ? 'text-slate-300' : 'text-gray-700')}>
+                      {log.user ? `${log.user.firstName} ${log.user.lastName}` : t('admin.system')}
                     </td>
-                    <td className="px-5 py-3.5 font-mono text-xs text-gray-500">{log.resource}</td>
-                    <td className="px-5 py-3.5 text-xs text-gray-500 max-w-xs truncate">{log.details || '—'}</td>
-                    <td className="px-5 py-3.5 text-gray-400 text-xs">{timeAgo(log.createdAt)}</td>
+                    <td className={cn('px-5 py-3.5 font-mono text-xs', isDark ? 'text-slate-400' : 'text-gray-500')}>{log.resource}</td>
+                    <td className={cn('px-5 py-3.5 text-xs max-w-xs truncate', isDark ? 'text-slate-400' : 'text-gray-500')}>{log.details || '—'}</td>
+                    <td className={cn('px-5 py-3.5 text-xs', isDark ? 'text-slate-500' : 'text-gray-400')}>{timeAgo(log.createdAt)}</td>
                   </tr>
                 ))}
               </tbody>

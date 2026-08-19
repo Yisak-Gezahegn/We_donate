@@ -73,9 +73,20 @@ export default function DashboardHome() {
         <div className="absolute inset-0 opacity-10 bg-cover bg-center" style={{ backgroundImage: "url('/Adama-City.jpg')" }} />
         <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/4" />
         <div className="relative">
-          <p className="text-white/70 text-sm mb-1">{t('dashboard.welcome')}</p>
-          <h1 className="text-2xl font-extrabold mb-1">{user?.firstName} {user?.lastName} 👋</h1>
-          <p className="text-white/60 text-sm mb-5 capitalize">{user?.role?.toLowerCase().replace(/_/g,' ')}</p>
+          <div className="flex items-center gap-4 mb-1">
+            {user?.profileImage ? (
+              <img src={user.profileImage} alt="" className="w-14 h-14 rounded-2xl object-cover border-2 border-white/30" />
+            ) : (
+              <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center text-white text-xl font-bold border-2 border-white/30">
+                {user?.firstName?.[0]}{user?.lastName?.[0]}
+              </div>
+            )}
+            <div>
+              <p className="text-white/70 text-sm mb-1">{t('dashboard.welcome')}</p>
+              <h1 className="text-2xl font-extrabold mb-1">{user?.firstName} {user?.lastName} 👋</h1>
+              <p className="text-white/60 text-sm capitalize">{user?.role?.toLowerCase().replace(/_/g,' ')}</p>
+            </div>
+          </div>
           <div className="flex flex-wrap gap-3">
             <Link to="/donate">
               <Button variant="secondary" size="sm" rightIcon={<ArrowRight className="w-4 h-4" />}>

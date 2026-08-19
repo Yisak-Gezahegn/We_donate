@@ -170,19 +170,7 @@ export default function LoginPage() {
             </Link>
           </p>
 
-          {/* Demo credentials */}
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
-            className={cn('mt-8 p-4 rounded-2xl border', isDark ? 'bg-slate-800 border-slate-700' : 'bg-amber-50 border-amber-100')}>
-            <p className={cn('text-xs font-bold mb-2', isDark ? 'text-amber-400' : 'text-amber-700')}>
-              🔑 Demo Credentials
-            </p>
-            <p className={cn('text-xs', isDark ? 'text-slate-300' : 'text-amber-600')}>
-              User: <span className="font-mono">abebe@example.com</span> / <span className="font-mono">user123</span>
-            </p>
-            <p className={cn('text-xs', isDark ? 'text-slate-300' : 'text-amber-600')}>
-              Admin: <span className="font-mono">superadmin@wedonate.et</span> / <span className="font-mono">superadmin123</span>
-            </p>
-          </motion.div>
+
         </motion.div>
       </div>
     </div>

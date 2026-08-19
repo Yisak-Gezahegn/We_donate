@@ -18,7 +18,7 @@ export const getAllUsers = async (req: Request, res: Response, next: NextFunctio
           ],
         } : {}),
       },
-      select: { id: true, firstName: true, lastName: true, email: true, phone: true, role: true, isVerified: true, isActive: true, createdAt: true },
+      select: { id: true, firstName: true, lastName: true, email: true, phone: true, role: true, isVerified: true, isActive: true, profileImage: true, createdAt: true },
       orderBy: { createdAt: 'desc' },
     });
     res.json({ success: true, data: users });
@@ -41,7 +41,6 @@ export const assignRole = async (req: AuthRequest, res: Response, next: NextFunc
       data: { id: uuidv4(), userId: req.user!.userId, action: 'ASSIGN_ROLE', resource: 'user', resourceId: req.params.id, details: `Assigned role ${role}` },
     });
 
-    // Notify user
     await prisma.notification.create({
       data: {
         id: uuidv4(), userId: req.params.id,
@@ -52,6 +51,45 @@ export const assignRole = async (req: AuthRequest, res: Response, next: NextFunc
     });
 
     res.json({ success: true, data: user, message: `Role updated to ${role}` });
+  } catch (error) { next(error); }
+};
+
+export const toggleUserActive = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const targetUser = await prisma.user.findUnique({
+      where: { id: req.params.id },
+      select: { id: true, isActive: true, firstName: true, lastName: true },
+    });
+    if (!targetUser) return next(createError('User not found', 404));
+
+    const newActiveState = !targetUser.isActive;
+    const user = await prisma.user.update({
+      where: { id: req.params.id },
+      data: { isActive: newActiveState },
+      select: { id: true, firstName: true, lastName: true, email: true, role: true, isActive: true },
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        id: uuidv4(), userId: req.user!.userId,
+        action: newActiveState ? 'ACTIVATE_USER' : 'SUSPEND_USER',
+        resource: 'user', resourceId: req.params.id,
+        details: `${newActiveState ? 'Activated' : 'Suspended'} user ${targetUser.firstName} ${targetUser.lastName}`,
+      },
+    });
+
+    await prisma.notification.create({
+      data: {
+        id: uuidv4(), userId: req.params.id,
+        title: newActiveState ? 'Account Activated' : 'Account Suspended',
+        message: newActiveState
+          ? 'Your account has been activated. You can now log in and use the platform.'
+          : 'Your account has been suspended. Please contact an administrator for more information.',
+        type: newActiveState ? 'SUCCESS' : 'ERROR',
+      },
+    });
+
+    res.json({ success: true, data: user, message: `User ${newActiveState ? 'activated' : 'suspended'} successfully` });
   } catch (error) { next(error); }
 };
 

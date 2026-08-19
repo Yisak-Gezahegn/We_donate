@@ -13,7 +13,7 @@ const ADMIN_ROLES = ['KEBELE_ADMIN', 'WOREDA_ADMIN', 'CITY_ADMIN', 'SUPER_ADMIN'
 
 interface SidebarProps {
   links: { to: string; icon: React.ElementType; label: string }[];
-  user: { firstName: string; lastName: string; role: string } | null;
+  user: { firstName: string; lastName: string; role: string; profileImage?: string } | null;
   location: { pathname: string };
   onClose: () => void;
   onLogout: () => void;
@@ -40,9 +40,13 @@ function SidebarContent({ links, user, location, onClose, onLogout, logoutLabel,
       {user && (
         <div className={cn('px-6 py-4 border-b', isDark ? 'bg-slate-700/50 border-slate-700' : 'bg-gradient-to-r from-green-50 to-emerald-50 border-gray-100')}>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-green-700 flex items-center justify-center text-white font-bold text-sm shrink-0">
-              {user.firstName?.[0] ?? '?'}{user.lastName?.[0] ?? ''}
-            </div>
+            {(user as any)?.profileImage ? (
+              <img src={(user as any).profileImage} alt="" className="w-10 h-10 rounded-full object-cover shrink-0" />
+            ) : (
+              <div className="w-10 h-10 rounded-full bg-green-700 flex items-center justify-center text-white font-bold text-sm shrink-0">
+                {user.firstName?.[0] ?? '?'}{user.lastName?.[0] ?? ''}
+              </div>
+            )}
             <div className="overflow-hidden">
               <p className={cn('text-sm font-semibold truncate', isDark ? 'text-white' : 'text-gray-800')}>
                 {user.firstName} {user.lastName}

@@ -159,9 +159,13 @@ export default function Navbar() {
                       ? 'bg-white/15 hover:bg-white/25 text-white'
                       : (isDark ? 'bg-slate-700 hover:bg-slate-600 text-slate-100' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'),
                   )}>
-                  <div className="w-7 h-7 rounded-full bg-green-600 flex items-center justify-center text-white text-xs font-bold">
-                    {user?.firstName?.[0]}{user?.lastName?.[0]}
-                  </div>
+                  {user?.profileImage ? (
+                    <img src={user.profileImage} alt="" className="w-7 h-7 rounded-full object-cover" />
+                  ) : (
+                    <div className="w-7 h-7 rounded-full bg-green-600 flex items-center justify-center text-white text-xs font-bold">
+                      {user?.firstName?.[0]}{user?.lastName?.[0]}
+                    </div>
+                  )}
                   <span className="hidden lg:inline">{user?.firstName}</span>
                   <ChevronDown className={cn('w-3 h-3 transition-transform', userOpen && 'rotate-180')} />
                 </button>
@@ -171,13 +175,24 @@ export default function Navbar() {
                     isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-100',
                   )}>
                     <div className={cn('px-4 py-3 border-b', isDark ? 'border-slate-700' : 'border-gray-100')}>
-                      <p className={cn('text-sm font-semibold', isDark ? 'text-white' : 'text-gray-800')}>
-                        {user?.firstName} {user?.lastName}
-                      </p>
-                      <p className={cn('text-xs', isDark ? 'text-slate-400' : 'text-gray-500')}>{user?.email}</p>
-                      <span className="inline-block mt-1 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
-                        {user?.role?.replace(/_/g,' ')}
-                      </span>
+                      <div className="flex items-center gap-3">
+                        {user?.profileImage ? (
+                          <img src={user.profileImage} alt="" className="w-10 h-10 rounded-full object-cover" />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center text-white text-sm font-bold">
+                            {user?.firstName?.[0]}{user?.lastName?.[0]}
+                          </div>
+                        )}
+                        <div>
+                          <p className={cn('text-sm font-semibold', isDark ? 'text-white' : 'text-gray-800')}>
+                            {user?.firstName} {user?.lastName}
+                          </p>
+                          <p className={cn('text-xs', isDark ? 'text-slate-400' : 'text-gray-500')}>{user?.email}</p>
+                          <span className="inline-block mt-1 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
+                            {user?.role?.replace(/_/g,' ')}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                     {[
                       { to: '/dashboard', icon: LayoutDashboard, label: t('nav.dashboard') },

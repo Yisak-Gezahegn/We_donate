@@ -6,7 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   Heart, Target, Users, ArrowRight, Lock, Plus,
   Search, Calendar, ChevronRight, X, Copy, Check,
-  Smartphone, Building2, Package, CreditCard,
+  Smartphone, Building2, Package, CreditCard, Eye,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../lib/api';
@@ -18,7 +18,6 @@ import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import ImageUpload from '../components/ui/ImageUpload';
 
-/* ── Types ─────────────────────────────────────────────────── */
 type DonateTab = 'campaigns' | 'requests' | 'create-campaign';
 
 const CAMPAIGN_CATEGORIES = [
@@ -39,7 +38,6 @@ const REQUEST_CATEGORIES = [
   { value: 'OTHER',    label: '🤲 Other' },
 ];
 
-/* ── Progress Bar ───────────────────────────────────────────── */
 function ProgressBar({ raised, goal, className }: { raised: number; goal: number; className?: string }) {
   const pct = Math.min((raised / goal) * 100, 100);
   return (
@@ -61,8 +59,7 @@ function ProgressBar({ raised, goal, className }: { raised: number; goal: number
   );
 }
 
-/* ── Campaign Card ──────────────────────────────────────────── */
-function CampaignCard({ camp, onDonate, isDark }: { camp: any; onDonate: (id: string, title: string, data: any) => void; isDark: boolean }) {
+function CampaignCard({ camp, onDonate, onDetail, isDark }: { camp: any; onDonate: (id: string, title: string, data: any) => void; onDetail: (data: any) => void; isDark: boolean }) {
   const catColors: Record<string, string> = {
     INFRASTRUCTURE: 'bg-blue-100 text-blue-700', EDUCATION: 'bg-purple-100 text-purple-700',
     HEALTH: 'bg-red-100 text-red-700', EMERGENCY: 'bg-orange-100 text-orange-700', OTHER: 'bg-gray-100 text-gray-700',
@@ -73,7 +70,6 @@ function CampaignCard({ camp, onDonate, isDark }: { camp: any; onDonate: (id: st
 
   return (
     <Card className="overflow-hidden flex flex-col h-full" padding="none">
-      {/* Image placeholder / gradient */}
       <div className="h-40 gradient-hero relative overflow-hidden">
         {camp.imageUrl
           ? <img src={camp.imageUrl} alt={camp.title} className="w-full h-full object-cover opacity-80" />
@@ -114,17 +110,22 @@ function CampaignCard({ camp, onDonate, isDark }: { camp: any; onDonate: (id: st
           </span>
         </div>
 
-        <Button size="sm" className="w-full" onClick={() => onDonate(camp.id, camp.title, camp)}
-          rightIcon={<ChevronRight className="w-4 h-4" />}>
-          Support Campaign
-        </Button>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" className="flex-1" onClick={() => onDetail(camp)}
+            leftIcon={<Eye className="w-3.5 h-3.5" />}>
+            Show Detail
+          </Button>
+          <Button size="sm" className="flex-1" onClick={() => onDonate(camp.id, camp.title, camp)}
+            rightIcon={<ChevronRight className="w-4 h-4" />}>
+            Donate
+          </Button>
+        </div>
       </div>
     </Card>
   );
 }
 
-/* ── Request Card ───────────────────────────────────────────── */
-function RequestCard({ req, onDonate, isDark }: { req: any; onDonate: (id: string, title: string, data: any) => void; isDark: boolean }) {
+function RequestCard({ req, onDonate, onDetail, isDark }: { req: any; onDonate: (id: string, title: string, data: any) => void; onDetail: (data: any) => void; isDark: boolean }) {
   const urgencyColors = ['', 'bg-gray-100 text-gray-600', 'bg-blue-100 text-blue-600', 'bg-yellow-100 text-yellow-700', 'bg-orange-100 text-orange-700', 'bg-red-100 text-red-700'];
 
   return (
@@ -156,32 +157,32 @@ function RequestCard({ req, onDonate, isDark }: { req: any; onDonate: (id: strin
         </div>
 
         <div className={cn('flex items-center gap-2 mb-4 text-xs', isDark ? 'text-slate-400' : 'text-gray-500')}>
-          <div className="w-5 h-5 rounded-full bg-green-600 flex items-center justify-center text-white font-bold text-[10px]">
-            {req.user?.firstName?.[0]}
-          </div>
+          {req.user?.profileImage ? (
+            <img src={req.user.profileImage} alt="" className="w-5 h-5 rounded-full object-cover" />
+          ) : (
+            <div className="w-5 h-5 rounded-full bg-green-600 flex items-center justify-center text-white font-bold text-[10px]">
+              {req.user?.firstName?.[0]}
+            </div>
+          )}
           {req.user?.firstName} {req.user?.lastName}
         </div>
 
-        <Button size="sm" variant="outline" className="w-full" onClick={() => onDonate(req.id, req.title, req)}
-          rightIcon={<Heart className="w-3.5 h-3.5" />}>
-          Support Request
-        </Button>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" className="flex-1" onClick={() => onDetail(req)}
+            leftIcon={<Eye className="w-3.5 h-3.5" />}>
+            Show Detail
+          </Button>
+          <Button size="sm" className="flex-1" onClick={() => onDonate(req.id, req.title, req)}
+            rightIcon={<Heart className="w-3.5 h-3.5" />}>
+            Donate
+          </Button>
+        </div>
       </div>
     </Card>
   );
 }
 
-/* ── Donation Modal — full bank/item/Chapa support ────────── */
-const PAYMENT_METHODS = [
-  { id: 'CHAPA',      icon: CreditCard,   label: 'Chapa (Online)',  desc: 'Pay via Chapa checkout' },
-  { id: 'TELEBIRR',   icon: Smartphone,   label: 'TeleBirr',        desc: 'Transfer to TeleBirr account' },
-  { id: 'CBE',        icon: Building2,    label: 'CBE',             desc: 'Commercial Bank of Ethiopia' },
-  { id: 'BOA',        icon: Building2,    label: 'BOA',             desc: 'Bank of Abyssinia' },
-  { id: 'AWASH',      icon: Building2,    label: 'Awash Bank',      desc: 'Awash International Bank' },
-  { id: 'OTHER_BANK', icon: Building2,    label: 'Other Bank',      desc: 'Any other bank transfer' },
-  { id: 'ITEM',       icon: Package,      label: 'Item Donation',   desc: 'Donate food, clothes, medicine...' },
-];
-
+/* ── Account Row (copy-to-clipboard) ──────────────────────── */
 function AccountRow({ label, value, isDark }: { label: string; value?: string | null; isDark: boolean }) {
   const [copied, setCopied] = useState(false);
   if (!value) return null;
@@ -201,6 +202,143 @@ function AccountRow({ label, value, isDark }: { label: string; value?: string | 
   );
 }
 
+/* ── Detail Progress Modal ────────────────────────────────── */
+function DetailModal({ data, type, onClose, isDark }: { data: any; type: 'campaign' | 'request'; onClose: () => void; isDark: boolean }) {
+  if (!data) return null;
+  const pct = data.goalAmount ? Math.min((data.raisedAmount / data.goalAmount) * 100, 100) : 0;
+  const catColors: Record<string, string> = {
+    INFRASTRUCTURE: 'bg-blue-100 text-blue-700', EDUCATION: 'bg-purple-100 text-purple-700',
+    HEALTH: 'bg-red-100 text-red-700', EMERGENCY: 'bg-orange-100 text-orange-700',
+    FOOD: 'bg-yellow-100 text-yellow-700', MEDICINE: 'bg-pink-100 text-pink-700',
+    CLOTHES: 'bg-indigo-100 text-indigo-700', MONEY: 'bg-green-100 text-green-700',
+    OTHER: 'bg-gray-100 text-gray-700',
+  };
+  const urgencyLabels = ['', 'Minimal', 'Low', 'Medium', 'High', 'Critical'];
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-start justify-center p-4 overflow-y-auto" onClick={onClose}>
+      <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }} transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+        onClick={e => e.stopPropagation()}
+        className={cn('w-full max-w-lg my-8 rounded-3xl shadow-2xl overflow-hidden',
+          isDark ? 'bg-slate-800' : 'bg-white')}>
+
+        {/* Image header */}
+        {data.imageUrl && (
+          <div className="h-48 relative overflow-hidden">
+            <img src={data.imageUrl} alt={data.title} className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+            <button onClick={onClose} className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/40 flex items-center justify-center text-white hover:bg-black/60 transition-colors">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
+        <div className="p-6">
+          {!data.imageUrl && (
+            <div className="flex justify-end mb-2">
+              <button onClick={onClose} className={cn('p-2 rounded-xl transition-colors',
+                isDark ? 'hover:bg-slate-700 text-slate-400' : 'hover:bg-gray-100 text-gray-500')}>
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          )}
+
+          {/* Title & status */}
+          <div className="flex flex-wrap items-center gap-2 mb-3">
+            <h2 className={cn('text-lg font-extrabold flex-1', isDark ? 'text-white' : 'text-gray-900')}>{data.title}</h2>
+            <Badge variant={data.status === 'ACTIVE' || data.status === 'APPROVED' ? 'success' : data.status === 'PENDING' ? 'warning' : 'danger'}>{data.status}</Badge>
+          </div>
+
+          {/* Tags */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            {data.category && (
+              <span className={cn('text-xs font-semibold px-2.5 py-1 rounded-full', catColors[data.category] || catColors.OTHER)}>
+                {data.category.replace('_', ' ')}
+              </span>
+            )}
+            {data.urgencyLevel && (
+              <span className={cn('text-xs font-semibold px-2.5 py-1 rounded-full',
+                data.urgencyLevel >= 4 ? 'bg-red-100 text-red-700' : data.urgencyLevel >= 3 ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600')}>
+                Urgency: {urgencyLabels[data.urgencyLevel]}
+              </span>
+            )}
+          </div>
+
+          {/* Description */}
+          <p className={cn('text-sm leading-relaxed mb-5', isDark ? 'text-slate-300' : 'text-gray-600')}>{data.description}</p>
+
+          {/* Progress bar */}
+          {data.goalAmount && (
+            <div className={cn('p-4 rounded-2xl mb-5', isDark ? 'bg-slate-700/50' : 'bg-gray-50')}>
+              <div className="flex justify-between text-sm mb-2 font-semibold">
+                <span className="text-green-500">{formatCurrency(data.raisedAmount)} raised</span>
+                <span className={isDark ? 'text-slate-400' : 'text-gray-500'}>{Math.round(pct)}%</span>
+              </div>
+              <div className={cn('h-3 rounded-full overflow-hidden', isDark ? 'bg-slate-600' : 'bg-gray-200')}>
+                <motion.div initial={{ width: 0 }} animate={{ width: `${pct}%` }}
+                  transition={{ duration: 1, ease: 'easeOut' }}
+                  className="h-full rounded-full bg-gradient-to-r from-green-500 to-emerald-400" />
+              </div>
+              <div className="flex justify-between text-xs mt-2">
+                <span className={isDark ? 'text-slate-400' : 'text-gray-500'}>Goal: {formatCurrency(data.goalAmount)}</span>
+                <span className={isDark ? 'text-slate-400' : 'text-gray-500'}>{data._count?.donations ?? 0} donations</span>
+              </div>
+            </div>
+          )}
+
+          {/* Info grid */}
+          <div className="grid grid-cols-2 gap-3 mb-5">
+            {data.location && (
+              <div className={cn('p-3 rounded-xl', isDark ? 'bg-slate-700/30' : 'bg-gray-50')}>
+                <p className={cn('text-xs font-semibold mb-0.5', isDark ? 'text-slate-400' : 'text-gray-500')}>Location</p>
+                <p className={cn('text-sm font-medium', isDark ? 'text-white' : 'text-gray-900')}>{data.location}</p>
+              </div>
+            )}
+            {data.familySize && (
+              <div className={cn('p-3 rounded-xl', isDark ? 'bg-slate-700/30' : 'bg-gray-50')}>
+                <p className={cn('text-xs font-semibold mb-0.5', isDark ? 'text-slate-400' : 'text-gray-500')}>Family Size</p>
+                <p className={cn('text-sm font-medium', isDark ? 'text-white' : 'text-gray-900')}>{data.familySize} people</p>
+              </div>
+            )}
+            {data.deadline && (
+              <div className={cn('p-3 rounded-xl', isDark ? 'bg-slate-700/30' : 'bg-gray-50')}>
+                <p className={cn('text-xs font-semibold mb-0.5', isDark ? 'text-slate-400' : 'text-gray-500')}>Deadline</p>
+                <p className={cn('text-sm font-medium', isDark ? 'text-white' : 'text-gray-900')}>{formatDate(data.deadline)}</p>
+              </div>
+            )}
+            <div className={cn('p-3 rounded-xl', isDark ? 'bg-slate-700/30' : 'bg-gray-50')}>
+              <p className={cn('text-xs font-semibold mb-0.5', isDark ? 'text-slate-400' : 'text-gray-500')}>Posted</p>
+              <p className={cn('text-sm font-medium', isDark ? 'text-white' : 'text-gray-900')}>{formatDate(data.createdAt)}</p>
+            </div>
+          </div>
+
+          {/* Beneficiary info */}
+          {data.user && (
+            <div className={cn('flex items-center gap-3 p-4 rounded-2xl mb-5',
+              isDark ? 'bg-slate-700/30' : 'bg-gray-50')}>
+              {data.user.profileImage ? (
+                <img src={data.user.profileImage} alt="" className="w-10 h-10 rounded-full object-cover" />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-bold text-sm">
+                  {data.user.firstName?.[0]}{data.user.lastName?.[0]}
+                </div>
+              )}
+              <div>
+                <p className={cn('text-sm font-semibold', isDark ? 'text-white' : 'text-gray-900')}>{data.user.firstName} {data.user.lastName}</p>
+                <p className={cn('text-xs', isDark ? 'text-slate-400' : 'text-gray-500')}>{type === 'campaign' ? 'Campaign Creator' : 'Requester'}</p>
+              </div>
+            </div>
+          )}
+
+          <Button className="w-full" onClick={onClose}>Close</Button>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+/* ── Donation Modal — Item/Money first, then beneficiary accounts ─── */
 function DonationModal({
   target, type, targetData, onClose, isAuthenticated, navigate, isDark,
 }: {
@@ -212,7 +350,8 @@ function DonationModal({
   navigate: (p: string) => void;
   isDark: boolean;
 }) {
-  const [step, setStep]             = useState<1|2|3>(1); // 1=choose method, 2=fill details, 3=done
+  const [step, setStep]             = useState<1|2|3|4>(1);
+  const [donateType, setDonateType] = useState<'ITEM' | 'MONEY' | ''>('');
   const [method, setMethod]         = useState('');
   const [amount, setAmount]         = useState('');
   const [custom, setCustom]         = useState('');
@@ -230,49 +369,52 @@ function DonationModal({
   const inp = cn('w-full rounded-xl border px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500',
     isDark ? 'bg-slate-700 border-slate-600 text-white placeholder-slate-400' : 'bg-white border-gray-300 text-gray-900');
 
+  const PAYMENT_METHODS = [
+    { id: 'TELEBIRR',   icon: Smartphone, label: 'TeleBirr',       desc: 'Transfer to TeleBirr account',     account: targetData?.telebirrAccount },
+    { id: 'CBE',        icon: Building2,  label: 'CBE',            desc: 'Commercial Bank of Ethiopia',      account: targetData?.cbeAccount },
+    { id: 'BOA',        icon: Building2,  label: 'BOA',            desc: 'Bank of Abyssinia',                account: targetData?.boaAccount },
+    { id: 'AWASH',      icon: Building2,  label: 'Awash Bank',     desc: 'Awash International Bank',         account: targetData?.awashAccount },
+    { id: 'OTHER_BANK', icon: Building2,  label: targetData?.otherBankName || 'Other Bank', desc: 'Any other bank transfer', account: targetData?.otherBankAccount },
+  ].filter(m => m.account);
+
+  const stepLabels = donateType === 'MONEY'
+    ? ['Choose Type', 'Payment Method', 'Donation Details', 'Done']
+    : ['Choose Type', 'Item Details', 'Done'];
+
   const handleSubmit = async () => {
     if (!isAuthenticated) { toast.error('Please login to donate'); navigate('/login'); return; }
+    if (donateType === 'MONEY' && finalAmount < 1) { toast.error('Enter a valid amount (min 1 ETB)'); return; }
 
-    if (method !== 'ITEM' && finalAmount < 1) { toast.error('Enter a valid amount (min 1 ETB)'); return; }
-    if (method === 'CHAPA') {
-      setLoading(true);
-      try {
-        const payload: any = { amount: finalAmount, currency: 'ETB', donationType: 'MONEY', description: note, isAnonymous: anon, paymentMethod: 'CHAPA' };
-        if (type === 'campaign') payload.campaignId = target!.id;
-        else payload.supportRequestId = target!.id;
-        const { data } = await api.post('/payments/initialize', payload);
-        window.location.href = data.data.checkoutUrl;
-      } catch (err: any) { toast.error(err?.response?.data?.message || 'Payment failed'); setLoading(false); }
-      return;
-    }
-
-    // Non-Chapa or item donation
     setLoading(true);
     try {
       const payload: any = {
-        donationType: method === 'ITEM' ? (itemDesc.toLowerCase().includes('food') ? 'FOOD' : itemDesc.toLowerCase().includes('cloth') ? 'CLOTHES' : itemDesc.toLowerCase().includes('med') ? 'MEDICINE' : 'OTHER') : 'MONEY',
+        donationType: donateType === 'ITEM'
+          ? (itemDesc.toLowerCase().includes('food') ? 'FOOD' : itemDesc.toLowerCase().includes('cloth') ? 'CLOTHES' : itemDesc.toLowerCase().includes('med') ? 'MEDICINE' : 'OTHER')
+          : 'MONEY',
         description: note || itemDesc,
         isAnonymous: anon,
-        paymentMethod: method,
+        paymentMethod: donateType === 'ITEM' ? 'ITEM' : method,
         referenceCode: refCode || null,
         paymentProofUrl: proofUrl || null,
         itemDescription: itemDesc || null,
         itemImageUrl: itemImgUrl || null,
-        deliveryMethod: method === 'ITEM' ? delivery : null,
+        deliveryMethod: donateType === 'ITEM' ? delivery : null,
       };
-      if (method !== 'ITEM') payload.amount = finalAmount;
+      if (donateType === 'MONEY') payload.amount = finalAmount;
       if (type === 'campaign') payload.campaignId = target!.id;
       else payload.supportRequestId = target!.id;
 
       await api.post('/donations', payload);
-      setStep(3);
+      setStep(donateType === 'MONEY' ? 4 : 3);
     } catch (err: any) { toast.error(err?.response?.data?.message || 'Submission failed'); }
     finally { setLoading(false); }
   };
 
   if (!target) return null;
 
-  const hasAccounts = targetData && (targetData.telebirrAccount || targetData.cbeAccount || targetData.boaAccount || targetData.awashAccount || targetData.otherBankAccount);
+  const moneyDone = step === 4;
+  const itemDone = step === 3 && donateType === 'ITEM';
+  const isDone = moneyDone || itemDone;
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-start justify-center p-4 overflow-y-auto">
@@ -297,169 +439,169 @@ function DonationModal({
         </div>
 
         {/* Step indicators */}
-        <div className={cn('flex items-center gap-2 px-6 py-3 text-xs border-b',
+        <div className={cn('flex items-center gap-2 px-6 py-3 text-xs border-b overflow-x-auto',
           isDark ? 'border-slate-700 bg-slate-700/50' : 'border-gray-100 bg-gray-50')}>
-          {['Choose Method','Payment Details','Done'].map((s, i) => (
-            <div key={i} className="flex items-center gap-2">
+          {stepLabels.map((s, i) => (
+            <div key={i} className="flex items-center gap-2 shrink-0">
               <div className={cn('w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold',
                 step > i+1 ? 'bg-green-500 text-white' : step === i+1 ? 'bg-green-700 text-white' : (isDark ? 'bg-slate-600 text-slate-400' : 'bg-gray-200 text-gray-500'))}>
                 {step > i+1 ? '✓' : i+1}
               </div>
               <span className={step === i+1 ? 'text-green-500 font-semibold' : (isDark ? 'text-slate-500' : 'text-gray-400')}>{s}</span>
-              {i < 2 && <ChevronRight className="w-3 h-3 opacity-30" />}
+              {i < stepLabels.length - 1 && <ChevronRight className="w-3 h-3 opacity-30" />}
             </div>
           ))}
         </div>
 
         <div className="p-6">
-          {/* ── STEP 1: Choose method ── */}
+          {/* ════ STEP 1: Choose Type ════ */}
           {step === 1 && (
-            <div className="space-y-3">
-              <p className={cn('text-sm font-semibold mb-4', isDark ? 'text-slate-300' : 'text-gray-700')}>
-                How would you like to donate?
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+              <p className={cn('text-sm font-semibold mb-2', isDark ? 'text-slate-300' : 'text-gray-700')}>
+                How would you like to help?
               </p>
-              {PAYMENT_METHODS.map(m => {
-                const accountAvailable =
-                  (m.id === 'TELEBIRR' && targetData?.telebirrAccount) ||
-                  (m.id === 'CBE'      && targetData?.cbeAccount) ||
-                  (m.id === 'BOA'      && targetData?.boaAccount) ||
-                  (m.id === 'AWASH'    && targetData?.awashAccount) ||
-                  (m.id === 'OTHER_BANK' && targetData?.otherBankAccount) ||
-                  m.id === 'CHAPA' || m.id === 'ITEM';
-                if (!accountAvailable) return null;
-                return (
-                  <button key={m.id} onClick={() => { setMethod(m.id); setStep(2); }}
-                    className={cn('w-full flex items-center gap-3 p-4 rounded-2xl border-2 text-left transition-all',
-                      isDark ? 'border-slate-700 hover:border-green-500 hover:bg-slate-700' : 'border-gray-200 hover:border-green-400 hover:bg-green-50')}>
-                    <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center shrink-0',
-                      isDark ? 'bg-slate-700' : 'bg-green-100')}>
-                      <m.icon className="w-5 h-5 text-green-600" />
-                    </div>
-                    <div>
-                      <p className={cn('text-sm font-bold', isDark ? 'text-white' : 'text-gray-900')}>{m.label}</p>
-                      <p className={cn('text-xs', isDark ? 'text-slate-400' : 'text-gray-500')}>{m.desc}</p>
-                    </div>
-                    <ChevronRight className="w-4 h-4 ml-auto opacity-40" />
-                  </button>
-                );
-              })}
-            </div>
+              <div className="grid grid-cols-2 gap-4">
+                <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                  onClick={() => { setDonateType('MONEY'); setMethod(''); setStep(2); }}
+                  className={cn('group relative flex flex-col items-center gap-3 p-6 rounded-2xl border-2 transition-all cursor-pointer',
+                    isDark ? 'border-slate-600 hover:border-green-500 hover:bg-slate-700/50' : 'border-gray-200 hover:border-green-400 hover:bg-green-50')}>
+                  <div className={cn('w-14 h-14 rounded-2xl flex items-center justify-center transition-colors',
+                    isDark ? 'bg-green-900/40 group-hover:bg-green-800/50' : 'bg-green-100 group-hover:bg-green-200')}>
+                    <CreditCard className="w-7 h-7 text-green-600" />
+                  </div>
+                  <div className="text-center">
+                    <p className={cn('text-sm font-bold', isDark ? 'text-white' : 'text-gray-900')}>Money</p>
+                    <p className={cn('text-xs mt-0.5', isDark ? 'text-slate-400' : 'text-gray-500')}>Send funds directly</p>
+                  </div>
+                  <ChevronRight className={cn('absolute top-3 right-3 w-4 h-4 transition-colors',
+                    isDark ? 'text-slate-600 group-hover:text-green-400' : 'text-gray-300 group-hover:text-green-500')} />
+                </motion.button>
+
+                <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                  onClick={() => { setDonateType('ITEM'); setMethod('ITEM'); setStep(2); }}
+                  className={cn('group relative flex flex-col items-center gap-3 p-6 rounded-2xl border-2 transition-all cursor-pointer',
+                    isDark ? 'border-slate-600 hover:border-amber-500 hover:bg-slate-700/50' : 'border-gray-200 hover:border-amber-400 hover:bg-amber-50')}>
+                  <div className={cn('w-14 h-14 rounded-2xl flex items-center justify-center transition-colors',
+                    isDark ? 'bg-amber-900/40 group-hover:bg-amber-800/50' : 'bg-amber-100 group-hover:bg-amber-200')}>
+                    <Package className="w-7 h-7 text-amber-600" />
+                  </div>
+                  <div className="text-center">
+                    <p className={cn('text-sm font-bold', isDark ? 'text-white' : 'text-gray-900')}>Item</p>
+                    <p className={cn('text-xs mt-0.5', isDark ? 'text-slate-400' : 'text-gray-500')}>Food, clothes, medicine...</p>
+                  </div>
+                  <ChevronRight className={cn('absolute top-3 right-3 w-4 h-4 transition-colors',
+                    isDark ? 'text-slate-600 group-hover:text-amber-400' : 'text-gray-300 group-hover:text-amber-500')} />
+                </motion.button>
+              </div>
+            </motion.div>
           )}
 
-          {/* ── STEP 2: Payment Details ── */}
-          {step === 2 && (
-            <div className="space-y-4">
-              <button onClick={() => setStep(1)}
-                className={cn('flex items-center gap-1 text-xs font-medium mb-2',
+          {/* ════ STEP 2A: Money → Choose Payment Method ════ */}
+          {step === 2 && donateType === 'MONEY' && (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+              <button onClick={() => { setStep(1); setDonateType(''); }}
+                className={cn('flex items-center gap-1 text-xs font-medium mb-1',
+                  isDark ? 'text-slate-400 hover:text-white' : 'text-gray-500 hover:text-gray-800')}>
+                ← Back
+              </button>
+              <p className={cn('text-sm font-semibold', isDark ? 'text-slate-300' : 'text-gray-700')}>Select payment method</p>
+              <p className={cn('text-xs', isDark ? 'text-slate-400' : 'text-gray-500')}>
+                Choose where to send your money — the beneficiary's account details will be shown
+              </p>
+
+              {PAYMENT_METHODS.length === 0 ? (
+                <div className={cn('text-center py-8 rounded-2xl border', isDark ? 'bg-slate-700/30 border-slate-600' : 'bg-gray-50 border-gray-200')}>
+                  <Building2 className={cn('w-10 h-10 mx-auto mb-2', isDark ? 'text-slate-600' : 'text-gray-300')} />
+                  <p className={cn('text-sm font-medium', isDark ? 'text-slate-400' : 'text-gray-500')}>No payment accounts available</p>
+                  <p className={cn('text-xs mt-1', isDark ? 'text-slate-500' : 'text-gray-400')}>This beneficiary hasn't added payment accounts yet</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {PAYMENT_METHODS.map((m, idx) => (
+                    <motion.button key={m.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: idx * 0.05 }} whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
+                      onClick={() => { setMethod(m.id); setStep(3); }}
+                      className={cn('w-full flex items-center gap-3 p-4 rounded-2xl border-2 text-left transition-all',
+                        isDark ? 'border-slate-700 hover:border-green-500 hover:bg-slate-700' : 'border-gray-200 hover:border-green-400 hover:bg-green-50')}>
+                      <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center shrink-0',
+                        isDark ? 'bg-slate-700' : 'bg-green-100')}>
+                        <m.icon className="w-5 h-5 text-green-600" />
+                      </div>
+                      <div className="flex-1">
+                        <p className={cn('text-sm font-bold', isDark ? 'text-white' : 'text-gray-900')}>{m.label}</p>
+                        <p className={cn('text-xs', isDark ? 'text-slate-400' : 'text-gray-500')}>{m.desc}</p>
+                      </div>
+                      <div className={cn('text-xs font-mono font-bold', isDark ? 'text-green-400' : 'text-green-600')}>
+                        {m.account?.length > 8 ? m.account.slice(0, 8) + '...' : m.account}
+                      </div>
+                      <ChevronRight className="w-4 h-4 opacity-40" />
+                    </motion.button>
+                  ))}
+                </div>
+              )}
+            </motion.div>
+          )}
+
+          {/* ════ STEP 2B: Item → auto advance to step 3 ════ */}
+          {step === 2 && donateType === 'ITEM' && (() => { setStep(3); return null; })()}
+
+          {/* ════ STEP 3: Money details ════ */}
+          {step === 3 && donateType === 'MONEY' && (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+              <button onClick={() => setStep(2)}
+                className={cn('flex items-center gap-1 text-xs font-medium mb-1',
                   isDark ? 'text-slate-400 hover:text-white' : 'text-gray-500 hover:text-gray-800')}>
                 ← Back
               </button>
 
-              {/* Show recipient's account number for bank methods */}
-              {method !== 'CHAPA' && method !== 'ITEM' && hasAccounts && (
-                <div className={cn('p-4 rounded-2xl border space-y-2',
-                  isDark ? 'bg-slate-700/50 border-slate-600' : 'bg-amber-50 border-amber-200')}>
-                  <p className={cn('text-xs font-bold mb-2', isDark ? 'text-amber-400' : 'text-amber-700')}>
-                    📋 Recipient's Account — Transfer directly then upload proof below
-                  </p>
-                  {method === 'TELEBIRR'   && <AccountRow label="TeleBirr" value={targetData.telebirrAccount} isDark={isDark} />}
-                  {method === 'CBE'        && <AccountRow label="CBE Account" value={targetData.cbeAccount} isDark={isDark} />}
-                  {method === 'BOA'        && <AccountRow label="BOA Account" value={targetData.boaAccount} isDark={isDark} />}
-                  {method === 'AWASH'      && <AccountRow label="Awash Account" value={targetData.awashAccount} isDark={isDark} />}
-                  {method === 'OTHER_BANK' && (
-                    <>
-                      {targetData.otherBankName && <AccountRow label="Bank Name" value={targetData.otherBankName} isDark={isDark} />}
-                      <AccountRow label="Account Number" value={targetData.otherBankAccount} isDark={isDark} />
-                    </>
-                  )}
+              <div className={cn('p-4 rounded-2xl border space-y-2',
+                isDark ? 'bg-slate-700/50 border-slate-600' : 'bg-amber-50 border-amber-200')}>
+                <p className={cn('text-xs font-bold mb-2', isDark ? 'text-amber-400' : 'text-amber-700')}>
+                  📋 Transfer directly then upload proof below
+                </p>
+                {method === 'TELEBIRR'   && <AccountRow label="TeleBirr" value={targetData.telebirrAccount} isDark={isDark} />}
+                {method === 'CBE'        && <AccountRow label="CBE Account" value={targetData.cbeAccount} isDark={isDark} />}
+                {method === 'BOA'        && <AccountRow label="BOA Account" value={targetData.boaAccount} isDark={isDark} />}
+                {method === 'AWASH'      && <AccountRow label="Awash Account" value={targetData.awashAccount} isDark={isDark} />}
+                {method === 'OTHER_BANK' && (
+                  <>
+                    {targetData.otherBankName && <AccountRow label="Bank Name" value={targetData.otherBankName} isDark={isDark} />}
+                    <AccountRow label="Account Number" value={targetData.otherBankAccount} isDark={isDark} />
+                  </>
+                )}
+              </div>
+
+              <div>
+                <label className={cn('block text-sm font-semibold mb-3', isDark ? 'text-slate-300' : 'text-gray-700')}>Amount (ETB) *</label>
+                <div className="grid grid-cols-3 gap-2 mb-3">
+                  {AMOUNTS.map(a => (
+                    <button key={a} onClick={() => { setAmount(String(a)); setCustom(''); }}
+                      className={cn('py-2.5 rounded-xl border-2 text-sm font-bold transition-all',
+                        amount === String(a) ? 'border-green-600 bg-green-600 text-white' : (isDark ? 'border-slate-600 hover:border-green-500 text-slate-300' : 'border-gray-200 hover:border-green-300 text-gray-700'))}>
+                      {formatCurrency(a)}
+                    </button>
+                  ))}
                 </div>
-              )}
+                <input type="number" placeholder="Custom amount..." value={custom}
+                  onChange={e => { setCustom(e.target.value); setAmount(''); }}
+                  className={inp} min="1" />
+              </div>
 
-              {/* Amount — not for item donation */}
-              {method !== 'ITEM' && (
-                <div>
-                  <label className={cn('block text-sm font-semibold mb-3', isDark ? 'text-slate-300' : 'text-gray-700')}>Amount (ETB) *</label>
-                  <div className="grid grid-cols-3 gap-2 mb-3">
-                    {AMOUNTS.map(a => (
-                      <button key={a} onClick={() => { setAmount(String(a)); setCustom(''); }}
-                        className={cn('py-2.5 rounded-xl border-2 text-sm font-bold transition-all',
-                          amount === String(a) ? 'border-green-600 bg-green-600 text-white' : (isDark ? 'border-slate-600 hover:border-green-500 text-slate-300' : 'border-gray-200 hover:border-green-300 text-gray-700'))}>
-                        {formatCurrency(a)}
-                      </button>
-                    ))}
-                  </div>
-                  <input type="number" placeholder="Custom amount..." value={custom}
-                    onChange={e => { setCustom(e.target.value); setAmount(''); }}
-                    className={inp} min="1" />
-                </div>
-              )}
+              <div>
+                <label className={cn('block text-sm font-semibold mb-1.5', isDark ? 'text-slate-300' : 'text-gray-700')}>
+                  Transaction Reference Code *
+                </label>
+                <input className={inp} placeholder="Enter the reference/transaction ID from your bank"
+                  value={refCode} onChange={e => setRefCode(e.target.value)} />
+              </div>
 
-              {/* Reference code for bank transfers */}
-              {method !== 'CHAPA' && method !== 'ITEM' && (
-                <div>
-                  <label className={cn('block text-sm font-semibold mb-1.5', isDark ? 'text-slate-300' : 'text-gray-700')}>
-                    Transaction Reference Code *
-                  </label>
-                  <input className={inp} placeholder="Enter the reference/transaction ID from your bank"
-                    value={refCode} onChange={e => setRefCode(e.target.value)} />
-                </div>
-              )}
+              <ImageUpload label="Payment Proof Screenshot *" value={proofUrl} onChange={setProofUrl}
+                hint="Upload a screenshot of your transfer receipt" />
 
-              {/* Payment proof upload for bank transfers */}
-              {method !== 'CHAPA' && method !== 'ITEM' && (
-                <ImageUpload
-                  label="Payment Proof Screenshot *"
-                  value={proofUrl}
-                  onChange={setProofUrl}
-                  hint="Upload a screenshot of your transfer receipt"
-                />
-              )}
-
-              {/* Item donation fields */}
-              {method === 'ITEM' && (
-                <>
-                  <div>
-                    <label className={cn('block text-sm font-semibold mb-1.5', isDark ? 'text-slate-300' : 'text-gray-700')}>
-                      What are you donating? *
-                    </label>
-                    <textarea rows={3} placeholder="Describe the items (e.g. 20kg rice, 5 shirts, medicines...)"
-                      className={cn(inp, 'resize-none')}
-                      value={itemDesc} onChange={e => setItemDesc(e.target.value)} />
-                  </div>
-                  <ImageUpload
-                    label="Photo of Items *"
-                    value={itemImgUrl}
-                    onChange={setItemImgUrl}
-                    hint="Take a clear photo of the items you're donating"
-                  />
-                  <div>
-                    <label className={cn('block text-sm font-semibold mb-2', isDark ? 'text-slate-300' : 'text-gray-700')}>
-                      Delivery Method *
-                    </label>
-                    {[
-                      { v: 'BRING_TO_OFFICE',      l: '🏢 I will bring to WeDonate office' },
-                      { v: 'DELIVER_TO_ADDRESS',    l: '🚚 I will deliver to beneficiary address' },
-                      { v: 'COORDINATE',            l: '📞 Please coordinate with me' },
-                    ].map(d => (
-                      <label key={d.v} className="flex items-center gap-3 cursor-pointer mb-2">
-                        <div onClick={() => setDelivery(d.v)}
-                          className={cn('w-4 h-4 rounded-full border-2 flex items-center justify-center',
-                            delivery === d.v ? 'border-green-600' : (isDark ? 'border-slate-500' : 'border-gray-300'))}>
-                          {delivery === d.v && <div className="w-2 h-2 rounded-full bg-green-600" />}
-                        </div>
-                        <span className={cn('text-sm', isDark ? 'text-slate-300' : 'text-gray-700')}>{d.l}</span>
-                      </label>
-                    ))}
-                  </div>
-                </>
-              )}
-
-              {/* Note */}
               <textarea value={note} onChange={e => setNote(e.target.value)} rows={2}
                 placeholder="Add a message of support... (optional)"
                 className={cn(inp, 'resize-none')} />
 
-              {/* Anonymous */}
               <label className="flex items-center gap-3 cursor-pointer">
                 <div onClick={() => setAnon(!anon)}
                   className={cn('w-5 h-5 rounded border-2 flex items-center justify-center shrink-0',
@@ -470,28 +612,90 @@ function DonationModal({
               </label>
 
               <Button className="w-full" size="lg" isLoading={loading} onClick={handleSubmit}>
-                {method === 'CHAPA' ? `Pay ${finalAmount > 0 ? formatCurrency(finalAmount) : ''}` :
-                 method === 'ITEM' ? 'Submit Item Donation' : 'Confirm Donation'}
+                Confirm Donation {finalAmount > 0 ? `- ${formatCurrency(finalAmount)}` : ''}
               </Button>
-            </div>
+            </motion.div>
           )}
 
-          {/* ── STEP 3: Success ── */}
-          {step === 3 && (
-            <div className="text-center py-6">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Check className="w-8 h-8 text-green-600" />
+          {/* ════ STEP 3: Item details ════ */}
+          {step === 3 && donateType === 'ITEM' && (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+              <button onClick={() => { setStep(1); setDonateType(''); }}
+                className={cn('flex items-center gap-1 text-xs font-medium mb-1',
+                  isDark ? 'text-slate-400 hover:text-white' : 'text-gray-500 hover:text-gray-800')}>
+                ← Back
+              </button>
+
+              <div>
+                <label className={cn('block text-sm font-semibold mb-1.5', isDark ? 'text-slate-300' : 'text-gray-700')}>
+                  What are you donating? *
+                </label>
+                <textarea rows={3} placeholder="Describe the items (e.g. 20kg rice, 5 shirts, medicines...)"
+                  className={cn(inp, 'resize-none')}
+                  value={itemDesc} onChange={e => setItemDesc(e.target.value)} />
               </div>
+
+              <ImageUpload label="Photo of Items *" value={itemImgUrl} onChange={setItemImgUrl}
+                hint="Take a clear photo of the items you're donating" />
+
+              <div>
+                <label className={cn('block text-sm font-semibold mb-2', isDark ? 'text-slate-300' : 'text-gray-700')}>
+                  Delivery Method *
+                </label>
+                {[
+                  { v: 'BRING_TO_OFFICE',    l: 'I will bring to WeDonate office' },
+                  { v: 'DELIVER_TO_ADDRESS', l: 'I will deliver to beneficiary address' },
+                  { v: 'COORDINATE',         l: 'Please coordinate with me' },
+                ].map(d => (
+                  <label key={d.v} className="flex items-center gap-3 cursor-pointer mb-2">
+                    <div onClick={() => setDelivery(d.v)}
+                      className={cn('w-4 h-4 rounded-full border-2 flex items-center justify-center',
+                        delivery === d.v ? 'border-green-600' : (isDark ? 'border-slate-500' : 'border-gray-300'))}>
+                      {delivery === d.v && <div className="w-2 h-2 rounded-full bg-green-600" />}
+                    </div>
+                    <span className={cn('text-sm', isDark ? 'text-slate-300' : 'text-gray-700')}>{d.l}</span>
+                  </label>
+                ))}
+              </div>
+
+              <textarea value={note} onChange={e => setNote(e.target.value)} rows={2}
+                placeholder="Add a message of support... (optional)"
+                className={cn(inp, 'resize-none')} />
+
+              <label className="flex items-center gap-3 cursor-pointer">
+                <div onClick={() => setAnon(!anon)}
+                  className={cn('w-5 h-5 rounded border-2 flex items-center justify-center shrink-0',
+                    anon ? 'bg-green-600 border-green-600' : (isDark ? 'border-slate-500' : 'border-gray-300'))}>
+                  {anon && <span className="text-white text-xs">✓</span>}
+                </div>
+                <span className={cn('text-sm', isDark ? 'text-slate-300' : 'text-gray-700')}>Donate anonymously</span>
+              </label>
+
+              <Button className="w-full" size="lg" isLoading={loading} onClick={handleSubmit}>
+                Submit Item Donation
+              </Button>
+            </motion.div>
+          )}
+
+          {/* ════ STEP 3/4: Success ════ */}
+          {isDone && (
+            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
+              className="text-center py-6">
+              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}
+                transition={{ type: 'spring', damping: 15, stiffness: 200 }}
+                className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Check className="w-8 h-8 text-green-600" />
+              </motion.div>
               <h3 className={cn('text-xl font-bold mb-2', isDark ? 'text-white' : 'text-gray-900')}>
-                {method === 'ITEM' ? 'Item Donation Submitted!' : 'Donation Submitted!'}
+                {donateType === 'ITEM' ? 'Item Donation Submitted!' : 'Donation Submitted!'}
               </h3>
               <p className={cn('text-sm mb-6', isDark ? 'text-slate-400' : 'text-gray-500')}>
-                {method === 'ITEM'
+                {donateType === 'ITEM'
                   ? 'Thank you! The beneficiary and admin have been notified about your item donation.'
                   : 'Your donation has been recorded. The admin will verify your payment shortly.'}
               </p>
               <Button className="w-full" onClick={onClose}>Done</Button>
-            </div>
+            </motion.div>
           )}
         </div>
       </motion.div>
@@ -578,13 +782,9 @@ function CreateCampaignForm({ isDark, onSuccess }: { isDark: boolean; onSuccess:
             value={form.deadline} onChange={e => setForm(p => ({ ...p, deadline: e.target.value }))} />
         </div>
 
-        {/* Image upload */}
-        <ImageUpload
-          label="Campaign Cover Photo (optional)"
-          value={form.imageUrl}
+        <ImageUpload label="Campaign Cover Photo (optional)" value={form.imageUrl}
           onChange={url => setForm(p => ({ ...p, imageUrl: url }))}
-          hint="A compelling photo makes your campaign more trustworthy"
-        />
+          hint="A compelling photo makes your campaign more trustworthy" />
 
         <Button type="submit" className="w-full" size="lg" isLoading={loading}
           rightIcon={<ArrowRight className="w-4 h-4" />}>
@@ -605,7 +805,6 @@ export default function DonatePage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  // Org roles that can create campaigns
   const canCreateCampaign = user && ['NGO','ORGANIZATION','GOVERNMENTAL_ORG','KEBELE_ADMIN','WOREDA_ADMIN','CITY_ADMIN','SUPER_ADMIN'].includes(user.role);
 
   const [tab, setTab]             = useState<DonateTab>('campaigns');
@@ -613,8 +812,8 @@ export default function DonatePage() {
   const [reqCat, setReqCat]       = useState('');
   const [search, setSearch]       = useState('');
   const [donateTarget, setDonateTarget] = useState<{ id: string; title: string; type: 'campaign'|'request'; data: any } | null>(null);
+  const [detailTarget, setDetailTarget] = useState<{ data: any; type: 'campaign'|'request' } | null>(null);
 
-  // Pre-select tab from URL ?tab=requests
   const urlTab = searchParams.get('tab');
   const activeTab = (urlTab === 'requests' || urlTab === 'campaigns') ? urlTab : tab;
 
@@ -643,7 +842,6 @@ export default function DonatePage() {
 
   return (
     <div className={cn('min-h-screen transition-colors duration-300', isDark ? 'bg-slate-900' : 'bg-gray-50')}>
-      {/* Header — full bleed behind navbar like About page */}
       <div className="relative min-h-[58vh] flex items-center overflow-hidden">
         <div className="absolute inset-0">
           <img src="/Adama_city3.jpg" alt="" className="w-full h-full object-cover" />
@@ -661,7 +859,6 @@ export default function DonatePage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        {/* Tabs */}
         <div className={cn('flex flex-wrap gap-2 p-1.5 rounded-2xl mb-8 w-fit',
           isDark ? 'bg-slate-800' : 'bg-gray-100')}>
           {TABS.map(t => (
@@ -682,10 +879,8 @@ export default function DonatePage() {
         </div>
 
         <AnimatePresence mode="wait">
-          {/* ── CAMPAIGNS TAB ─────────────────────────────────── */}
           {(tab === 'campaigns') && (
             <motion.div key="campaigns" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-              {/* Filters */}
               <div className="flex flex-wrap gap-3 mb-7 items-center">
                 <div className="relative flex-1 min-w-48">
                   <Search className={cn('absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4', isDark ? 'text-slate-500' : 'text-gray-400')} />
@@ -726,7 +921,8 @@ export default function DonatePage() {
                   {filteredCamps.map((camp: any) => (
                     <motion.div key={camp.id} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}>
                       <CampaignCard camp={camp} isDark={isDark}
-                        onDonate={(id, title, data) => setDonateTarget({ id, title, type: 'campaign', data })} />
+                        onDonate={(id, title, data) => setDonateTarget({ id, title, type: 'campaign', data })}
+                        onDetail={(data) => setDetailTarget({ data, type: 'campaign' })} />
                     </motion.div>
                   ))}
                 </div>
@@ -734,7 +930,6 @@ export default function DonatePage() {
             </motion.div>
           )}
 
-          {/* ── DIRECT SUPPORT TAB ────────────────────────────── */}
           {(tab === 'requests') && (
             <motion.div key="requests" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
               <div className="flex flex-wrap gap-3 mb-7 items-center">
@@ -774,7 +969,8 @@ export default function DonatePage() {
                   {filteredReqs.map((req: any) => (
                     <motion.div key={req.id} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}>
                       <RequestCard req={req} isDark={isDark}
-                        onDonate={(id, title, data) => setDonateTarget({ id, title, type: 'request', data })} />
+                        onDonate={(id, title, data) => setDonateTarget({ id, title, type: 'request', data })}
+                        onDetail={(data) => setDetailTarget({ data, type: 'request' })} />
                     </motion.div>
                   ))}
                 </div>
@@ -782,7 +978,6 @@ export default function DonatePage() {
             </motion.div>
           )}
 
-          {/* ── CREATE CAMPAIGN TAB ───────────────────────────── */}
           {tab === 'create-campaign' && (
             <motion.div key="create" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
               <CreateCampaignForm isDark={isDark} onSuccess={() => setTab('campaigns')} />
@@ -799,6 +994,15 @@ export default function DonatePage() {
           onClose={() => setDonateTarget(null)}
           isAuthenticated={isAuthenticated}
           navigate={navigate}
+          isDark={isDark}
+        />
+      )}
+
+      {detailTarget && (
+        <DetailModal
+          data={detailTarget.data}
+          type={detailTarget.type}
+          onClose={() => setDetailTarget(null)}
           isDark={isDark}
         />
       )}

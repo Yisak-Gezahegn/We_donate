@@ -2,11 +2,15 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Bell, CheckCheck } from 'lucide-react';
 import { timeAgo } from '../../lib/utils';
 import api from '../../lib/api';
+import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
+import { cn } from '../../lib/utils';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
-import { cn } from '../../lib/utils';
 
 export default function NotificationsPage() {
+  const { user } = useAuth();
+  const { isDark } = useTheme();
   const qc = useQueryClient();
   const { data: notifications, isLoading } = useQuery({
     queryKey: ['notifications'],
@@ -24,8 +28,8 @@ export default function NotificationsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-extrabold text-gray-900">Notifications</h1>
-          {unread > 0 && <p className="text-sm text-gray-500 mt-1">{unread} unread</p>}
+          <h1 className={cn('text-2xl font-extrabold', isDark ? 'text-white' : 'text-gray-900')}>Notifications</h1>
+          {unread > 0 && <p className={cn('text-sm mt-1', isDark ? 'text-slate-400' : 'text-gray-500')}>{unread} unread</p>}
         </div>
         {unread > 0 && (
           <Button size="sm" variant="outline" isLoading={markAll.isPending}
@@ -42,24 +46,36 @@ export default function NotificationsPage() {
         </div>
       ) : !notifications?.length ? (
         <Card className="text-center py-16">
-          <Bell className="w-12 h-12 text-gray-200 mx-auto mb-3" />
-          <p className="text-gray-400">No notifications yet</p>
+          <Bell className={cn('w-12 h-12 mx-auto mb-3', isDark ? 'text-slate-600' : 'text-gray-200')} />
+          <p className={cn('font-medium', isDark ? 'text-slate-400' : 'text-gray-400')}>No notifications yet</p>
         </Card>
       ) : (
         <div className="space-y-2">
           {notifications.map((n: any) => (
             <div key={n.id}
               className={cn('flex items-start gap-4 p-5 rounded-2xl border transition-all',
-                n.isRead ? 'bg-white border-gray-100' : 'bg-green-50 border-green-100')}>
-              <div className={cn('w-10 h-10 rounded-full flex items-center justify-center shrink-0',
-                n.type === 'SUCCESS' ? 'bg-green-100' : n.type === 'ERROR' ? 'bg-red-100' : 'bg-blue-100')}>
-                <Bell className={cn('w-5 h-5',
-                  n.type === 'SUCCESS' ? 'text-green-600' : n.type === 'ERROR' ? 'text-red-500' : 'text-blue-500')} />
+                n.isRead
+                  ? (isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-100')
+                  : (isDark ? 'bg-green-900/20 border-green-800/40' : 'bg-green-50 border-green-100'))}>
+              <div className="shrink-0">
+                {user?.profileImage ? (
+                  <img src={user.profileImage} alt="" className="w-10 h-10 rounded-full object-cover" />
+                ) : (
+                  <div className={cn('w-10 h-10 rounded-full flex items-center justify-center',
+                    n.type === 'SUCCESS' ? (isDark ? 'bg-green-900/40' : 'bg-green-100')
+                    : n.type === 'ERROR' ? (isDark ? 'bg-red-900/40' : 'bg-red-100')
+                    : (isDark ? 'bg-blue-900/40' : 'bg-blue-100'))}>
+                    <Bell className={cn('w-5 h-5',
+                      n.type === 'SUCCESS' ? 'text-green-500' : n.type === 'ERROR' ? 'text-red-500' : 'text-blue-500')} />
+                  </div>
+                )}
               </div>
               <div className="flex-1 min-w-0">
-                <p className={cn('text-sm font-semibold', n.isRead ? 'text-gray-700' : 'text-gray-900')}>{n.title}</p>
-                <p className="text-xs text-gray-500 mt-0.5">{n.message}</p>
-                <p className="text-xs text-gray-400 mt-1">{timeAgo(n.createdAt)}</p>
+                <p className={cn('text-sm font-semibold', n.isRead
+                  ? (isDark ? 'text-slate-300' : 'text-gray-700')
+                  : (isDark ? 'text-white' : 'text-gray-900'))}>{n.title}</p>
+                <p className={cn('text-xs mt-0.5', isDark ? 'text-slate-400' : 'text-gray-500')}>{n.message}</p>
+                <p className={cn('text-xs mt-1', isDark ? 'text-slate-500' : 'text-gray-400')}>{timeAgo(n.createdAt)}</p>
               </div>
               {!n.isRead && <div className="w-2.5 h-2.5 bg-green-500 rounded-full shrink-0 mt-1.5" />}
             </div>

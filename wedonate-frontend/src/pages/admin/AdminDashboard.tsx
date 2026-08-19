@@ -84,7 +84,19 @@ export default function AdminDashboard() {
                 {stats?.recentDonations?.map((d: any) => (
                   <tr key={d.id} className={cn('transition-colors', isDark ? 'hover:bg-slate-700/40' : 'hover:bg-gray-50')}>
                     <td className={cn(td, 'font-medium')}>
-                      {d.isAnonymous ? <span className="italic opacity-50">Anonymous</span> : `${d.donor?.firstName} ${d.donor?.lastName}`}
+                      {d.isAnonymous ? <span className="italic opacity-50">Anonymous</span> : (
+                        <div className="flex items-center gap-2">
+                          {d.donor?.profileImage ? (
+                            <img src={d.donor.profileImage} alt="" className="w-6 h-6 rounded-full object-cover" />
+                          ) : (
+                            <div className={cn('w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold',
+                              isDark ? 'bg-green-900/40 text-green-400' : 'bg-green-100 text-green-700')}>
+                              {d.donor?.firstName?.[0]}
+                            </div>
+                          )}
+                          {d.donor?.firstName} {d.donor?.lastName}
+                        </div>
+                      )}
                     </td>
                     <td className={cn(td, 'font-bold text-green-500')}>{d.amount ? formatCurrency(d.amount) : '—'}</td>
                     <td className={td}>{d.donationType}</td>

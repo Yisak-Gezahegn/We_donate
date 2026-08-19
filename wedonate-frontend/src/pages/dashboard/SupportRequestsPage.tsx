@@ -7,6 +7,7 @@ import api from '../../lib/api';
 import { formatDate, formatCurrency } from '../../lib/utils';
 import { useTheme } from '../../context/ThemeContext';
 import { cn } from '../../lib/utils';
+import { useAuth } from '../../context/AuthContext';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
@@ -27,7 +28,10 @@ export default function SupportRequestsPage() {
   const [supportLetterUrl, setSupportLetterUrl] = useState('');
   const [nationalIdUrl, setNationalIdUrl] = useState('');
   const { isDark } = useTheme();
+  const { user } = useAuth();
   const qc = useQueryClient();
+
+  const isAdmin = user && ['KEBELE_ADMIN','WOREDA_ADMIN','CITY_ADMIN','SUPER_ADMIN'].includes(user.role);
 
   const { data: requests, isLoading } = useQuery({
     queryKey: ['my-requests'],
@@ -65,6 +69,14 @@ export default function SupportRequestsPage() {
     setImageUrl('');
     setSupportLetterUrl('');
     setNationalIdUrl('');
+  };
+
+  const onFormSubmit = (data: any) => {
+    if (isAdmin && (!supportLetterUrl || !nationalIdUrl)) {
+      toast.error('Admin users must upload a support letter and national ID');
+      return;
+    }
+    mutation.mutate(data);
   };
 
   return (
@@ -109,7 +121,7 @@ export default function SupportRequestsPage() {
               </div>
 
               {/* Form body */}
-              <form onSubmit={handleSubmit(d => mutation.mutate(d))} className="p-6 space-y-5">
+              <form onSubmit={handleSubmit(d => onFormSubmit(d))} className="p-6 space-y-5">
 
                 {/* Title */}
                 <Input
@@ -232,16 +244,17 @@ export default function SupportRequestsPage() {
                     </p>
                     <p className={cn('text-xs mt-1', isDark ? 'text-slate-400' : 'text-gray-500')}>
                       These documents are only visible to admins — not shown to the public.
+                      {isAdmin && <span className="block mt-1 text-amber-500 font-semibold">Required for admin users.</span>}
                     </p>
                   </div>
                   <ImageUpload
-                    label="Support Letter (official letter or ID)"
+                    label={isAdmin ? "Support Letter (official letter or ID) *" : "Support Letter (official letter or ID)"}
                     value={supportLetterUrl}
                     onChange={setSupportLetterUrl}
                     hint="Upload a kebele support letter, hospital letter, or official document"
                   />
                   <ImageUpload
-                    label="National ID / Kebele ID"
+                    label={isAdmin ? "National ID / Kebele ID *" : "National ID / Kebele ID"}
                     value={nationalIdUrl}
                     onChange={setNationalIdUrl}
                     hint="Your ID helps admin verify your identity"

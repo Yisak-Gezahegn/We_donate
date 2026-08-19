@@ -1,0 +1,126 @@
+{
+  "nav": {
+    "home": "መነሻ",
+    "about": "ስለ እኛ",
+    "donate": "አሁን ለግሱ",
+    "beneficiaries": "ተጠቃሚዎች",
+    "login": "ግባ",
+    "register": "ተመዝገብ",
+    "dashboard": "ዳሽቦርድ",
+    "logout": "ውጣ",
+    "profile": "የእኔ መገለጫ"
+  },
+  "hero": {
+    "title": "በጋራ እንገነባ",
+    "titleHighlight": "ጠንካራ አዳማ",
+    "subtitle": "ለጋሽ ለጋሾችን ከሚፈልጉ ቤተሰቦች ጋር በአዳማ ከተማ ያገናኛል። እያንዳንዱ አስተዋፅኦ ሕይወትን ይቀይርና ማህበረሰባችንን ያጠናክራል።",
+    "cta_donate": "አሁን ለግሱ",
+    "cta_learn": "ተጨማሪ ማወቅ",
+    "stats_donors": "ንቁ ለጋሾች",
+    "stats_beneficiaries": "የተረዱ ቤተሰቦች",
+    "stats_raised": "ብር የተሰበሰበ",
+    "stats_ngos": "የ NGO አጋሮች"
+  },
+  "home": {
+    "impact_title": "በቁጥሮች የምናሳካው ለውጥ",
+    "impact_subtitle": "በአዳማ ከተማ ውስጥ ትክክለኛ ለውጥ፣ ትክክለኛ ሰዎች",
+    "how_title": "እንዴት ይሠራል",
+    "how_subtitle": "ቀላል፣ ግልጽ እና ውጤታማ",
+    "step1_title": "ተመዝገብ",
+    "step1_desc": "እንደ ለጋሽ፣ ተጠቃሚ ወይም የ NGO አጋር ሆነህ ሂሳብህን ፍጠር።",
+    "step2_title": "ያገናኝ",
+    "step2_desc": "ለጋሾች ያረጋገጡ የድጋፍ ጥያቄዎችን ያናብቡ። ተጠቃሚዎች ፍላጎቶቻቸውን ያቀርባሉ።",
+    "step3_title": "ለግስ",
+    "step3_desc": "በቻፓ አስተማማኝ ክፍያ ያድርጉ። ለእርዳታዎ የሚፈልጉ ሰዎች ያገኛሉ።",
+    "step4_title": "ክትትል አድርግ",
+    "step4_desc": "ሙሉ ግልጽነት፡ ተዋጾህ የት እንደሚሄድ ወምን ለውጥ እንደሚያስከትለው ክትትል አድርግ።",
+    "recent_donations": "የቅርብ ጊዜ ልዩ",
+    "view_all": "ሁሉ ይመልከቱ",
+    "categories_title": "የሚሰጡ መንገዶች",
+    "category_money": "የገንዘብ እርዳታ",
+    "category_food": "የምግብ ድጋፍ",
+    "category_clothes": "አልባሳት",
+    "category_medicine": "ህክምና",
+    "category_other": "ሌሎች ድጋፎች"
+  },
+  "donate": {
+    "title": "ልዩ አድርጉ",
+    "subtitle": "ቸርነትዎ በአዳማ ሕይወትን ይቀይራል",
+    "amount": "የልዩ መጠን (ብር)",
+    "custom_amount": "ብጁ መጠን ያስገቡ",
+    "type": "የልዩ ዓይነት",
+    "description": "መልእክት ይጨምሩ (አማራጭ)",
+    "anonymous": "ስም ሳይታወቅ ለግሱ",
+    "proceed": "ወደ ክፍያ ቀጥሉ",
+    "success_title": "አመሰግናለሁ!",
+    "success_msg": "ልዩዎ በተሳካ ሁኔታ ተፈጽሟል።",
+    "types": {
+      "MONEY": "ገንዘብ",
+      "FOOD": "ምግብ",
+      "CLOTHES": "አልባሳት",
+      "MEDICINE": "መድሃኒት",
+      "OTHER": "ሌሎች"
+    }
+  },
+  "auth": {
+    "login_title": "እንኳን ደህና ተመለሱ",
+    "login_subtitle": "ወደ We Donate ሂሳብዎ ይግቡ",
+    "register_title": "We Donate ይቀላቀሉ",
+    "register_subtitle": "ለውጥ ለማምጣት ሂሳብዎን ይፍጠሩ",
+    "email": "የኢሜይል አድራሻ",
+    "password": "የምስጢር ቁጥር",
+    "first_name": "ስም",
+    "last_name": "የአባት ስም",
+    "phone": "ስልክ ቁጥር",
+    "role": "እኔ ነኝ",
+    "roles": {
+      "DONOR": "ለጋሽ",
+      "BENEFICIARY": "ተጠቃሚ",
+      "NGO_PARTNER": "የ NGO አጋር"
+    },
+    "login_btn": "ግባ",
+    "register_btn": "ሂሳብ ፍጠር",
+    "no_account": "ሂሳብ የለዎትም?",
+    "have_account": "ቀደም ሲል ሂሳብ አለዎት?",
+    "forgot_password": "የምስጢር ቁጥሩ ረሱ?"
+  },
+  "dashboard": {
+    "welcome": "እንኳን ደህና ተመለሱ",
+    "total_donations": "ጠቅላላ ልዩ",
+    "total_amount": "ጠቅላላ መጠን",
+    "pending_requests": "የሚጠባበቁ ጥያቄዎች",
+    "my_donations": "የኔ ልዩ",
+    "my_requests": "የኔ ጥያቄዎች",
+    "notifications": "ማስታወቂያዎች",
+    "make_donation": "ልዩ አድርጉ"
+  },
+  "footer": {
+    "description": "We Donate የአዳማ ከተማ አስተዳደር 공식 ለማህበረሰብ ድጋፍ እና ምጽዋት አስተዳደር መድረክ ነው።",
+    "quick_links": "ፈጣን አገናኞች",
+    "contact": "ያግኙን",
+    "address": "የአዳማ ከተማ አስተዳደር፣ ኦሮሚያ፣ ኢትዮጵያ",
+    "rights": "መብቱ በህግ የተጠበቀ ነው።"
+  },
+  "common": {
+    "loading": "እየጫነ ነው...",
+    "error": "ስህተት ተፈጥሯል",
+    "retry": "እንደገና ሞክር",
+    "save": "አስቀምጥ",
+    "cancel": "ሰርዝ",
+    "submit": "አስገባ",
+    "close": "ዝጋ",
+    "back": "ተመለስ",
+    "next": "ቀጥል",
+    "search": "ፈልግ",
+    "filter": "አጣርር",
+    "status": {
+      "PENDING": "በጥበቃ ላይ",
+      "APPROVED": "ተቀባይነት አግኝቷል",
+      "REJECTED": "ተቀባይነት አላገኘም",
+      "DISTRIBUTED": "ተሰራጭቷል",
+      "CANCELLED": "ተሰርዟል",
+      "SUCCESS": "ተሳክቷል",
+      "FAILED": "አልተሳካም"
+    }
+  }
+}

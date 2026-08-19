@@ -1,0 +1,126 @@
+{
+  "nav": {
+    "home": "Mana",
+    "about": "Waa'ee Keenya",
+    "donate": "Amma Gargaari",
+    "beneficiaries": "Fayyadamtoota",
+    "login": "Seeni",
+    "register": "Galmaawi",
+    "dashboard": "Daashboordii",
+    "logout": "Ba'i",
+    "profile": "Profaayilii Koo"
+  },
+  "hero": {
+    "title": "Waliin Ijaarra",
+    "titleHighlight": "Adaamaa Cimaa",
+    "subtitle": "Kennatoota arjoomaa fi maatii barbaachisummaa qaban magaalaa Adaamaa keessatti walqunnamsiisa. Gumaacha hundumtuu jireenya jijjiira, hawaasa keenya jabeessa.",
+    "cta_donate": "Amma Gargaari",
+    "cta_learn": "Caalmatti Baradhu",
+    "stats_donors": "Kennatoota Hojii irra jiran",
+    "stats_beneficiaries": "Maatii Gargaaraman",
+    "stats_raised": "Birrii Walitti Qabame",
+    "stats_ngos": "Hirmaattoota NGO"
+  },
+  "home": {
+    "impact_title": "Faaydaa Keenya Lakkoofsa Keessatti",
+    "impact_subtitle": "Jijjiirama dhugaa, namoota dhugaa, bu'aa dhugaa magaalaa Adaamaa keessatti",
+    "how_title": "Akkamitti Hojjeta",
+    "how_subtitle": "Salphaa, ifaa fi bu'a qabeessa",
+    "step1_title": "Galmaawi",
+    "step1_desc": "Akkaawuntii kee akka kennata, fayyadamaa, ykn hirmaataa NGO tiin daqiiqaawwan keessatti uumi.",
+    "step2_title": "Walqunnamsi",
+    "step2_desc": "Kennatooti gaaffilee deeggarsa mirkaneeffame ilaaltu. Fayyadamtoonni fedhii isaanii dhiyeessaniiru.",
+    "step3_title": "Gargaari",
+    "step3_desc": "Kanfaltii nagaa Chapa tiin godhaa. Gargaarsi kee kanneen isa barbaadaniif ga'a.",
+    "step4_title": "Hordofi",
+    "step4_desc": "Ifoomina guutuun: gargaarsi kee eessa akka deemu fi faaydaa isaa hordofi.",
+    "recent_donations": "Gargaarsa Dhihootti Taasifame",
+    "view_all": "Hunda Ilaali",
+    "categories_title": "Karaalee Kennaa",
+    "category_money": "Gargaarsa Maallaqaa",
+    "category_food": "Deeggarsa Nyaataa",
+    "category_clothes": "Uffata",
+    "category_medicine": "Gargaarsa Fayyaa",
+    "category_other": "Deeggarsa Biroo"
+  },
+  "donate": {
+    "title": "Gargaarsa Taasisi",
+    "subtitle": "Arjoomni kee jireenya Adaamaa keessatti jijjiira",
+    "amount": "Hamma Gargaarsa (Birrii)",
+    "custom_amount": "Hamma addaa galchi",
+    "type": "Gosa Gargaarsa",
+    "description": "Ergaa dabaluu (dirqii miti)",
+    "anonymous": "Maqaa malee gargaari",
+    "proceed": "Gara Kanfaltii Itti Fufi",
+    "success_title": "Galatoomaa!",
+    "success_msg": "Gargaarsi kee sirnaan raawwatameera.",
+    "types": {
+      "MONEY": "Maallaqa",
+      "FOOD": "Nyaata",
+      "CLOTHES": "Uffata",
+      "MEDICINE": "Qoricha",
+      "OTHER": "Biroo"
+    }
+  },
+  "auth": {
+    "login_title": "Baga Nagaan Deebitani",
+    "login_subtitle": "Akkaawuntii We Donate keessan seenaa",
+    "register_title": "We Donate Makamaa",
+    "register_subtitle": "Jijjiirama uumuuf akkaawuntii kee uumi",
+    "email": "Teessoo Imeelii",
+    "password": "Jecha Darbii",
+    "first_name": "Maqaa Duraa",
+    "last_name": "Maqaa Abaa",
+    "phone": "Lakkoofsa Bilbilaa",
+    "role": "Ani",
+    "roles": {
+      "DONOR": "Kennata",
+      "BENEFICIARY": "Fayyadamaa",
+      "NGO_PARTNER": "Hirmaataa NGO"
+    },
+    "login_btn": "Seeni",
+    "register_btn": "Akkaawuntii Uumi",
+    "no_account": "Akkaawuntii hin qabduu?",
+    "have_account": "Akkaawuntii duraan qabdaa?",
+    "forgot_password": "Jecha darbii dagatte?"
+  },
+  "dashboard": {
+    "welcome": "Baga Nagaan Deebitani",
+    "total_donations": "Gargaarsa Waliigalaa",
+    "total_amount": "Hamma Waliigalaa",
+    "pending_requests": "Gaaffilee Eeggatan",
+    "my_donations": "Gargaarsa Koo",
+    "my_requests": "Gaaffilee Koo",
+    "notifications": "Beeksisaawwan",
+    "make_donation": "Gargaarsa Taasisi"
+  },
+  "footer": {
+    "description": "We Donate marsariitii mootummaa magaalaa Adaamaa kan deeggarsa hawaasaa fi bulchiinsa arjoomaa tajaajilu.",
+    "quick_links": "Hidhaalee Hatattamaa",
+    "contact": "Nu Quunnamaa",
+    "address": "Bulchiinsa Magaalaa Adaamaa, Oromiyaa, Itoophiyaa",
+    "rights": "Mirgi seeraan eegameera."
+  },
+  "common": {
+    "loading": "Fe'aa jira...",
+    "error": "Rakkoo uumameera",
+    "retry": "Ammas yaali",
+    "save": "Olkaa'i",
+    "cancel": "Haquu",
+    "submit": "Galchi",
+    "close": "Cufi",
+    "back": "Deebi'i",
+    "next": "Itti Fufi",
+    "search": "Barbaadi",
+    "filter": "Filadduu",
+    "status": {
+      "PENDING": "Eeggachaa jira",
+      "APPROVED": "Fudhatameera",
+      "REJECTED": "Fudhatama dide",
+      "DISTRIBUTED": "Raabsameera",
+      "CANCELLED": "Haqameera",
+      "SUCCESS": "Milkaa'eera",
+      "FAILED": "Hin milkoofne"
+    }
+  }
+}

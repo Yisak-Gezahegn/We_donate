@@ -1,0 +1,100 @@
+import { Request, Response, NextFunction } from 'express';
+import { v4 as uuidv4 } from 'uuid';
+import prisma from '../lib/prisma';
+import { createError } from '../middleware/errorHandler';
+import { AuthRequest } from '../middleware/auth.middleware';
+
+export const getAllUsers = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { role, search } = req.query;
+    const users = await prisma.user.findMany({
+      where: {
+        ...(role ? { role: role as any } : {}),
+        ...(search ? {
+          OR: [
+            { firstName: { contains: search as string, mode: 'insensitive' } },
+            { lastName:  { contains: search as string, mode: 'insensitive' } },
+            { email:     { contains: search as string, mode: 'insensitive' } },
+          ],
+        } : {}),
+      },
+      select: { id: true, firstName: true, lastName: true, email: true, phone: true, role: true, isVerified: true, isActive: true, createdAt: true },
+      orderBy: { createdAt: 'desc' },
+    });
+    res.json({ success: true, data: users });
+  } catch (error) { next(error); }
+};
+
+export const assignRole = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const { role } = req.body;
+    const validRoles = ['USER', 'NGO', 'ORGANIZATION', 'GOVERNMENTAL_ORG', 'KEBELE_ADMIN', 'WOREDA_ADMIN', 'CITY_ADMIN', 'SUPER_ADMIN'];
+    if (!validRoles.includes(role)) return next(createError('Invalid role', 400));
+
+    const user = await prisma.user.update({
+      where: { id: req.params.id },
+      data: { role: role as any },
+      select: { id: true, firstName: true, lastName: true, email: true, role: true },
+    });
+
+    await prisma.auditLog.create({
+      data: { id: uuidv4(), userId: req.user!.userId, action: 'ASSIGN_ROLE', resource: 'user', resourceId: req.params.id, details: `Assigned role ${role}` },
+    });
+
+    // Notify user
+    await prisma.notification.create({
+      data: {
+        id: uuidv4(), userId: req.params.id,
+        title: 'Role Updated',
+        message: `Your account role has been updated to ${role.replace(/_/g, ' ')}.`,
+        type: 'INFO',
+      },
+    });
+
+    res.json({ success: true, data: user, message: `Role updated to ${role}` });
+  } catch (error) { next(error); }
+};
+
+export const getDashboardStats = async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const [
+      totalUsers, totalDonations, totalAmountResult,
+      pendingRequests, pendingCampaigns,
+      recentDonations, totalCampaigns, fulfilledRequests,
+    ] = await Promise.all([
+      prisma.user.count(),
+      prisma.donation.count({ where: { paymentStatus: 'SUCCESS' } }),
+      prisma.donation.aggregate({ _sum: { amount: true }, where: { paymentStatus: 'SUCCESS' } }),
+      prisma.supportRequest.count({ where: { status: 'PENDING' } }),
+      prisma.campaign.count({ where: { status: 'PENDING' } }),
+      prisma.donation.findMany({
+        take: 10, where: { paymentStatus: 'SUCCESS' },
+        include: { donor: { select: { firstName: true, lastName: true } } },
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.campaign.count(),
+      prisma.supportRequest.count({ where: { status: 'FULFILLED' } }),
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        totalUsers, totalDonations,
+        totalAmount: totalAmountResult._sum.amount || 0,
+        pendingRequests, pendingCampaigns,
+        recentDonations, totalCampaigns, fulfilledRequests,
+      },
+    });
+  } catch (error) { next(error); }
+};
+
+export const getAuditLogs = async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const logs = await prisma.auditLog.findMany({
+      include: { user: { select: { firstName: true, lastName: true, email: true } } },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+    });
+    res.json({ success: true, data: logs });
+  } catch (error) { next(error); }
+};

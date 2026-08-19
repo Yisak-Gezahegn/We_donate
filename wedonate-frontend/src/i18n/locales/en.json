@@ -1,0 +1,126 @@
+{
+  "nav": {
+    "home": "Home",
+    "about": "About",
+    "donate": "Donate Now",
+    "beneficiaries": "Beneficiaries",
+    "login": "Login",
+    "register": "Register",
+    "dashboard": "Dashboard",
+    "logout": "Logout",
+    "profile": "My Profile"
+  },
+  "hero": {
+    "title": "Together We Build",
+    "titleHighlight": "A Stronger Adama",
+    "subtitle": "Connecting generous donors with families in need across Adama City. Every contribution transforms lives and strengthens our community.",
+    "cta_donate": "Donate Now",
+    "cta_learn": "Learn More",
+    "stats_donors": "Active Donors",
+    "stats_beneficiaries": "Families Helped",
+    "stats_raised": "ETB Raised",
+    "stats_ngos": "NGO Partners"
+  },
+  "home": {
+    "impact_title": "Our Impact in Numbers",
+    "impact_subtitle": "Real change, real people, real results across Adama City",
+    "how_title": "How It Works",
+    "how_subtitle": "Simple, transparent, and effective",
+    "step1_title": "Register",
+    "step1_desc": "Create your account as a donor, beneficiary, or NGO partner in minutes.",
+    "step2_title": "Connect",
+    "step2_desc": "Donors browse verified support requests. Beneficiaries submit their needs.",
+    "step3_title": "Donate",
+    "step3_desc": "Make secure payments via Chapa. Your donation reaches those who need it most.",
+    "step4_title": "Track",
+    "step4_desc": "Full transparency: track exactly where your donation goes and its impact.",
+    "recent_donations": "Recent Donations",
+    "view_all": "View All",
+    "categories_title": "Ways to Give",
+    "category_money": "Financial Aid",
+    "category_food": "Food Support",
+    "category_clothes": "Clothing",
+    "category_medicine": "Medical Aid",
+    "category_other": "Other Support"
+  },
+  "donate": {
+    "title": "Make a Donation",
+    "subtitle": "Your generosity changes lives in Adama",
+    "amount": "Donation Amount (ETB)",
+    "custom_amount": "Enter custom amount",
+    "type": "Donation Type",
+    "description": "Add a message (optional)",
+    "anonymous": "Donate anonymously",
+    "proceed": "Proceed to Payment",
+    "success_title": "Thank You!",
+    "success_msg": "Your donation has been processed successfully.",
+    "types": {
+      "MONEY": "Money",
+      "FOOD": "Food",
+      "CLOTHES": "Clothes",
+      "MEDICINE": "Medicine",
+      "OTHER": "Other"
+    }
+  },
+  "auth": {
+    "login_title": "Welcome Back",
+    "login_subtitle": "Sign in to your We Donate account",
+    "register_title": "Join We Donate",
+    "register_subtitle": "Create your account to start making a difference",
+    "email": "Email Address",
+    "password": "Password",
+    "first_name": "First Name",
+    "last_name": "Last Name",
+    "phone": "Phone Number",
+    "role": "I am a",
+    "roles": {
+      "DONOR": "Donor",
+      "BENEFICIARY": "Beneficiary",
+      "NGO_PARTNER": "NGO Partner"
+    },
+    "login_btn": "Sign In",
+    "register_btn": "Create Account",
+    "no_account": "Don't have an account?",
+    "have_account": "Already have an account?",
+    "forgot_password": "Forgot password?"
+  },
+  "dashboard": {
+    "welcome": "Welcome back",
+    "total_donations": "Total Donations",
+    "total_amount": "Total Amount",
+    "pending_requests": "Pending Requests",
+    "my_donations": "My Donations",
+    "my_requests": "My Requests",
+    "notifications": "Notifications",
+    "make_donation": "Make a Donation"
+  },
+  "footer": {
+    "description": "We Donate is Adama City Administration's official platform for community support and charity management.",
+    "quick_links": "Quick Links",
+    "contact": "Contact Us",
+    "address": "Adama City Administration, Oromia, Ethiopia",
+    "rights": "All rights reserved."
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Something went wrong",
+    "retry": "Try again",
+    "save": "Save",
+    "cancel": "Cancel",
+    "submit": "Submit",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "search": "Search",
+    "filter": "Filter",
+    "status": {
+      "PENDING": "Pending",
+      "APPROVED": "Approved",
+      "REJECTED": "Rejected",
+      "DISTRIBUTED": "Distributed",
+      "CANCELLED": "Cancelled",
+      "SUCCESS": "Success",
+      "FAILED": "Failed"
+    }
+  }
+}

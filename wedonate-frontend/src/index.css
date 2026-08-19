@@ -1,0 +1,78 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Serif+Ethiopic:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+/* ── Dark mode via .dark class on <html> ─────────────────────── */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  :root {
+    --color-primary: #1a6b3c;
+    --color-primary-dark: #124d2b;
+    --color-secondary: #f5a623;
+    --color-accent: #e63946;
+
+    /* Light mode CSS vars */
+    --bg-page:    #f9fafb;
+    --bg-card:    #ffffff;
+    --bg-muted:   #f3f4f6;
+    --text-main:  #111827;
+    --text-muted: #6b7280;
+    --border:     #e5e7eb;
+  }
+
+  html.dark {
+    --bg-page:    #0f172a;
+    --bg-card:    #1e293b;
+    --bg-muted:   #334155;
+    --text-main:  #f1f5f9;
+    --text-muted: #94a3b8;
+    --border:     #334155;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Inter', 'Noto Serif Ethiopic', sans-serif;
+    background-color: var(--bg-page);
+    color: var(--text-main);
+    @apply antialiased transition-colors duration-300;
+  }
+
+  /* Dark mode page backgrounds */
+  html.dark body { background-color: var(--bg-page); }
+}
+
+@layer utilities {
+  /* ── Gradients ── */
+  .gradient-hero {
+    background: linear-gradient(135deg, #1a6b3c 0%, #2d9d5c 50%, #1a6b3c 100%);
+  }
+
+  /* ── Glass ── */
+  .glass {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+  html.dark .glass {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+
+  /* ── Card dark helpers ── */
+  .card-base {
+    background-color: var(--bg-card);
+    border-color: var(--border);
+    color: var(--text-main);
+  }
+
+  /* ── Text helpers ── */
+  .text-page  { color: var(--text-main); }
+  .text-muted { color: var(--text-muted); }
+
+  /* ── Bg helpers ── */
+  .bg-page  { background-color: var(--bg-page); }
+  .bg-card  { background-color: var(--bg-card); }
+  .bg-muted { background-color: var(--bg-muted); }
+}

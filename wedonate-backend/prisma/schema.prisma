@@ -1,0 +1,217 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  NGO
+  ORGANIZATION
+  GOVERNMENTAL_ORG
+  KEBELE_ADMIN
+  WOREDA_ADMIN
+  CITY_ADMIN
+  SUPER_ADMIN
+}
+
+enum DonationType {
+  MONEY
+  FOOD
+  CLOTHES
+  MEDICINE
+  OTHER
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  FULFILLED
+  CANCELLED
+}
+
+enum CampaignStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
+}
+
+model User {
+  id           String   @id @default(uuid())
+  firstName    String
+  lastName     String
+  email        String   @unique
+  phone        String?
+  password     String
+  role         Role     @default(USER)
+  isVerified   Boolean  @default(false)
+  isActive     Boolean  @default(true)
+  profileImage String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  donations       Donation[]
+  supportRequests SupportRequest[]
+  campaigns       Campaign[]
+  notifications   Notification[]
+  auditLogs       AuditLog[]
+
+  @@map("users")
+}
+
+model SupportRequest {
+  id           String        @id @default(uuid())
+  userId       String
+  user         User          @relation(fields: [userId], references: [id])
+  title        String
+  description  String
+  category     DonationType
+  urgencyLevel Int           @default(1)
+  goalAmount   Float?
+  raisedAmount Float         @default(0)
+  status       RequestStatus @default(PENDING)
+  adminNote    String?
+  imageUrl     String?
+  location     String?
+  familySize   Int           @default(1)
+
+  // Payment accounts — visible to donors
+  telebirrAccount  String?
+  cbeAccount       String?
+  boaAccount       String?
+  awashAccount     String?
+  otherBankName    String?
+  otherBankAccount String?
+
+  // Admin-only information
+  supportLetterUrl String?   // official support letter image
+  nationalIdUrl    String?   // national ID image
+  additionalNotes  String?   // extra info for admin
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  donations Donation[]
+
+  @@map("support_requests")
+}
+
+model Campaign {
+  id           String         @id @default(uuid())
+  userId       String
+  user         User           @relation(fields: [userId], references: [id])
+  title        String
+  description  String
+  category     String
+  goalAmount   Float
+  raisedAmount Float          @default(0)
+  status       CampaignStatus @default(PENDING)
+  adminNote    String?
+  imageUrl     String?
+  deadline     DateTime?
+
+  // Payment accounts — visible to donors
+  telebirrAccount  String?
+  cbeAccount       String?
+  boaAccount       String?
+  awashAccount     String?
+  otherBankName    String?
+  otherBankAccount String?
+
+  // Admin-only information
+  supportLetterUrl String?
+  registrationUrl  String?   // org registration document
+  additionalNotes  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  donations Donation[]
+
+  @@map("campaigns")
+}
+
+model Donation {
+  id           String        @id @default(uuid())
+  donorId      String
+  donor        User          @relation(fields: [donorId], references: [id])
+  amount       Float?
+  currency     String        @default("ETB")
+  donationType DonationType
+  description  String?
+  isAnonymous  Boolean       @default(false)
+
+  // Payment method used
+  paymentMethod    String?   // "CHAPA", "TELEBIRR", "CBE", "BOA", "AWASH", "OTHER_BANK", "ITEM"
+  paymentProofUrl  String?   // screenshot/receipt image uploaded by donor
+  referenceCode    String?   // bank ref code entered by donor
+  itemDescription  String?   // for item donations
+  itemImageUrl     String?   // photo of donated items
+  deliveryMethod   String?   // "BRING_TO_OFFICE" | "DELIVER_TO_ADDRESS" | "COORDINATE"
+
+  paymentStatus    PaymentStatus @default(PENDING)
+  chapaRef         String?       @unique
+  chapaCheckoutUrl String?
+
+  supportRequestId String?
+  supportRequest   SupportRequest? @relation(fields: [supportRequestId], references: [id])
+  campaignId       String?
+  campaign         Campaign?       @relation(fields: [campaignId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("donations")
+}
+
+model GalleryPhoto {
+  id          String   @id @default(uuid())
+  imageUrl    String
+  title       String
+  description String?
+  uploadedBy  String
+  createdAt   DateTime @default(now())
+
+  @@map("gallery_photos")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  type      String   @default("INFO")
+  createdAt DateTime @default(now())
+
+  @@map("notifications")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id])
+  action     String
+  resource   String
+  resourceId String?
+  details    String?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  @@map("audit_logs")
+}

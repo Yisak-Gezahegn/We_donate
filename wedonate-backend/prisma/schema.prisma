@@ -98,9 +98,11 @@ model SupportRequest {
   otherBankAccount String?
 
   // Admin-only information
-  supportLetterUrl String?   // official support letter image
-  nationalIdUrl    String?   // national ID image
-  additionalNotes  String?   // extra info for admin
+  supportLetterUrl   String?   // official support letter image
+  nationalIdFrontUrl String?   // national ID front side image
+  nationalIdBackUrl  String?   // national ID back side image
+  fanNumber          String?   // Federal Admin Number
+  additionalNotes    String?   // extra info for admin
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -133,9 +135,12 @@ model Campaign {
   otherBankAccount String?
 
   // Admin-only information
-  supportLetterUrl String?
-  registrationUrl  String?   // org registration document
-  additionalNotes  String?
+  supportLetterUrl   String?
+  registrationUrl    String?   // org registration document
+  nationalIdFrontUrl String?   // national ID front side image
+  nationalIdBackUrl  String?   // national ID back side image
+  fanNumber          String?   // Federal Admin Number
+  additionalNotes    String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

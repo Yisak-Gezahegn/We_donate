@@ -12,7 +12,7 @@ export const createCampaign = async (req: AuthRequest, res: Response, next: Next
       title, description, category, goalAmount, imageUrl, deadline,
       telebirrAccount, cbeAccount, boaAccount, awashAccount,
       otherBankName, otherBankAccount,
-      supportLetterUrl, registrationUrl, additionalNotes,
+      supportLetterUrl, registrationUrl, nationalIdFrontUrl, nationalIdBackUrl, fanNumber, additionalNotes,
     } = req.body;
 
     if (!title || !description || !category || !goalAmount)
@@ -34,9 +34,12 @@ export const createCampaign = async (req: AuthRequest, res: Response, next: Next
         awashAccount: awashAccount || null,
         otherBankName: otherBankName || null,
         otherBankAccount: otherBankAccount || null,
-        supportLetterUrl: supportLetterUrl || null,
-        registrationUrl: registrationUrl || null,
-        additionalNotes: additionalNotes || null,
+        supportLetterUrl:   supportLetterUrl   || null,
+        registrationUrl:    registrationUrl    || null,
+        nationalIdFrontUrl: nationalIdFrontUrl || null,
+        nationalIdBackUrl:  nationalIdBackUrl  || null,
+        fanNumber:          fanNumber          || null,
+        additionalNotes:    additionalNotes    || null,
       },
     });
     res.status(201).json({ success: true, data: campaign });
@@ -56,7 +59,7 @@ export const getActiveCampaigns = async (req: Request, res: Response, next: Next
       take: limit ? parseInt(limit as string) : undefined,
     });
     // Strip admin-only fields
-    const pub = campaigns.map(({ supportLetterUrl, registrationUrl, additionalNotes, ...c }) => c);
+    const pub = campaigns.map(({ supportLetterUrl, registrationUrl, nationalIdFrontUrl, nationalIdBackUrl, fanNumber, additionalNotes, ...c }) => c);
     res.json({ success: true, data: pub });
   } catch (error) { next(error); }
 };
@@ -80,7 +83,7 @@ export const getCampaignById = async (req: AuthRequest, res: Response, next: Nex
     const isOwner = req.user && req.user.userId === campaign.userId;
 
     if (!isAdmin && !isOwner) {
-      const { supportLetterUrl, registrationUrl, additionalNotes, ...pub } = campaign;
+      const { supportLetterUrl, registrationUrl, nationalIdFrontUrl, nationalIdBackUrl, fanNumber, additionalNotes, ...pub } = campaign;
       return res.json({ success: true, data: pub });
     }
     res.json({ success: true, data: campaign });

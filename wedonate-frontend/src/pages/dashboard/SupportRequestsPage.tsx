@@ -26,7 +26,9 @@ export default function SupportRequestsPage() {
   const [showForm, setShowForm] = useState(false);
   const [imageUrl, setImageUrl] = useState('');
   const [supportLetterUrl, setSupportLetterUrl] = useState('');
-  const [nationalIdUrl, setNationalIdUrl] = useState('');
+  const [nationalIdFrontUrl, setNationalIdFrontUrl] = useState('');
+  const [nationalIdBackUrl, setNationalIdBackUrl] = useState('');
+  const [fanNumber, setFanNumber] = useState('');
   const { isDark } = useTheme();
   const { user } = useAuth();
   const qc = useQueryClient();
@@ -41,14 +43,16 @@ export default function SupportRequestsPage() {
   const { register, handleSubmit, reset, formState: { errors } } = useForm<any>();
 
   const mutation = useMutation({
-    mutationFn: (data: any) => api.post('/support-requests', { ...data, imageUrl, supportLetterUrl, nationalIdUrl }),
+    mutationFn: (data: any) => api.post('/support-requests', { ...data, imageUrl, supportLetterUrl, nationalIdFrontUrl, nationalIdBackUrl, fanNumber }),
     onSuccess: () => {
       toast.success('Request submitted! Awaiting admin approval.');
       qc.invalidateQueries({ queryKey: ['my-requests'] });
       reset();
       setImageUrl('');
       setSupportLetterUrl('');
-      setNationalIdUrl('');
+      setNationalIdFrontUrl('');
+      setNationalIdBackUrl('');
+      setFanNumber('');
       setShowForm(false);
     },
     onError: (e: any) => toast.error(e?.response?.data?.message || 'Failed to submit'),
@@ -68,12 +72,14 @@ export default function SupportRequestsPage() {
     reset();
     setImageUrl('');
     setSupportLetterUrl('');
-    setNationalIdUrl('');
+    setNationalIdFrontUrl('');
+    setNationalIdBackUrl('');
+    setFanNumber('');
   };
 
   const onFormSubmit = (data: any) => {
-    if (isAdmin && (!supportLetterUrl || !nationalIdUrl)) {
-      toast.error('Admin users must upload a support letter and national ID');
+    if (isAdmin && (!supportLetterUrl || !nationalIdFrontUrl || !nationalIdBackUrl || !fanNumber)) {
+      toast.error('Admin users must upload a support letter, national ID (front & back), and provide FAN number');
       return;
     }
     mutation.mutate(data);
@@ -254,11 +260,22 @@ export default function SupportRequestsPage() {
                     hint="Upload a kebele support letter, hospital letter, or official document"
                   />
                   <ImageUpload
-                    label={isAdmin ? "National ID / Kebele ID *" : "National ID / Kebele ID"}
-                    value={nationalIdUrl}
-                    onChange={setNationalIdUrl}
-                    hint="Your ID helps admin verify your identity"
+                    label={isAdmin ? "National ID - Front Side *" : "National ID - Front Side"}
+                    value={nationalIdFrontUrl}
+                    onChange={setNationalIdFrontUrl}
+                    hint="Upload the front side of your national ID"
                   />
+                  <ImageUpload
+                    label={isAdmin ? "National ID - Back Side *" : "National ID - Back Side"}
+                    value={nationalIdBackUrl}
+                    onChange={setNationalIdBackUrl}
+                    hint="Upload the back side of your national ID"
+                  />
+                  <div>
+                    <label className={lbl}>{isAdmin ? "FAN Number (Federal Admin Number) *" : "FAN Number (Federal Admin Number)"}</label>
+                    <input className={sel} placeholder="e.g. 1234567890"
+                      value={fanNumber} onChange={e => setFanNumber(e.target.value)} />
+                  </div>
                   <div>
                     <label className={lbl}>Additional Notes for Admin</label>
                     <textarea rows={3}

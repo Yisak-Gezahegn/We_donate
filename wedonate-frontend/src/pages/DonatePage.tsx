@@ -129,18 +129,30 @@ function RequestCard({ req, onDonate, onDetail, isDark }: { req: any; onDonate: 
   const urgencyColors = ['', 'bg-gray-100 text-gray-600', 'bg-blue-100 text-blue-600', 'bg-yellow-100 text-yellow-700', 'bg-orange-100 text-orange-700', 'bg-red-100 text-red-700'];
 
   return (
-    <Card className="flex flex-col h-full" padding="none">
-      <div className="p-5 flex flex-col flex-1">
-        <div className="flex items-start justify-between gap-2 mb-2">
-          <h3 className={cn('font-bold text-sm flex-1 line-clamp-2', isDark ? 'text-white' : 'text-gray-900')}>
-            {req.title}
-          </h3>
-          <span className={cn('text-xs px-2 py-0.5 rounded-full font-medium shrink-0', urgencyColors[req.urgencyLevel] || urgencyColors[1])}>
-            {req.urgencyLevel === 5 ? 'Critical' : req.urgencyLevel >= 4 ? 'High' : req.urgencyLevel >= 3 ? 'Medium' : 'Low'}
+    <Card className="overflow-hidden flex flex-col h-full" padding="none">
+      <div className="h-36 gradient-hero relative overflow-hidden">
+        {req.imageUrl
+          ? <img src={req.imageUrl} alt={req.title} className="w-full h-full object-cover opacity-80" />
+          : <div className="absolute inset-0 flex items-center justify-center text-5xl opacity-30">🤲</div>
+        }
+        <div className="absolute top-3 left-3">
+          <span className={cn('text-xs font-semibold px-2.5 py-1 rounded-full', urgencyColors[req.urgencyLevel] || urgencyColors[1])}>
+            {req.urgencyLevel === 5 ? '🚨 Critical' : req.urgencyLevel >= 4 ? 'High' : req.urgencyLevel >= 3 ? 'Medium' : 'Low'}
           </span>
         </div>
+        <div className="absolute top-3 right-3">
+          <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-black/50 text-white">
+            {req.category}
+          </span>
+        </div>
+      </div>
 
-        <p className={cn('text-xs leading-relaxed mb-4 line-clamp-3 flex-1', isDark ? 'text-slate-400' : 'text-gray-500')}>
+      <div className="p-5 flex flex-col flex-1">
+        <h3 className={cn('font-bold text-sm flex-1 line-clamp-2 mb-2', isDark ? 'text-white' : 'text-gray-900')}>
+          {req.title}
+        </h3>
+
+        <p className={cn('text-xs leading-relaxed mb-4 line-clamp-2 flex-1', isDark ? 'text-slate-400' : 'text-gray-500')}>
           {req.description}
         </p>
 
@@ -149,22 +161,17 @@ function RequestCard({ req, onDonate, onDetail, isDark }: { req: any; onDonate: 
         )}
 
         <div className="flex items-center justify-between mb-4 text-xs">
-          <span className={cn('px-2 py-0.5 rounded-full font-medium',
-            isDark ? 'bg-slate-700 text-slate-300' : 'bg-gray-100 text-gray-600')}>
-            {req.category}
-          </span>
+          <div className={cn('flex items-center gap-2', isDark ? 'text-slate-400' : 'text-gray-500')}>
+            {req.user?.profileImage ? (
+              <img src={req.user.profileImage} alt="" className="w-5 h-5 rounded-full object-cover" />
+            ) : (
+              <div className="w-5 h-5 rounded-full bg-green-600 flex items-center justify-center text-white font-bold text-[10px]">
+                {req.user?.firstName?.[0]}
+              </div>
+            )}
+            <span>{req.user?.firstName} {req.user?.lastName}</span>
+          </div>
           <span className={isDark ? 'text-slate-500' : 'text-gray-400'}>{formatDate(req.createdAt)}</span>
-        </div>
-
-        <div className={cn('flex items-center gap-2 mb-4 text-xs', isDark ? 'text-slate-400' : 'text-gray-500')}>
-          {req.user?.profileImage ? (
-            <img src={req.user.profileImage} alt="" className="w-5 h-5 rounded-full object-cover" />
-          ) : (
-            <div className="w-5 h-5 rounded-full bg-green-600 flex items-center justify-center text-white font-bold text-[10px]">
-              {req.user?.firstName?.[0]}
-            </div>
-          )}
-          {req.user?.firstName} {req.user?.lastName}
         </div>
 
         <div className="flex gap-2">
@@ -707,8 +714,26 @@ function DonationModal({
 function CreateCampaignForm({ isDark, onSuccess }: { isDark: boolean; onSuccess: () => void }) {
   const [form, setForm] = useState({ title: '', description: '', category: 'OTHER', goalAmount: '', deadline: '', imageUrl: '' });
   const [loading, setLoading] = useState(false);
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
+
+  // Payment accounts
+  const [telebirrAccount, setTelebirrAccount] = useState('');
+  const [cbeAccount, setCbeAccount] = useState('');
+  const [boaAccount, setBoaAccount] = useState('');
+  const [awashAccount, setAwashAccount] = useState('');
+  const [otherBankName, setOtherBankName] = useState('');
+  const [otherBankAccount, setOtherBankAccount] = useState('');
+
+  // Admin-only documents
+  const [supportLetterUrl, setSupportLetterUrl] = useState('');
+  const [registrationUrl, setRegistrationUrl] = useState('');
+  const [nationalIdFrontUrl, setNationalIdFrontUrl] = useState('');
+  const [nationalIdBackUrl, setNationalIdBackUrl] = useState('');
+  const [fanNumber, setFanNumber] = useState('');
+  const [additionalNotes, setAdditionalNotes] = useState('');
+
+  const isAdmin = user && ['KEBELE_ADMIN','WOREDA_ADMIN','CITY_ADMIN','SUPER_ADMIN'].includes(user.role);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -716,9 +741,21 @@ function CreateCampaignForm({ isDark, onSuccess }: { isDark: boolean; onSuccess:
     if (!form.title || !form.description || !form.goalAmount)
       return toast.error('Please fill all required fields');
 
+    if (isAdmin && (!supportLetterUrl || !nationalIdFrontUrl || !nationalIdBackUrl || !fanNumber)) {
+      toast.error('Admin users must upload support letter, national ID (front & back), and provide FAN number');
+      return;
+    }
+
     setLoading(true);
     try {
-      await api.post('/campaigns', form);
+      await api.post('/campaigns', {
+        ...form,
+        telebirrAccount, cbeAccount, boaAccount, awashAccount,
+        otherBankName, otherBankAccount,
+        supportLetterUrl, registrationUrl,
+        nationalIdFrontUrl, nationalIdBackUrl, fanNumber,
+        additionalNotes,
+      });
       toast.success('Campaign submitted for admin approval!');
       onSuccess();
     } catch (err: any) {
@@ -785,6 +822,101 @@ function CreateCampaignForm({ isDark, onSuccess }: { isDark: boolean; onSuccess:
         <ImageUpload label="Campaign Cover Photo (optional)" value={form.imageUrl}
           onChange={url => setForm(p => ({ ...p, imageUrl: url }))}
           hint="A compelling photo makes your campaign more trustworthy" />
+
+        {/* Payment Accounts Section */}
+        <div className={cn('rounded-2xl border p-4 space-y-3',
+          isDark ? 'border-slate-600 bg-slate-700/30' : 'border-green-100 bg-green-50')}>
+          <p className={cn('text-sm font-bold', isDark ? 'text-green-400' : 'text-green-700')}>
+            💳 Your Payment Accounts
+          </p>
+          <p className={cn('text-xs', isDark ? 'text-slate-400' : 'text-gray-500')}>
+            Donors will use these to send money directly to you. Add at least one.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className={label}>TeleBirr Account</label>
+              <input className={input} placeholder="+251 9XX XXX XXX"
+                value={telebirrAccount} onChange={e => setTelebirrAccount(e.target.value)} />
+            </div>
+            <div>
+              <label className={label}>CBE Account</label>
+              <input className={input} placeholder="Account number"
+                value={cbeAccount} onChange={e => setCbeAccount(e.target.value)} />
+            </div>
+            <div>
+              <label className={label}>BOA Account</label>
+              <input className={input} placeholder="Account number"
+                value={boaAccount} onChange={e => setBoaAccount(e.target.value)} />
+            </div>
+            <div>
+              <label className={label}>Awash Bank Account</label>
+              <input className={input} placeholder="Account number"
+                value={awashAccount} onChange={e => setAwashAccount(e.target.value)} />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className={label}>Other Bank Name</label>
+              <input className={input} placeholder="e.g. Abyssinia Bank"
+                value={otherBankName} onChange={e => setOtherBankName(e.target.value)} />
+            </div>
+            <div>
+              <label className={label}>Other Bank Account</label>
+              <input className={input} placeholder="Account number"
+                value={otherBankAccount} onChange={e => setOtherBankAccount(e.target.value)} />
+            </div>
+          </div>
+        </div>
+
+        {/* Admin-only documents */}
+        <div className={cn('rounded-2xl border p-4 space-y-4',
+          isDark ? 'border-slate-600 bg-slate-700/30' : 'border-amber-100 bg-amber-50')}>
+          <div>
+            <p className={cn('text-sm font-bold', isDark ? 'text-amber-400' : 'text-amber-700')}>
+              🔒 Documents for Admin Review Only
+            </p>
+            <p className={cn('text-xs mt-1', isDark ? 'text-slate-400' : 'text-gray-500')}>
+              These documents are only visible to admins — not shown to the public.
+              {isAdmin && <span className="block mt-1 text-amber-500 font-semibold">Required for admin users.</span>}
+            </p>
+          </div>
+          <ImageUpload
+            label={isAdmin ? "Support Letter (official letter or ID) *" : "Support Letter (official letter or ID)"}
+            value={supportLetterUrl}
+            onChange={setSupportLetterUrl}
+            hint="Upload a kebele support letter, hospital letter, or official document"
+          />
+          <ImageUpload
+            label={isAdmin ? "Registration Document *" : "Registration Document"}
+            value={registrationUrl}
+            onChange={setRegistrationUrl}
+            hint="Organization registration document (if applicable)"
+          />
+          <ImageUpload
+            label={isAdmin ? "National ID - Front Side *" : "National ID - Front Side"}
+            value={nationalIdFrontUrl}
+            onChange={setNationalIdFrontUrl}
+            hint="Upload the front side of your national ID"
+          />
+          <ImageUpload
+            label={isAdmin ? "National ID - Back Side *" : "National ID - Back Side"}
+            value={nationalIdBackUrl}
+            onChange={setNationalIdBackUrl}
+            hint="Upload the back side of your national ID"
+          />
+          <div>
+            <label className={label}>{isAdmin ? "FAN Number (Federal Admin Number) *" : "FAN Number (Federal Admin Number)"}</label>
+            <input className={input} placeholder="e.g. 1234567890"
+              value={fanNumber} onChange={e => setFanNumber(e.target.value)} />
+          </div>
+          <div>
+            <label className={label}>Additional Notes for Admin</label>
+            <textarea rows={3}
+              placeholder="Any additional information you want to share with the admin only..."
+              value={additionalNotes} onChange={e => setAdditionalNotes(e.target.value)}
+              className={cn(input, 'resize-none')} />
+          </div>
+        </div>
 
         <Button type="submit" className="w-full" size="lg" isLoading={loading}
           rightIcon={<ArrowRight className="w-4 h-4" />}>

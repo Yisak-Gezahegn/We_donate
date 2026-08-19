@@ -188,12 +188,31 @@ export default function AdminRequestsPage() {
               </div>
             )}
 
-            {/* National ID */}
-            {item.nationalIdUrl && (
+            {/* National ID Front */}
+            {item.nationalIdFrontUrl && (
               <div>
-                <p className={cn('text-xs font-semibold mb-2', isDark ? 'text-slate-400' : 'text-gray-500')}>National ID</p>
-                <img src={item.nationalIdUrl} alt="National ID"
-                  className="rounded-xl max-h-40 object-contain w-full border" />
+                <p className={cn('text-xs font-semibold mb-2', isDark ? 'text-slate-400' : 'text-gray-500')}>National ID - Front Side</p>
+                <a href={item.nationalIdFrontUrl} target="_blank" rel="noopener noreferrer">
+                  <img src={item.nationalIdFrontUrl} alt="National ID Front"
+                    className="rounded-xl max-h-40 object-contain w-full border cursor-pointer hover:opacity-90 transition-opacity" />
+                  <span className={cn('flex items-center gap-1 text-xs mt-1', isDark ? 'text-blue-400' : 'text-blue-600')}>
+                    <ExternalLink className="w-3 h-3" /> Open full image
+                  </span>
+                </a>
+              </div>
+            )}
+
+            {/* National ID Back */}
+            {item.nationalIdBackUrl && (
+              <div>
+                <p className={cn('text-xs font-semibold mb-2', isDark ? 'text-slate-400' : 'text-gray-500')}>National ID - Back Side</p>
+                <a href={item.nationalIdBackUrl} target="_blank" rel="noopener noreferrer">
+                  <img src={item.nationalIdBackUrl} alt="National ID Back"
+                    className="rounded-xl max-h-40 object-contain w-full border cursor-pointer hover:opacity-90 transition-opacity" />
+                  <span className={cn('flex items-center gap-1 text-xs mt-1', isDark ? 'text-blue-400' : 'text-blue-600')}>
+                    <ExternalLink className="w-3 h-3" /> Open full image
+                  </span>
+                </a>
               </div>
             )}
 
@@ -201,8 +220,13 @@ export default function AdminRequestsPage() {
             {item.registrationUrl && (
               <div>
                 <p className={cn('text-xs font-semibold mb-2', isDark ? 'text-slate-400' : 'text-gray-500')}>Organization Registration</p>
-                <img src={item.registrationUrl} alt="Registration"
-                  className="rounded-xl max-h-40 object-contain w-full border" />
+                <a href={item.registrationUrl} target="_blank" rel="noopener noreferrer">
+                  <img src={item.registrationUrl} alt="Registration"
+                    className="rounded-xl max-h-40 object-contain w-full border cursor-pointer hover:opacity-90 transition-opacity" />
+                  <span className={cn('flex items-center gap-1 text-xs mt-1', isDark ? 'text-blue-400' : 'text-blue-600')}>
+                    <ExternalLink className="w-3 h-3" /> Open full image
+                  </span>
+                </a>
               </div>
             )}
 
@@ -211,6 +235,7 @@ export default function AdminRequestsPage() {
               <DetailRow label="Location" value={item.location} isDark={isDark} />
               <DetailRow label="Family Size" value={item.familySize ? `${item.familySize} people` : null} isDark={isDark} />
               <DetailRow label="Goal Amount" value={item.goalAmount ? formatCurrency(item.goalAmount) : null} isDark={isDark} />
+              <DetailRow label="FAN Number" value={item.fanNumber} isDark={isDark} />
               <DetailRow label="Additional Notes" value={item.additionalNotes} isDark={isDark} />
               <DetailRow label="Phone" value={item.user?.phone} isDark={isDark} />
             </div>

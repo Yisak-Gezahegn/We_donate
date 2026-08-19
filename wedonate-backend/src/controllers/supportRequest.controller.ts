@@ -15,7 +15,7 @@ export const createRequest = async (req: AuthRequest, res: Response, next: NextF
       telebirrAccount, cbeAccount, boaAccount, awashAccount,
       otherBankName, otherBankAccount,
       // Admin-only docs
-      supportLetterUrl, nationalIdUrl, additionalNotes,
+      supportLetterUrl, nationalIdFrontUrl, nationalIdBackUrl, fanNumber, additionalNotes,
     } = req.body;
 
     if (!title || !description || !category)
@@ -37,9 +37,11 @@ export const createRequest = async (req: AuthRequest, res: Response, next: NextF
         awashAccount:     awashAccount     || null,
         otherBankName:    otherBankName    || null,
         otherBankAccount: otherBankAccount || null,
-        supportLetterUrl: supportLetterUrl || null,
-        nationalIdUrl:    nationalIdUrl    || null,
-        additionalNotes:  additionalNotes  || null,
+        supportLetterUrl:   supportLetterUrl   || null,
+        nationalIdFrontUrl: nationalIdFrontUrl || null,
+        nationalIdBackUrl:  nationalIdBackUrl  || null,
+        fanNumber:          fanNumber          || null,
+        additionalNotes:    additionalNotes    || null,
       },
     });
     res.status(201).json({ success: true, data: request });
@@ -61,7 +63,7 @@ export const getApprovedRequests = async (req: Request, res: Response, next: Nex
       // Omit admin-only fields from public response
     });
     // Strip admin-only fields from public view
-    const publicRequests = requests.map(({ supportLetterUrl, nationalIdUrl, additionalNotes, ...r }) => r);
+    const publicRequests = requests.map(({ supportLetterUrl, nationalIdFrontUrl, nationalIdBackUrl, fanNumber, additionalNotes, ...r }) => r);
     res.json({ success: true, data: publicRequests });
   } catch (error) { next(error); }
 };
@@ -102,7 +104,7 @@ export const getRequestById = async (req: AuthRequest, res: Response, next: Next
 
     // Strip admin-only fields for non-admin, non-owner
     if (!isAdmin && !isOwner) {
-      const { supportLetterUrl, nationalIdUrl, additionalNotes, ...publicData } = request;
+      const { supportLetterUrl, nationalIdFrontUrl, nationalIdBackUrl, fanNumber, additionalNotes, ...publicData } = request;
       return res.json({ success: true, data: publicData });
     }
     res.json({ success: true, data: request });

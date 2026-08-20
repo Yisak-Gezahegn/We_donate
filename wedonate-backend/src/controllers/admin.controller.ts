@@ -99,6 +99,8 @@ export const getDashboardStats = async (_req: Request, res: Response, next: Next
       totalUsers, totalDonations, totalAmountResult,
       pendingRequests, pendingCampaigns,
       recentDonations, totalCampaigns, fulfilledRequests,
+      pendingVerifications, publishedRequests, activeCampaigns,
+      recentActivity, monthlyDonations,
     ] = await Promise.all([
       prisma.user.count(),
       prisma.donation.count({ where: { paymentStatus: 'SUCCESS' } }),
@@ -112,6 +114,21 @@ export const getDashboardStats = async (_req: Request, res: Response, next: Next
       }),
       prisma.campaign.count(),
       prisma.supportRequest.count({ where: { status: 'FULFILLED' } }),
+      prisma.donation.count({ where: { paymentStatus: 'PENDING' } }),
+      prisma.supportRequest.count({ where: { isPublished: true } }),
+      prisma.campaign.count({ where: { status: 'ACTIVE' } }),
+      prisma.auditLog.findMany({
+        take: 10,
+        include: { user: { select: { firstName: true, lastName: true, profileImage: true } } },
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.$queryRaw`
+        SELECT TO_CHAR("createdAt", 'YYYY-MM') as month, COUNT(*)::int as count, COALESCE(SUM("amount"), 0)::float as total
+        FROM "donations"
+        WHERE "paymentStatus" = 'SUCCESS' AND "createdAt" >= NOW() - INTERVAL '12 months'
+        GROUP BY TO_CHAR("createdAt", 'YYYY-MM')
+        ORDER BY month ASC
+      `,
     ]);
 
     res.json({
@@ -121,19 +138,45 @@ export const getDashboardStats = async (_req: Request, res: Response, next: Next
         totalAmount: totalAmountResult._sum.amount || 0,
         pendingRequests, pendingCampaigns,
         recentDonations, totalCampaigns, fulfilledRequests,
+        pendingVerifications, publishedRequests, activeCampaigns,
+        recentActivity, monthlyDonations,
       },
     });
   } catch (error) { next(error); }
 };
 
-export const getAuditLogs = async (_req: Request, res: Response, next: NextFunction) => {
+export const getAuditLogs = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const logs = await prisma.auditLog.findMany({
-      include: { user: { select: { firstName: true, lastName: true, email: true } } },
-      orderBy: { createdAt: 'desc' },
-      take: 100,
-    });
-    res.json({ success: true, data: logs });
+    const { action, userId, dateFrom, dateTo, search, page = '1', limit = '50' } = req.query;
+    const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
+    const take = parseInt(limit as string);
+
+    const where: any = {};
+    if (action) where.action = { contains: action as string, mode: 'insensitive' };
+    if (userId) where.userId = userId as string;
+    if (dateFrom || dateTo) {
+      where.createdAt = {};
+      if (dateFrom) where.createdAt.gte = new Date(dateFrom as string);
+      if (dateTo) where.createdAt.lte = new Date(dateTo as string);
+    }
+    if (search) {
+      where.OR = [
+        { action: { contains: search as string, mode: 'insensitive' } },
+        { details: { contains: search as string, mode: 'insensitive' } },
+        { resource: { contains: search as string, mode: 'insensitive' } },
+      ];
+    }
+
+    const [logs, total] = await Promise.all([
+      prisma.auditLog.findMany({
+        where,
+        include: { user: { select: { firstName: true, lastName: true, email: true } } },
+        orderBy: { createdAt: 'desc' },
+        skip, take,
+      }),
+      prisma.auditLog.count({ where }),
+    ]);
+    res.json({ success: true, data: logs, pagination: { page: parseInt(page as string), limit: take, total, pages: Math.ceil(total / take) } });
   } catch (error) { next(error); }
 };
 
@@ -193,5 +236,154 @@ export const toggleVerification = async (req: AuthRequest, res: Response, next: 
     });
 
     res.json({ success: true, data: user, message: `Organization ${newVerifiedState ? 'verified' : 'unverified'} successfully` });
+  } catch (error) { next(error); }
+};
+
+export const createUser = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const { firstName, lastName, email, password, phone, role } = req.body;
+    if (!firstName || !lastName || !email || !password) return next(createError('First name, last name, email and password are required', 400));
+    const existing = await prisma.user.findUnique({ where: { email } });
+    if (existing) return next(createError('Email already in use', 409));
+    const user = await prisma.user.create({
+      data: { id: uuidv4(), firstName, lastName, email, password, phone: phone || null, role: (role || 'USER') as any },
+      select: { id: true, firstName: true, lastName: true, email: true, role: true, isActive: true, createdAt: true },
+    });
+    await prisma.auditLog.create({
+      data: { id: uuidv4(), userId: req.user!.userId, action: 'CREATE_USER', resource: 'user', resourceId: user.id, details: `Created user ${firstName} ${lastName} (${email})` },
+    });
+    res.status(201).json({ success: true, data: user, message: 'User created successfully' });
+  } catch (error) { next(error); }
+};
+
+export const getAllDonationsAdmin = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { status, page = '1', limit = '50' } = req.query;
+    const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
+    const take = parseInt(limit as string);
+    const where: any = {};
+    if (status) where.paymentStatus = status as any;
+    const [donations, total] = await Promise.all([
+      prisma.donation.findMany({
+        where, skip, take,
+        include: {
+          donor: { select: { firstName: true, lastName: true, email: true, profileImage: true } },
+          supportRequest: { select: { title: true } },
+          campaign: { select: { title: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.donation.count({ where }),
+    ]);
+    res.json({ success: true, data: donations, pagination: { page: parseInt(page as string), limit: take, total, pages: Math.ceil(total / take) } });
+  } catch (error) { next(error); }
+};
+
+export const getPendingDonations = async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const donations = await prisma.donation.findMany({
+      where: { paymentStatus: 'PENDING' },
+      include: {
+        donor: { select: { firstName: true, lastName: true, email: true, phone: true } },
+        supportRequest: { select: { title: true } },
+        campaign: { select: { title: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    res.json({ success: true, data: donations });
+  } catch (error) { next(error); }
+};
+
+export const verifyDonation = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const donation = await prisma.donation.findUnique({ where: { id: req.params.id } });
+    if (!donation) return next(createError('Donation not found', 404));
+
+    const updated = await prisma.donation.update({
+      where: { id: req.params.id },
+      data: { paymentStatus: 'SUCCESS', verifiedAt: new Date(), verifiedBy: req.user!.userId },
+    });
+
+    if (donation.amount) {
+      if (donation.supportRequestId) {
+        await prisma.supportRequest.update({ where: { id: donation.supportRequestId }, data: { raisedAmount: { increment: donation.amount } } });
+      }
+      if (donation.campaignId) {
+        await prisma.campaign.update({ where: { id: donation.campaignId }, data: { raisedAmount: { increment: donation.amount } } });
+      }
+    }
+
+    await prisma.notification.create({
+      data: { id: uuidv4(), userId: donation.donorId, title: 'Donation Verified', message: `Your donation of ${donation.amount || 0} ETB has been verified and confirmed.`, type: 'SUCCESS' },
+    });
+    await prisma.auditLog.create({
+      data: { id: uuidv4(), userId: req.user!.userId, action: 'VERIFY_DONATION', resource: 'donation', resourceId: donation.id, details: `Verified donation of ${donation.amount || 0} ETB from donor ${donation.donorId}` },
+    });
+
+    res.json({ success: true, data: updated, message: 'Donation verified successfully' });
+  } catch (error) { next(error); }
+};
+
+export const rejectDonation = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const { reason } = req.body;
+    const donation = await prisma.donation.findUnique({ where: { id: req.params.id } });
+    if (!donation) return next(createError('Donation not found', 404));
+
+    const updated = await prisma.donation.update({
+      where: { id: req.params.id },
+      data: { paymentStatus: 'FAILED', rejectionReason: reason || null },
+    });
+
+    await prisma.notification.create({
+      data: { id: uuidv4(), userId: donation.donorId, title: 'Donation Rejected', message: `Your donation has been rejected.${reason ? ` Reason: ${reason}` : ''}`, type: 'ERROR' },
+    });
+    await prisma.auditLog.create({
+      data: { id: uuidv4(), userId: req.user!.userId, action: 'REJECT_DONATION', resource: 'donation', resourceId: donation.id, details: `Rejected donation. Reason: ${reason || 'N/A'}` },
+    });
+
+    res.json({ success: true, data: updated, message: 'Donation rejected' });
+  } catch (error) { next(error); }
+};
+
+export const publishRequest = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const request = await prisma.supportRequest.update({
+      where: { id: req.params.id },
+      data: { isPublished: true, publishedAt: new Date() },
+    });
+    await prisma.auditLog.create({
+      data: { id: uuidv4(), userId: req.user!.userId, action: 'PUBLISH_REQUEST', resource: 'support_request', resourceId: req.params.id, details: `Published request: ${request.title}` },
+    });
+    res.json({ success: true, data: request, message: 'Request published' });
+  } catch (error) { next(error); }
+};
+
+export const fulfillRequest = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const request = await prisma.supportRequest.update({
+      where: { id: req.params.id },
+      data: { status: 'FULFILLED' },
+    });
+    await prisma.notification.create({
+      data: { id: uuidv4(), userId: request.userId, title: 'Request Fulfilled', message: `Your support request "${request.title}" has been marked as fulfilled.`, type: 'SUCCESS' },
+    });
+    await prisma.auditLog.create({
+      data: { id: uuidv4(), userId: req.user!.userId, action: 'FULFILL_REQUEST', resource: 'support_request', resourceId: req.params.id, details: `Fulfilled request: ${request.title}` },
+    });
+    res.json({ success: true, data: request, message: 'Request marked as fulfilled' });
+  } catch (error) { next(error); }
+};
+
+export const publishCampaign = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const campaign = await prisma.campaign.update({
+      where: { id: req.params.id },
+      data: { isPublished: true, publishedAt: new Date(), status: 'ACTIVE' },
+    });
+    await prisma.auditLog.create({
+      data: { id: uuidv4(), userId: req.user!.userId, action: 'PUBLISH_CAMPAIGN', resource: 'campaign', resourceId: req.params.id, details: `Published campaign: ${campaign.title}` },
+    });
+    res.json({ success: true, data: campaign, message: 'Campaign published and activated' });
   } catch (error) { next(error); }
 };

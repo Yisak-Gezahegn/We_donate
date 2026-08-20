@@ -4,6 +4,7 @@ import {
   toggleVerification, updateDocumentExpiry, createUser,
   getAllDonationsAdmin, getPendingDonations, verifyDonation, rejectDonation,
   publishRequest, fulfillRequest, publishCampaign,
+  getPendingOrganizations, approveOrganization, rejectOrganization,
 } from '../controllers/admin.controller';
 import { getInspectionReports, createInspectionReport, resolveInspection, deleteInspection } from '../controllers/inspection.controller';
 import { authenticate, authorize } from '../middleware/auth.middleware';
@@ -17,6 +18,10 @@ router.patch('/users/:id/role',    authenticate, authorize('SUPER_ADMIN'), assig
 router.patch('/users/:id/toggle-active', authenticate, authorize(...ADMIN), toggleUserActive);
 router.patch('/users/:id/toggle-verification', authenticate, authorize(...ADMIN), toggleVerification);
 router.patch('/users/:id/document-expiry', authenticate, authorize(...ADMIN), updateDocumentExpiry);
+
+router.get('/organizations/pending', authenticate, authorize(...ADMIN), getPendingOrganizations);
+router.patch('/organizations/:id/approve', authenticate, authorize(...ADMIN), approveOrganization);
+router.patch('/organizations/:id/reject', authenticate, authorize(...ADMIN), rejectOrganization);
 
 router.get('/dashboard',           authenticate, authorize(...ADMIN), getDashboardStats);
 router.get('/audit-logs',          authenticate, authorize('SUPER_ADMIN','CITY_ADMIN'), getAuditLogs);

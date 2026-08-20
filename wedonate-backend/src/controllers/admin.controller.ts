@@ -387,3 +387,92 @@ export const publishCampaign = async (req: AuthRequest, res: Response, next: Nex
     res.json({ success: true, data: campaign, message: 'Campaign published and activated' });
   } catch (error) { next(error); }
 };
+
+export const getPendingOrganizations = async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const orgs = await prisma.user.findMany({
+      where: { orgStatus: 'PENDING' },
+      select: {
+        id: true, firstName: true, lastName: true, email: true, phone: true,
+        role: true, orgStatus: true, orgType: true, orgName: true,
+        licenseNumber: true, registrationDocUrl: true, representativeName: true,
+        officeAddress: true, createdAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    res.json({ success: true, data: orgs });
+  } catch (error) { next(error); }
+};
+
+export const approveOrganization = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const targetUser = await prisma.user.findUnique({
+      where: { id: req.params.id },
+      select: { id: true, orgStatus: true, firstName: true, lastName: true, role: true },
+    });
+    if (!targetUser) return next(createError('User not found', 404));
+    if (targetUser.orgStatus !== 'PENDING') return next(createError('Organization is not pending', 400));
+
+    const user = await prisma.user.update({
+      where: { id: req.params.id },
+      data: { orgStatus: 'APPROVED', isVerified: true },
+      select: { id: true, firstName: true, lastName: true, email: true, role: true, orgStatus: true, isVerified: true },
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        id: uuidv4(), userId: req.user!.userId,
+        action: 'APPROVE_ORG', resource: 'user', resourceId: req.params.id,
+        details: `Approved organization: ${targetUser.firstName} ${targetUser.lastName}`,
+      },
+    });
+
+    await prisma.notification.create({
+      data: {
+        id: uuidv4(), userId: req.params.id,
+        title: 'Organization Approved',
+        message: 'Your organization has been approved. You can now create campaigns and start fundraising.',
+        type: 'SUCCESS',
+      },
+    });
+
+    res.json({ success: true, data: user, message: 'Organization approved successfully' });
+  } catch (error) { next(error); }
+};
+
+export const rejectOrganization = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const { reason } = req.body;
+    const targetUser = await prisma.user.findUnique({
+      where: { id: req.params.id },
+      select: { id: true, orgStatus: true, firstName: true, lastName: true },
+    });
+    if (!targetUser) return next(createError('User not found', 404));
+    if (targetUser.orgStatus !== 'PENDING') return next(createError('Organization is not pending', 400));
+
+    const user = await prisma.user.update({
+      where: { id: req.params.id },
+      data: { orgStatus: 'REJECTED', rejectionReason: reason || null },
+      select: { id: true, firstName: true, lastName: true, email: true, role: true, orgStatus: true, rejectionReason: true },
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        id: uuidv4(), userId: req.user!.userId,
+        action: 'REJECT_ORG', resource: 'user', resourceId: req.params.id,
+        details: `Rejected organization: ${targetUser.firstName} ${targetUser.lastName}. Reason: ${reason || 'N/A'}`,
+      },
+    });
+
+    await prisma.notification.create({
+      data: {
+        id: uuidv4(), userId: req.params.id,
+        title: 'Organization Rejected',
+        message: `Your organization registration has been rejected.${reason ? ` Reason: ${reason}` : ''} Please contact support for more information.`,
+        type: 'ERROR',
+      },
+    });
+
+    res.json({ success: true, data: user, message: 'Organization rejected' });
+  } catch (error) { next(error); }
+};

@@ -12,7 +12,11 @@ const generateToken = (userId: string, email: string, role: string) =>
 
 export const register = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { firstName, lastName, email, password, phone } = req.body;
+    const {
+      firstName, lastName, email, password, phone,
+      accountType, orgType, orgName, licenseNumber,
+      registrationDocUrl, representativeName, officeAddress,
+    } = req.body;
 
     if (!firstName || !lastName || !email || !password)
       return next(createError('Please provide all required fields', 400));
@@ -20,20 +24,36 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) return next(createError('Email already in use', 409));
 
+    const isOrg = accountType === 'organization';
+
+    if (isOrg) {
+      if (!orgType || !orgName || !licenseNumber || !registrationDocUrl || !officeAddress)
+        return next(createError('All organization fields are required', 400));
+    }
+
     const user = await prisma.user.create({
       data: {
         id: uuidv4(), firstName, lastName, email,
         password, phone: phone || null,
-        role: 'USER',
+        role: isOrg ? (orgType === 'GOVERNMENTAL' ? 'GOVERNMENTAL_ORG' : 'NGO') : 'USER',
+        orgStatus: isOrg ? 'PENDING' : 'NONE',
+        orgType: isOrg ? orgType : null,
+        orgName: isOrg ? orgName : null,
+        licenseNumber: isOrg ? licenseNumber : null,
+        registrationDocUrl: isOrg ? registrationDocUrl : null,
+        representativeName: isOrg ? representativeName : null,
+        officeAddress: isOrg ? officeAddress : null,
       },
-      select: { id: true, firstName: true, lastName: true, email: true, role: true, createdAt: true },
+      select: { id: true, firstName: true, lastName: true, email: true, role: true, orgStatus: true, createdAt: true },
     });
 
     const token = generateToken(user.id, user.email, user.role);
 
     res.status(201).json({
       success: true,
-      message: 'Account created successfully',
+      message: isOrg
+        ? 'Organization registered successfully. After registration, your account will be Pending. The Adama City Admin will verify your documents within 24–48 hours before you can start fundraising.'
+        : 'Account created successfully',
       data: { user, token },
     });
   } catch (error) { next(error); }
@@ -70,7 +90,7 @@ export const getMe = async (req: AuthRequest, res: Response, next: NextFunction)
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.user!.userId },
-      select: { id: true, firstName: true, lastName: true, email: true, phone: true, role: true, profileImage: true, isVerified: true, createdAt: true },
+      select: { id: true, firstName: true, lastName: true, email: true, phone: true, role: true, profileImage: true, isVerified: true, orgStatus: true, orgType: true, orgName: true, rejectionReason: true, createdAt: true },
     });
     if (!user) return next(createError('User not found', 404));
     res.json({ success: true, data: user });

@@ -254,8 +254,16 @@ function AccountRow({ label, value, isDark }: { label: string; value?: string | 
 
 /* ── Detail Progress Modal ────────────────────────────────── */
 function DetailModal({ data, type, onClose, isDark }: { data: any; type: 'campaign' | 'request'; onClose: () => void; isDark: boolean }) {
-  if (!data) return null;
-  const pct = data.goalAmount ? Math.min((data.raisedAmount / data.goalAmount) * 100, 100) : 0;
+  const { data: detailData } = useQuery({
+    queryKey: ['detail', type, data?.id],
+    queryFn: () => api.get(type === 'campaign' ? `/campaigns/${data.id}` : `/support-requests/${data.id}`).then(r => r.data.data),
+    enabled: !!data?.id,
+    staleTime: 30000,
+  });
+  const display = detailData || data;
+  if (!display) return null;
+  const pct = display.goalAmount ? Math.min((display.raisedAmount / display.goalAmount) * 100, 100) : 0;
+  const donorCount = display._count?.donations ?? display.donations?.length ?? 0;
   const catColors: Record<string, string> = {
     INFRASTRUCTURE: 'bg-blue-100 text-blue-700', EDUCATION: 'bg-purple-100 text-purple-700',
     HEALTH: 'bg-red-100 text-red-700', EMERGENCY: 'bg-orange-100 text-orange-700',
@@ -263,163 +271,223 @@ function DetailModal({ data, type, onClose, isDark }: { data: any; type: 'campai
     CLOTHES: 'bg-indigo-100 text-indigo-700', MONEY: 'bg-green-100 text-green-700',
     OTHER: 'bg-gray-100 text-gray-700',
   };
-  const urgencyLabels = ['', 'Minimal', 'Low', 'Medium', 'High', 'Critical'];
+  const daysLeft = display.deadline
+    ? Math.max(0, Math.ceil((new Date(display.deadline).getTime() - Date.now()) / 86400000))
+    : null;
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-start justify-center p-4 overflow-y-auto" onClick={onClose}>
       <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }} transition={{ type: 'spring', damping: 25, stiffness: 300 }}
         onClick={e => e.stopPropagation()}
-        className={cn('w-full max-w-lg my-8 rounded-3xl shadow-2xl overflow-hidden',
+        className={cn('w-full max-w-2xl my-8 rounded-3xl shadow-2xl overflow-hidden',
           isDark ? 'bg-slate-800' : 'bg-white')}>
 
-        {/* Image header */}
-        {data.imageUrl && (
-          <div className="h-48 relative overflow-hidden">
-            <img src={data.imageUrl} alt={data.title} className="w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-            <button onClick={onClose} className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/40 flex items-center justify-center text-white hover:bg-black/60 transition-colors">
-              <X className="w-4 h-4" />
-            </button>
+        {/* ── Cover Image Hero ── */}
+        <div className="relative h-72 overflow-hidden">
+          {display.imageUrl ? (
+            <img src={display.imageUrl} alt={display.title} className="w-full h-full object-cover" />
+          ) : (
+            <div className={cn('w-full h-full flex items-center justify-center text-8xl',
+              isDark ? 'bg-slate-700' : 'bg-gray-200')}>
+              {type === 'campaign' ? '🏗️' : '🤲'}
+            </div>
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+
+          {/* Close button */}
+          <button onClick={onClose}
+            className="absolute top-4 right-4 w-9 h-9 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/60 transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+
+          {/* Status badge on image */}
+          <div className="absolute top-4 left-4">
+            <Badge variant={display.status === 'ACTIVE' || display.status === 'APPROVED' ? 'success' : display.status === 'PENDING' ? 'warning' : 'danger'}>
+              {display.status}
+            </Badge>
           </div>
-        )}
+
+          {/* Title overlay on image */}
+          <div className="absolute bottom-0 left-0 right-0 p-6">
+            <div className="flex flex-wrap gap-2 mb-2">
+              {display.category && (
+                <span className={cn('text-xs font-semibold px-2.5 py-1 rounded-full', catColors[display.category] || catColors.OTHER)}>
+                  {display.category.replace('_', ' ')}
+                </span>
+              )}
+              {display.urgencyLevel && (
+                <span className={cn('text-xs font-semibold px-2.5 py-1 rounded-full border border-white/30 bg-white/20 text-white backdrop-blur-sm')}>
+                  {display.urgencyLevel === 5 ? '🚨 Emergency' : display.urgencyLevel === 4 ? '🔴 Critical' : display.urgencyLevel === 3 ? '🟠 High' : display.urgencyLevel === 2 ? '🟡 Medium' : '🟢 Standard'}
+                </span>
+              )}
+            </div>
+            <h2 className="text-2xl font-extrabold text-white leading-tight drop-shadow-lg">{display.title}</h2>
+          </div>
+        </div>
 
         <div className="p-6">
-          {!data.imageUrl && (
-            <div className="flex justify-end mb-2">
-              <button onClick={onClose} className={cn('p-2 rounded-xl transition-colors',
-                isDark ? 'hover:bg-slate-700 text-slate-400' : 'hover:bg-gray-100 text-gray-500')}>
-                <X className="w-5 h-5" />
-              </button>
+
+          {/* ── Overview / Progress Section ── */}
+          {display.goalAmount && (
+            <div className={cn('rounded-2xl p-5 mb-6 border',
+              isDark ? 'bg-slate-700/40 border-slate-600' : 'bg-gradient-to-br from-green-50 to-emerald-50 border-green-100')}>
+
+              <div className="flex items-center gap-2 mb-4">
+                <div className={cn('w-8 h-8 rounded-xl flex items-center justify-center',
+                  isDark ? 'bg-green-900/50' : 'bg-green-100')}>
+                  <Target className="w-4 h-4 text-green-600" />
+                </div>
+                <h3 className={cn('text-sm font-bold uppercase tracking-wide', isDark ? 'text-green-400' : 'text-green-700')}>
+                  Overview
+                </h3>
+              </div>
+
+              {/* Stats row */}
+              <div className="grid grid-cols-3 gap-3 mb-4">
+                <div className={cn('text-center p-3 rounded-xl', isDark ? 'bg-slate-600/50' : 'bg-white')}>
+                  <p className={cn('text-2xl font-extrabold', isDark ? 'text-white' : 'text-gray-900')}>
+                    {formatCurrency(display.raisedAmount)}
+                  </p>
+                  <p className={cn('text-xs font-medium mt-0.5', isDark ? 'text-slate-400' : 'text-gray-500')}>Raised</p>
+                </div>
+                <div className={cn('text-center p-3 rounded-xl', isDark ? 'bg-slate-600/50' : 'bg-white')}>
+                  <p className={cn('text-2xl font-extrabold', isDark ? 'text-white' : 'text-gray-900')}>
+                    {formatCurrency(display.goalAmount)}
+                  </p>
+                  <p className={cn('text-xs font-medium mt-0.5', isDark ? 'text-slate-400' : 'text-gray-500')}>Goal</p>
+                </div>
+                <div className={cn('text-center p-3 rounded-xl', isDark ? 'bg-slate-600/50' : 'bg-white')}>
+                  <div className="flex items-center justify-center gap-1.5">
+                    <Users className={cn('w-4 h-4', isDark ? 'text-green-400' : 'text-green-600')} />
+                    <p className={cn('text-2xl font-extrabold', isDark ? 'text-white' : 'text-gray-900')}>
+                      {donorCount}
+                    </p>
+                  </div>
+                  <p className={cn('text-xs font-medium mt-0.5', isDark ? 'text-slate-400' : 'text-gray-500')}>Donors</p>
+                </div>
+              </div>
+
+              {/* Progress bar */}
+              <div className="mb-3">
+                <div className="flex justify-between text-sm mb-2 font-semibold">
+                  <span className="text-green-500">{Math.round(pct)}% funded</span>
+                  {pct >= 100 ? (
+                    <span className="text-green-600 font-bold">✓ Goal Reached!</span>
+                  ) : daysLeft !== null ? (
+                    <span className={cn(daysLeft <= 3 ? 'text-red-500 font-semibold' : (isDark ? 'text-slate-400' : 'text-gray-500'))}>
+                      {daysLeft === 0 ? '⏰ Ends today' : `${daysLeft} day${daysLeft === 1 ? '' : 's'} left`}
+                    </span>
+                  ) : null}
+                </div>
+                <div className={cn('h-3 rounded-full overflow-hidden', isDark ? 'bg-slate-600' : 'bg-gray-200')}>
+                  <motion.div initial={{ width: 0 }} animate={{ width: `${pct}%` }}
+                    transition={{ duration: 1, ease: 'easeOut' }}
+                    className={cn('h-full rounded-full', pct >= 100
+                      ? 'bg-gradient-to-r from-green-400 to-emerald-300'
+                      : 'bg-gradient-to-r from-green-500 to-emerald-400')} />
+                </div>
+              </div>
+
+              {/* Recent donors */}
+              {display.donations && display.donations.length > 0 && (
+                <div className={cn('pt-3 border-t', isDark ? 'border-slate-600' : 'border-green-100')}>
+                  <p className={cn('text-xs font-semibold mb-2', isDark ? 'text-slate-400' : 'text-gray-500')}>Recent Contributors</p>
+                  <div className="flex flex-wrap gap-2">
+                    {display.donations.slice(0, 6).map((d: any, i: number) => (
+                      <div key={d.id || i} className={cn('flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium',
+                        isDark ? 'bg-slate-600 text-slate-300' : 'bg-green-100 text-green-700')}>
+                        <div className={cn('w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold text-white',
+                          d.donor?.firstName ? 'bg-green-600' : 'bg-gray-400')}>
+                          {d.isAnonymous ? '?' : (d.donor?.firstName?.[0] || 'A')}
+                        </div>
+                        {d.isAnonymous ? 'Anonymous' : `${d.donor?.firstName || ''}`}
+                        {d.amount && <span className="opacity-70">· {formatCurrency(d.amount)}</span>}
+                      </div>
+                    ))}
+                    {display._count?.donations > 6 && (
+                      <span className={cn('px-2.5 py-1.5 rounded-full text-xs font-medium',
+                        isDark ? 'bg-slate-600 text-slate-400' : 'bg-gray-100 text-gray-500')}>
+                        +{display._count.donations - 6} more
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           )}
-
-          {/* Title & status */}
-          <div className="flex flex-wrap items-center gap-2 mb-3">
-            <h2 className={cn('text-lg font-extrabold flex-1', isDark ? 'text-white' : 'text-gray-900')}>{data.title}</h2>
-            <Badge variant={data.status === 'ACTIVE' || data.status === 'APPROVED' ? 'success' : data.status === 'PENDING' ? 'warning' : 'danger'}>{data.status}</Badge>
-          </div>
-
-          {/* Tags */}
-          <div className="flex flex-wrap gap-2 mb-4">
-            {data.category && (
-              <span className={cn('text-xs font-semibold px-2.5 py-1 rounded-full', catColors[data.category] || catColors.OTHER)}>
-                {data.category.replace('_', ' ')}
-              </span>
-            )}
-            {data.urgencyLevel && (
-              <span className={cn('text-xs font-semibold px-2.5 py-1 rounded-full border',
-                data.urgencyLevel === 5 ? 'bg-red-100 text-red-700 border-red-200' :
-                data.urgencyLevel === 4 ? 'bg-orange-100 text-orange-700 border-orange-200' :
-                data.urgencyLevel === 3 ? 'bg-amber-100 text-amber-700 border-amber-200' :
-                data.urgencyLevel === 2 ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :
-                'bg-green-100 text-green-700 border-green-200')}>
-                {data.urgencyLevel === 5 ? '🚨 Emergency' : data.urgencyLevel === 4 ? '🔴 Critical' : data.urgencyLevel === 3 ? '🟠 High' : data.urgencyLevel === 2 ? '🟡 Medium' : '🟢 Standard'}
-              </span>
-            )}
-          </div>
 
           {/* Description */}
-          <p className={cn('text-sm leading-relaxed mb-5', isDark ? 'text-slate-300' : 'text-gray-600')}>{data.description}</p>
-
-          {/* Progress bar */}
-          {data.goalAmount && (
-            <div className={cn('p-4 rounded-2xl mb-5', isDark ? 'bg-slate-700/50' : 'bg-gray-50')}>
-              <div className="flex justify-between text-sm mb-2 font-semibold">
-                <span className="text-green-500">{formatCurrency(data.raisedAmount)} raised</span>
-                <span className={pct >= 100 ? 'text-green-600 font-bold' : (isDark ? 'text-slate-400' : 'text-gray-500')}>{Math.round(pct)}%</span>
-              </div>
-              <div className={cn('h-3 rounded-full overflow-hidden', isDark ? 'bg-slate-600' : 'bg-gray-200')}>
-                <motion.div initial={{ width: 0 }} animate={{ width: `${pct}%` }}
-                  transition={{ duration: 1, ease: 'easeOut' }}
-                  className={cn('h-full rounded-full', pct >= 100
-                    ? 'bg-gradient-to-r from-green-400 to-emerald-300'
-                    : 'bg-gradient-to-r from-green-500 to-emerald-400')} />
-              </div>
-              <div className="flex justify-between text-xs mt-2">
-                <span className={isDark ? 'text-slate-400' : 'text-gray-500'}>Goal: {formatCurrency(data.goalAmount)}</span>
-                {pct >= 100 ? (
-                  <span className="text-green-600 font-bold">✓ Goal Reached!</span>
-                ) : data.deadline ? (
-                  <span className={cn(
-                    Math.ceil((new Date(data.deadline).getTime() - Date.now()) / 86400000) <= 3
-                      ? 'text-red-500 font-semibold' : (isDark ? 'text-slate-400' : 'text-gray-500')
-                  )}>
-                    {(() => {
-                      const d = Math.max(0, Math.ceil((new Date(data.deadline).getTime() - Date.now()) / 86400000));
-                      return d === 0 ? '⏰ Ends today' : `${d} day${d === 1 ? '' : 's'} left`;
-                    })()}
-                  </span>
-                ) : (
-                  <span className={isDark ? 'text-slate-400' : 'text-gray-500'}>{data._count?.donations ?? 0} donations</span>
-                )}
-              </div>
-            </div>
-          )}
+          <div className="mb-5">
+            <h3 className={cn('text-sm font-bold uppercase tracking-wide mb-2', isDark ? 'text-slate-400' : 'text-gray-500')}>
+              {type === 'campaign' ? 'About this Campaign' : 'About this Request'}
+            </h3>
+            <p className={cn('text-sm leading-relaxed', isDark ? 'text-slate-300' : 'text-gray-600')}>{display.description}</p>
+          </div>
 
           {/* Info grid */}
           <div className="grid grid-cols-2 gap-3 mb-5">
-            {data.location && (
+            {display.location && (
               <div className={cn('p-3 rounded-xl', isDark ? 'bg-slate-700/30' : 'bg-gray-50')}>
                 <p className={cn('text-xs font-semibold mb-0.5', isDark ? 'text-slate-400' : 'text-gray-500')}>Location</p>
-                <p className={cn('text-sm font-medium', isDark ? 'text-white' : 'text-gray-900')}>{data.location}</p>
+                <p className={cn('text-sm font-medium', isDark ? 'text-white' : 'text-gray-900')}>{display.location}</p>
               </div>
             )}
-            {data.familySize && (
+            {display.familySize && (
               <div className={cn('p-3 rounded-xl', isDark ? 'bg-slate-700/30' : 'bg-gray-50')}>
                 <p className={cn('text-xs font-semibold mb-0.5', isDark ? 'text-slate-400' : 'text-gray-500')}>Family Size</p>
-                <p className={cn('text-sm font-medium', isDark ? 'text-white' : 'text-gray-900')}>{data.familySize} people</p>
+                <p className={cn('text-sm font-medium', isDark ? 'text-white' : 'text-gray-900')}>{display.familySize} people</p>
               </div>
             )}
-            {data.deadline && (
+            {display.deadline && (
               <div className={cn('p-3 rounded-xl', isDark ? 'bg-slate-700/30' : 'bg-gray-50')}>
                 <p className={cn('text-xs font-semibold mb-0.5', isDark ? 'text-slate-400' : 'text-gray-500')}>Deadline</p>
-                <p className={cn('text-sm font-medium', isDark ? 'text-white' : 'text-gray-900')}>{formatDate(data.deadline)}</p>
+                <p className={cn('text-sm font-medium', isDark ? 'text-white' : 'text-gray-900')}>{formatDate(display.deadline)}</p>
               </div>
             )}
             <div className={cn('p-3 rounded-xl', isDark ? 'bg-slate-700/30' : 'bg-gray-50')}>
               <p className={cn('text-xs font-semibold mb-0.5', isDark ? 'text-slate-400' : 'text-gray-500')}>Posted</p>
-              <p className={cn('text-sm font-medium', isDark ? 'text-white' : 'text-gray-900')}>{formatDate(data.createdAt)}</p>
+              <p className={cn('text-sm font-medium', isDark ? 'text-white' : 'text-gray-900')}>{formatDate(display.createdAt)}</p>
             </div>
           </div>
 
           {/* Beneficiary info */}
-          {data.user && (
+          {display.user && (
             <div className={cn('flex items-center gap-3 p-4 rounded-2xl mb-5',
               isDark ? 'bg-slate-700/30' : 'bg-gray-50')}>
-              {data.user.profileImage ? (
-                <img src={data.user.profileImage} alt="" className="w-10 h-10 rounded-full object-cover" />
+              {display.user.profileImage ? (
+                <img src={display.user.profileImage} alt="" className="w-10 h-10 rounded-full object-cover" />
               ) : (
                 <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-bold text-sm">
-                  {data.user.firstName?.[0]}{data.user.lastName?.[0]}
+                  {display.user.firstName?.[0]}{display.user.lastName?.[0]}
                 </div>
               )}
               <div>
-                <p className={cn('text-sm font-semibold', isDark ? 'text-white' : 'text-gray-900')}>{data.user.firstName} {data.user.lastName}</p>
+                <p className={cn('text-sm font-semibold', isDark ? 'text-white' : 'text-gray-900')}>{display.user.firstName} {display.user.lastName}</p>
                 <p className={cn('text-xs', isDark ? 'text-slate-400' : 'text-gray-500')}>{type === 'campaign' ? 'Campaign Creator' : 'Requester'}</p>
               </div>
             </div>
           )}
 
           {/* Impact Gallery */}
-          {type === 'campaign' && <ImpactGallery campaign={data} />}
+          {type === 'campaign' && <ImpactGallery campaign={display} />}
 
           {/* Campaign Updates Timeline */}
-          {type === 'campaign' && <CampaignUpdates campaignId={data.id} />}
+          {type === 'campaign' && <CampaignUpdates campaignId={display.id} />}
 
           {/* Social Share */}
           <div className={cn('p-4 rounded-2xl mb-5', isDark ? 'bg-slate-700/50' : 'bg-gray-50')}>
             <p className={cn('text-xs font-semibold mb-3', isDark ? 'text-slate-400' : 'text-gray-500')}>Share this cause</p>
             <div className="flex gap-2">
               <ShareButton platform="telegram" label="Telegram" color="#229ED9"
-                url={`${window.location.origin}/donate/${type}/${data.id}`}
-                title={data.title} isDark={isDark} />
+                url={`${window.location.origin}/donate/${type}/${display.id}`}
+                title={display.title} isDark={isDark} />
               <ShareButton platform="whatsapp" label="WhatsApp" color="#25D366"
-                url={`${window.location.origin}/donate/${type}/${data.id}`}
-                title={data.title} isDark={isDark} />
+                url={`${window.location.origin}/donate/${type}/${display.id}`}
+                title={display.title} isDark={isDark} />
               <ShareButton platform="facebook" label="Facebook" color="#1877F2"
-                url={`${window.location.origin}/donate/${type}/${data.id}`}
-                title={data.title} isDark={isDark} />
+                url={`${window.location.origin}/donate/${type}/${display.id}`}
+                title={display.title} isDark={isDark} />
             </div>
           </div>
 

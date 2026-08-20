@@ -27,6 +27,12 @@ interface RegisterData {
   email: string;
   password: string;
   phone?: string;
+  accountType?: string;
+  orgName?: string;
+  orgType?: string;
+  licenseNumber?: string;
+  registrationDocUrl?: string;
+  officeAddress?: string;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -62,11 +68,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const register = async (formData: RegisterData) => {
     const { data } = await api.post('/auth/register', formData);
-    const { user: u, token: t } = data.data;
-    localStorage.setItem('token', t);
-    localStorage.setItem('user', JSON.stringify(u));
-    setToken(t);
-    setUser(u);
+    if (!formData.accountType || formData.accountType !== 'organization') {
+      const { user: u, token: t } = data.data;
+      localStorage.setItem('token', t);
+      localStorage.setItem('user', JSON.stringify(u));
+      setToken(t);
+      setUser(u);
+    }
   };
 
   const logout = () => {

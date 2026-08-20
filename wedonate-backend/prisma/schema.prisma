@@ -18,6 +18,20 @@ enum Role {
   SUPER_ADMIN
 }
 
+enum OrgStatus {
+  NONE
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum OrgType {
+  NGO
+  GOVERNMENTAL
+  RELIGIOUS
+  PRIVATE_CHARITY
+}
+
 enum DonationType {
   MONEY
   FOOD
@@ -63,6 +77,17 @@ model User {
   profileImage String?
   registrationExpiry DateTime?  // org registration license expiry
   licenseExpiry      DateTime?  // org operating license expiry
+
+  // Organization fields
+  orgStatus          OrgStatus? @default(NONE)
+  orgType            OrgType?
+  orgName            String?
+  licenseNumber      String?
+  registrationDocUrl String?
+  representativeName String?
+  officeAddress      String?
+  rejectionReason    String?
+
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

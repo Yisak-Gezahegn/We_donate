@@ -21,7 +21,6 @@ export default function StatsBar() {
   if (!isAuthenticated || !data) return null;
 
   const stats = [
-    { icon: Users,       label: 'Members',        value: data.totalUsers       ?? 0,  format: (v: number) => v.toLocaleString() },
     { icon: Heart,       label: 'Donations',       value: data.totalDonations   ?? 0,  format: (v: number) => v.toLocaleString() },
     { icon: TrendingUp,  label: 'Total Raised',    value: data.totalAmount      ?? 0,  format: (v: number) => formatCurrency(v) },
     { icon: CheckCircle, label: 'Requests Helped', value: data.fulfilledRequests ?? 0, format: (v: number) => v.toLocaleString() },

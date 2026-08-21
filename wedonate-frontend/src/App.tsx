@@ -83,6 +83,24 @@ function AdminOnlyRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function PublicDonateRoute({ children }: { children: React.ReactNode }) {
+  const { user, isLoading } = useAuth();
+  const { isDark } = useTheme();
+  const isHighAdmin = user && HIGH_ADMIN_ROLES.includes(user.role);
+
+  if (isLoading) return (
+    <div className={cn('min-h-screen flex items-center justify-center', isDark ? 'bg-slate-900' : 'bg-gray-50')}>
+      <div className="flex flex-col items-center gap-4">
+        <div className="w-12 h-12 border-4 border-green-600 border-t-transparent rounded-full animate-spin" />
+        <p className={cn('text-sm font-medium', isDark ? 'text-slate-400' : 'text-gray-500')}>Loading...</p>
+      </div>
+    </div>
+  );
+
+  if (isHighAdmin) return <Navigate to="/admin" replace />;
+  return <>{children}</>;
+}
+
 const DR = (children: React.ReactNode) => (
   <ProtectedRoute><DashboardLayout>{children}</DashboardLayout></ProtectedRoute>
 );
@@ -96,7 +114,7 @@ export default function App() {
       {/* Public — but /donate is hidden from admins */}
       <Route path="/"               element={<MainLayout><HomePage /></MainLayout>} />
       <Route path="/about"          element={<MainLayout><AboutPage /></MainLayout>} />
-      <Route path="/donate"         element={<AdminOnlyRoute><MainLayout><DonatePage /></MainLayout></AdminOnlyRoute>} />
+      <Route path="/donate"         element={<PublicDonateRoute><MainLayout><DonatePage /></MainLayout></PublicDonateRoute>} />
       <Route path="/login"          element={<LoginPage />} />
       <Route path="/register"       element={<RegisterPage />} />
       <Route path="/payment/success" element={<MainLayout><PaymentSuccessPage /></MainLayout>} />

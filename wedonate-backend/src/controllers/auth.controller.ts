@@ -83,7 +83,7 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
       success: true,
       message: 'Login successful',
       data: {
-        user: { id: user.id, firstName: user.firstName, lastName: user.lastName, email: user.email, role: user.role, profileImage: user.profileImage },
+        user: { id: user.id, firstName: user.firstName, lastName: user.lastName, email: user.email, role: user.role, profileImage: user.profileImage, orgStatus: user.orgStatus, isVerified: user.isVerified },
         token,
       },
     });
@@ -94,7 +94,7 @@ export const getMe = async (req: AuthRequest, res: Response, next: NextFunction)
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.user!.userId },
-      select: { id: true, firstName: true, lastName: true, email: true, phone: true, role: true, profileImage: true, isVerified: true, orgStatus: true, orgType: true, orgName: true, rejectionReason: true, createdAt: true },
+      select: { id: true, firstName: true, lastName: true, email: true, phone: true, role: true, profileImage: true, isVerified: true, orgStatus: true, orgType: true, orgName: true, rejectionReason: true, createdAt: true, registrationExpiry: true, licenseExpiry: true },
     });
     if (!user) return next(createError('User not found', 404));
     res.json({ success: true, data: user });

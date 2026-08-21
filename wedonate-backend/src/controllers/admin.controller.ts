@@ -18,7 +18,7 @@ export const getAllUsers = async (req: Request, res: Response, next: NextFunctio
           ],
         } : {}),
       },
-      select: { id: true, firstName: true, lastName: true, email: true, phone: true, role: true, isVerified: true, isActive: true, profileImage: true, registrationExpiry: true, licenseExpiry: true, createdAt: true },
+      select: { id: true, firstName: true, lastName: true, email: true, phone: true, role: true, isVerified: true, isActive: true, profileImage: true, registrationExpiry: true, licenseExpiry: true, createdAt: true, orgStatus: true, orgType: true, orgName: true, licenseNumber: true, registrationDocUrl: true, representativeName: true, officeAddress: true, rejectionReason: true },
       orderBy: { createdAt: 'desc' },
     });
     res.json({ success: true, data: users });
@@ -306,10 +306,16 @@ export const verifyDonation = async (req: AuthRequest, res: Response, next: Next
 
     if (donation.amount) {
       if (donation.supportRequestId) {
-        await prisma.supportRequest.update({ where: { id: donation.supportRequestId }, data: { raisedAmount: { increment: donation.amount } } });
+        const updatedSR = await prisma.supportRequest.update({ where: { id: donation.supportRequestId }, data: { raisedAmount: { increment: donation.amount } } });
+        if (updatedSR.goalAmount && updatedSR.raisedAmount >= updatedSR.goalAmount) {
+          await prisma.supportRequest.update({ where: { id: donation.supportRequestId }, data: { status: 'FULFILLED' } });
+        }
       }
       if (donation.campaignId) {
-        await prisma.campaign.update({ where: { id: donation.campaignId }, data: { raisedAmount: { increment: donation.amount } } });
+        const updatedCamp = await prisma.campaign.update({ where: { id: donation.campaignId }, data: { raisedAmount: { increment: donation.amount } } });
+        if (updatedCamp.raisedAmount >= updatedCamp.goalAmount) {
+          await prisma.campaign.update({ where: { id: donation.campaignId }, data: { status: 'COMPLETED' } });
+        }
       }
     }
 
@@ -396,7 +402,7 @@ export const getPendingOrganizations = async (_req: Request, res: Response, next
         id: true, firstName: true, lastName: true, email: true, phone: true,
         role: true, orgStatus: true, orgType: true, orgName: true,
         licenseNumber: true, registrationDocUrl: true, representativeName: true,
-        officeAddress: true, createdAt: true,
+        officeAddress: true, registrationExpiry: true, licenseExpiry: true, createdAt: true,
       },
       orderBy: { createdAt: 'desc' },
     });

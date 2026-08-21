@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Search, UserCog, BadgeCheck, UserPlus, X } from 'lucide-react';
+import { Search, UserCog, BadgeCheck, UserPlus, X, Eye, ExternalLink, MapPin, Phone, Mail, Building2, FileText, Calendar, Shield } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import api from '../../lib/api';
@@ -14,6 +14,193 @@ import Input from '../../components/ui/Input';
 
 const ALL_ROLES = ['USER','NGO','ORGANIZATION','GOVERNMENTAL_ORG','KEBELE_ADMIN','WOREDA_ADMIN','CITY_ADMIN','SUPER_ADMIN'];
 
+const ROLE_DESCRIPTIONS: Record<string, string> = {
+  USER: 'Regular platform user who can donate and create support requests',
+  NGO: 'Non-Governmental Organization — can create campaigns after verification',
+  ORGANIZATION: 'Organization — can create campaigns after verification',
+  GOVERNMENTAL_ORG: 'Governmental Organization — can create campaigns after verification',
+  KEBELE_ADMIN: 'Kebele Administrator — manages users and creates requests for community members',
+  WOREDA_ADMIN: 'Woreda Administrator — manages kebele admins and oversight',
+  CITY_ADMIN: 'City Administrator — full platform management',
+  SUPER_ADMIN: 'Super Administrator — unrestricted access to all features',
+};
+
+const ORG_STATUS_INFO: Record<string, { label: string; color: string }> = {
+  NONE: { label: 'Not an Organization', color: 'bg-gray-100 text-gray-600' },
+  PENDING: { label: 'Verification Pending', color: 'bg-amber-100 text-amber-700' },
+  APPROVED: { label: 'Verified Organization', color: 'bg-green-100 text-green-700' },
+  REJECTED: { label: 'Verification Rejected', color: 'bg-red-100 text-red-700' },
+};
+
+function InfoRow({ icon: Icon, label, value, isDark, href }: { icon: any; label: string; value?: string | null; isDark: boolean; href?: string }) {
+  if (!value) return null;
+  return (
+    <div className="flex items-start gap-3 py-2.5">
+      <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center shrink-0',
+        isDark ? 'bg-slate-700' : 'bg-gray-100')}>
+        <Icon className={cn('w-4 h-4', isDark ? 'text-slate-400' : 'text-gray-500')} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className={cn('text-[10px] font-semibold uppercase tracking-wider mb-0.5', isDark ? 'text-slate-500' : 'text-gray-400')}>{label}</p>
+        {href ? (
+          <a href={href} target="_blank" rel="noopener noreferrer"
+            className={cn('text-sm font-medium flex items-center gap-1 hover:underline', isDark ? 'text-blue-400' : 'text-blue-600')}>
+            {value} <ExternalLink className="w-3 h-3" />
+          </a>
+        ) : (
+          <p className={cn('text-sm font-medium', isDark ? 'text-white' : 'text-gray-900')}>{value}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function UserDetailModal({ user, isOpen, onClose, isDark }: { user: any; isOpen: boolean; onClose: () => void; isDark: boolean }) {
+  const { t } = useTranslation();
+  if (!isOpen || !user) return null;
+
+  const isOrg = ['NGO', 'ORGANIZATION', 'GOVERNMENTAL_ORG'].includes(user.role);
+  const orgStatus = ORG_STATUS_INFO[user.orgStatus] || ORG_STATUS_INFO.NONE;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <Card className="relative z-10 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className={cn('sticky top-0 z-10 px-6 py-5 border-b',
+          isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-100')}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              {user.profileImage ? (
+                <img src={user.profileImage} alt="" className="w-14 h-14 rounded-2xl object-cover border-2 border-green-200" />
+              ) : (
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-white text-xl font-bold">
+                  {user.firstName?.[0]}{user.lastName?.[0]}
+                </div>
+              )}
+              <div>
+                <h2 className={cn('text-lg font-extrabold', isDark ? 'text-white' : 'text-gray-900')}>
+                  {user.firstName} {user.lastName}
+                </h2>
+                <div className="flex items-center gap-2 mt-1">
+                  <Badge variant={statusVariant(user.role === 'SUPER_ADMIN' || user.role === 'CITY_ADMIN' ? 'danger' : user.role === 'KEBELE_ADMIN' || user.role === 'WOREDA_ADMIN' ? 'warning' : 'default')}>
+                    {user.role.replace(/_/g, ' ')}
+                  </Badge>
+                  <Badge variant={user.isActive ? 'success' : 'danger'}>{user.isActive ? 'Active' : 'Inactive'}</Badge>
+                  {user.isVerified && (
+                    <span className="inline-flex items-center gap-0.5 text-xs font-semibold text-blue-600 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400 px-2 py-0.5 rounded-full">
+                      <BadgeCheck className="w-3 h-3" /> Verified
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+            <button onClick={onClose}
+              className={cn('p-2 rounded-xl transition-colors',
+                isDark ? 'hover:bg-slate-700 text-slate-400' : 'hover:bg-gray-100 text-gray-500')}>
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="px-6 py-5 space-y-6">
+          {/* Role Description */}
+          <div className={cn('rounded-xl p-4', isDark ? 'bg-slate-700/50' : 'bg-gray-50')}>
+            <div className="flex items-center gap-2 mb-1">
+              <Shield className={cn('w-4 h-4', isDark ? 'text-green-400' : 'text-green-600')} />
+              <p className={cn('text-xs font-bold', isDark ? 'text-slate-300' : 'text-gray-700')}>Role Description</p>
+            </div>
+            <p className={cn('text-xs leading-relaxed', isDark ? 'text-slate-400' : 'text-gray-500')}>
+              {ROLE_DESCRIPTIONS[user.role] || 'No description available'}
+            </p>
+          </div>
+
+          {/* Personal Information */}
+          <div>
+            <h3 className={cn('text-xs font-bold uppercase tracking-wider mb-3', isDark ? 'text-slate-500' : 'text-gray-400')}>Personal Information</h3>
+            <div className="divide-y divide-gray-100 dark:divide-slate-700">
+              <InfoRow icon={Mail} label="Email Address" value={user.email} isDark={isDark} />
+              <InfoRow icon={Phone} label="Phone Number" value={user.phone} isDark={isDark} />
+              <InfoRow icon={Calendar} label="Member Since" value={user.createdAt ? formatDate(user.createdAt) : null} isDark={isDark} />
+              <InfoRow icon={Calendar} label="Account Status" value={user.isActive ? 'Active' : 'Suspended / Inactive'} isDark={isDark} />
+            </div>
+          </div>
+
+          {/* Organization Information (if org role) */}
+          {isOrg && (
+            <div>
+              <h3 className={cn('text-xs font-bold uppercase tracking-wider mb-3', isDark ? 'text-slate-500' : 'text-gray-400')}>Organization Details</h3>
+              <div className={cn('rounded-xl p-4 space-y-1', isDark ? 'bg-slate-700/30 border border-slate-600' : 'bg-gray-50 border border-gray-200')}>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className={cn('text-xs font-bold px-2 py-0.5 rounded-full', orgStatus.color)}>
+                    {orgStatus.label}
+                  </span>
+                </div>
+                <div className="divide-y divide-gray-100 dark:divide-slate-700">
+                  <InfoRow icon={Building2} label="Organization Name" value={user.orgName} isDark={isDark} />
+                  <InfoRow icon={FileText} label="Organization Type" value={user.orgType?.replace(/_/g, ' ')} isDark={isDark} />
+                  <InfoRow icon={UserCog} label="Representative Name" value={user.representativeName} isDark={isDark} />
+                  <InfoRow icon={FileText} label="License Number" value={user.licenseNumber} isDark={isDark} />
+                  <InfoRow icon={MapPin} label="Office Address" value={user.officeAddress} isDark={isDark} />
+                  {user.registrationDocUrl && (
+                    <InfoRow icon={FileText} label="Registration Document" value="View Document" isDark={isDark} href={user.registrationDocUrl} />
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Document Expiry (for org roles) */}
+          {isOrg && (user.registrationExpiry || user.licenseExpiry) && (
+            <div>
+              <h3 className={cn('text-xs font-bold uppercase tracking-wider mb-3', isDark ? 'text-slate-500' : 'text-gray-400')}>Document Expiry</h3>
+              <div className="grid grid-cols-2 gap-3">
+                {user.registrationExpiry && (
+                  <div className={cn('rounded-xl p-3', isDark ? 'bg-slate-700/30 border border-slate-600' : 'bg-gray-50 border border-gray-200')}>
+                    <p className={cn('text-[10px] font-semibold uppercase mb-1', isDark ? 'text-slate-500' : 'text-gray-400')}>Registration Expiry</p>
+                    <p className={cn('text-sm font-bold', isDark ? 'text-white' : 'text-gray-900')}>{formatDate(user.registrationExpiry)}</p>
+                  </div>
+                )}
+                {user.licenseExpiry && (
+                  <div className={cn('rounded-xl p-3', isDark ? 'bg-slate-700/30 border border-slate-600' : 'bg-gray-50 border border-gray-200')}>
+                    <p className={cn('text-[10px] font-semibold uppercase mb-1', isDark ? 'text-slate-500' : 'text-gray-400')}>License Expiry</p>
+                    <p className={cn('text-sm font-bold', isDark ? 'text-white' : 'text-gray-900')}>{formatDate(user.licenseExpiry)}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Rejection Reason */}
+          {user.rejectionReason && (
+            <div className={cn('rounded-xl p-4', isDark ? 'bg-red-900/20 border border-red-700/40' : 'bg-red-50 border border-red-200')}>
+              <p className={cn('text-xs font-bold mb-1', isDark ? 'text-red-400' : 'text-red-700')}>Rejection Reason</p>
+              <p className={cn('text-sm', isDark ? 'text-red-300' : 'text-red-600')}>{user.rejectionReason}</p>
+            </div>
+          )}
+
+          {/* Verification Status */}
+          {isOrg && (
+            <div className={cn('rounded-xl p-4', isDark ? 'bg-blue-900/20 border border-blue-700/40' : 'bg-blue-50 border border-blue-200')}>
+              <div className="flex items-center gap-2 mb-2">
+                <BadgeCheck className={cn('w-4 h-4', isDark ? 'text-blue-400' : 'text-blue-600')} />
+                <p className={cn('text-xs font-bold', isDark ? 'text-blue-400' : 'text-blue-700')}>Verification Status</p>
+              </div>
+              <p className={cn('text-sm', isDark ? 'text-blue-300' : 'text-blue-600')}>
+                {user.orgStatus === 'APPROVED' && 'This organization has been verified and can create campaigns and support requests.'}
+                {user.orgStatus === 'PENDING' && 'This organization is awaiting verification. Campaign and support request creation is blocked until approved.'}
+                {user.orgStatus === 'REJECTED' && 'This organization\'s verification was rejected. They cannot create campaigns or support requests.'}
+                {user.orgStatus === 'NONE' && 'This user has no organization verification status.'}
+              </p>
+            </div>
+          )}
+        </div>
+      </Card>
+    </div>
+  );
+}
+
 export default function ManageUsersPage() {
   const { t } = useTranslation();
   const { isDark } = useTheme();
@@ -22,11 +209,14 @@ export default function ManageUsersPage() {
   const [assigningUser, setAssigningUser] = useState<string | null>(null);
   const [editingExpiry, setEditingExpiry] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [viewingUser, setViewingUser] = useState<any>(null);
   const [createForm, setCreateForm] = useState({ firstName: '', lastName: '', email: '', password: '', phone: '', role: 'USER' });
   const { user: currentUser } = useAuth();
   const qc = useQueryClient();
 
   const isSuperAdmin = currentUser?.role === 'SUPER_ADMIN';
+  const isCityAdmin = currentUser?.role === 'CITY_ADMIN';
+  const canAssignRole = isSuperAdmin || isCityAdmin;
 
   const { data: users, isLoading } = useQuery({
     queryKey: ['admin-users', search, roleFilter],
@@ -52,12 +242,6 @@ export default function ManageUsersPage() {
     onError: (e: any) => toast.error(e?.response?.data?.message || 'Failed'),
   });
 
-  const updateExpiry = useMutation({
-    mutationFn: ({ userId, data }: { userId: string; data: any }) => api.patch(`/admin/users/${userId}/document-expiry`, data),
-    onSuccess: () => { toast.success('Document expiry updated'); qc.invalidateQueries({ queryKey: ['admin-users'] }); },
-    onError: (e: any) => toast.error(e?.response?.data?.message || 'Failed'),
-  });
-
   const createUser = useMutation({
     mutationFn: (data: any) => api.post('/admin/users', data),
     onSuccess: () => { toast.success('User created successfully'); qc.invalidateQueries({ queryKey: ['admin-users'] }); setShowCreateModal(false); setCreateForm({ firstName: '', lastName: '', email: '', password: '', phone: '', role: 'USER' }); },
@@ -72,6 +256,9 @@ export default function ManageUsersPage() {
 
   return (
     <div className="space-y-6">
+      {/* View User Detail Modal */}
+      <UserDetailModal user={viewingUser} isOpen={!!viewingUser} onClose={() => setViewingUser(null)} isDark={isDark} />
+
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className={cn('text-2xl font-extrabold', isDark ? 'text-white' : 'text-gray-900')}>{t('admin.manage_users_title')}</h1>
@@ -158,10 +345,14 @@ export default function ManageUsersPage() {
                   <tr key={u.id} className={cn('transition-colors', isDark ? 'hover:bg-slate-700/40' : 'hover:bg-gray-50')}>
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-3">
-                        <div className={cn('w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0',
-                          isDark ? 'bg-green-900/40 text-green-400' : 'bg-green-100 text-green-700')}>
-                          {u.firstName[0]}{u.lastName[0]}
-                        </div>
+                        {u.profileImage ? (
+                          <img src={u.profileImage} alt="" className="w-8 h-8 rounded-full object-cover shrink-0" />
+                        ) : (
+                          <div className={cn('w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0',
+                            isDark ? 'bg-green-900/40 text-green-400' : 'bg-green-100 text-green-700')}>
+                            {u.firstName[0]}{u.lastName[0]}
+                          </div>
+                        )}
                         <span className={cn('font-medium', isDark ? 'text-white' : 'text-gray-800')}>{u.firstName} {u.lastName}</span>
                         {u.isVerified && (
                           <span className="inline-flex items-center gap-0.5 text-xs font-semibold text-blue-600 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400 px-1.5 py-0.5 rounded-full">
@@ -191,7 +382,12 @@ export default function ManageUsersPage() {
                       </button>
                     </td>
                     <td className="px-5 py-3.5">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <button onClick={() => setViewingUser(u)}
+                          className={cn('flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors',
+                            isDark ? 'text-blue-400 hover:text-blue-300 bg-blue-900/30 hover:bg-blue-900/50' : 'text-blue-700 hover:text-blue-800 bg-blue-50 hover:bg-blue-100')}>
+                          <Eye className="w-3.5 h-3.5" /> View Info
+                        </button>
                         {['NGO','ORGANIZATION','GOVERNMENTAL_ORG'].includes(u.role) && (
                           <button onClick={() => toggleVerification.mutate(u.id)}
                             className={cn('flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors',
@@ -201,7 +397,7 @@ export default function ManageUsersPage() {
                             <BadgeCheck className="w-3.5 h-3.5" /> {u.isVerified ? 'Unverify' : 'Verify'}
                           </button>
                         )}
-                        {isSuperAdmin && (
+                        {canAssignRole && (
                           <button onClick={() => setAssigningUser(u.id)}
                             className={cn('flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors',
                               isDark ? 'text-green-400 hover:text-green-300 bg-green-900/30 hover:bg-green-900/50' : 'text-green-700 hover:text-green-800 bg-green-50 hover:bg-green-100')}>

@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { Heart, TrendingUp, FileText, ArrowRight, Plus, Target, Bell } from 'lucide-react';
+import { Heart, TrendingUp, FileText, ArrowRight, Plus, Target, Bell, AlertTriangle, BadgeCheck } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { cn } from '../../lib/utils';
@@ -17,6 +17,10 @@ export default function DashboardHome() {
   const { user } = useAuth();
   const { isDark } = useTheme();
   const isAdmin = user && ['KEBELE_ADMIN','WOREDA_ADMIN','CITY_ADMIN','SUPER_ADMIN'].includes(user.role);
+  const isOrgRole = user && ['NGO','ORGANIZATION','GOVERNMENTAL_ORG'].includes(user.role);
+  const isPendingOrg = isOrgRole && (user as any).orgStatus === 'PENDING';
+  const isApprovedOrg = isOrgRole && ((user as any).orgStatus === 'APPROVED' || (user as any).isVerified);
+  const isRejectedOrg = isOrgRole && (user as any).orgStatus === 'REJECTED';
 
   const { data: myDonations } = useQuery({
     queryKey: ['my-donations'],
@@ -54,13 +58,13 @@ export default function DashboardHome() {
       icon: FileText, color: 'text-blue-500', bg: isDark ? 'bg-blue-900/30' : 'bg-blue-50',
       to: '/dashboard/requests',
     },
-    {
+    ...(!isPendingOrg ? [{
       label: t('dashboard.my_campaigns'),
       value: myCampaigns?.length ?? 0,
       sub: `${myCampaigns?.filter((c: any) => c.status === 'ACTIVE').length ?? 0} ${t('dashboard.active')}`,
       icon: Target, color: 'text-amber-500', bg: isDark ? 'bg-amber-900/30' : 'bg-amber-50',
       to: '/dashboard/campaigns',
-    },
+    }] : []),
   ];
 
   const h2 = cn('text-lg font-bold mb-4', isDark ? 'text-white' : 'text-gray-900');
@@ -101,6 +105,42 @@ export default function DashboardHome() {
           </div>
         </div>
       </motion.div>
+
+      {isPendingOrg && (
+        <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
+          className={cn('flex items-center gap-4 p-4 rounded-2xl border',
+            isDark ? 'bg-amber-900/20 border-amber-700/40 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-800')}>
+          <AlertTriangle className="w-5 h-5 shrink-0" />
+          <div className="flex-1 text-sm">
+            <span className="font-semibold">Awaiting Verification — </span>
+            Your organization registration is being reviewed by the Adama City Admin. Once approved, you will be able to create campaigns and support requests.
+          </div>
+        </motion.div>
+      )}
+
+      {isRejectedOrg && (user as any).rejectionReason && (
+        <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
+          className={cn('flex items-center gap-4 p-4 rounded-2xl border',
+            isDark ? 'bg-red-900/20 border-red-700/40 text-red-300' : 'bg-red-50 border-red-200 text-red-800')}>
+          <AlertTriangle className="w-5 h-5 shrink-0" />
+          <div className="flex-1 text-sm">
+            <span className="font-semibold">Registration Rejected — </span>
+            {(user as any).rejectionReason}
+          </div>
+        </motion.div>
+      )}
+
+      {isApprovedOrg && (
+        <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
+          className={cn('flex items-center gap-4 p-4 rounded-2xl border',
+            isDark ? 'bg-green-900/20 border-green-700/40 text-green-300' : 'bg-green-50 border-green-200 text-green-800')}>
+          <BadgeCheck className="w-5 h-5 shrink-0" />
+          <div className="flex-1 text-sm">
+            <span className="font-semibold">Verified Organization — </span>
+            Your organization is verified. You can create campaigns and support requests.
+          </div>
+        </motion.div>
+      )}
 
       {isAdmin && adminStats && (adminStats.pendingRequests > 0 || adminStats.pendingCampaigns > 0) && (
         <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
@@ -204,7 +244,7 @@ export default function DashboardHome() {
         </div>
       </div>
 
-      {myCampaigns && myCampaigns.length > 0 && (
+      {myCampaigns && myCampaigns.length > 0 && !isPendingOrg && (
         <div>
           <div className="flex items-center justify-between mb-4">
             <h2 className={h2}>{t('dashboard.my_campaigns')}</h2>

@@ -22,14 +22,24 @@ export const initializePayment = async (req: AuthRequest, res: Response, next: N
 
     // Validate target exists and is approved
     if (supportRequestId) {
-      const req_ = await prisma.supportRequest.findUnique({ where: { id: supportRequestId } });
+      const req_ = await prisma.supportRequest.findUnique({
+        where: { id: supportRequestId },
+        select: { status: true, goalAmount: true, raisedAmount: true },
+      });
       if (!req_ || req_.status !== 'APPROVED')
         return next(createError('Support request not found or not approved', 404));
+      if (req_.goalAmount && req_.raisedAmount >= req_.goalAmount)
+        return next(createError('The fundraising goal for this request has been reached', 400));
     }
     if (campaignId) {
-      const camp = await prisma.campaign.findUnique({ where: { id: campaignId } });
+      const camp = await prisma.campaign.findUnique({
+        where: { id: campaignId },
+        select: { status: true, goalAmount: true, raisedAmount: true },
+      });
       if (!camp || !['APPROVED','ACTIVE'].includes(camp.status))
         return next(createError('Campaign not found or not active', 404));
+      if (camp.raisedAmount >= camp.goalAmount)
+        return next(createError('The fundraising goal for this campaign has been reached', 400));
     }
 
     const txRef = `wedonate-${uuidv4()}`;
@@ -101,18 +111,30 @@ export const verifyPayment = async (req: AuthRequest, res: Response, next: NextF
     });
 
     if (paymentStatus === 'SUCCESS') {
-      // Update raised amounts
+      // Update raised amounts and auto-complete if goal reached
       if (donation.supportRequestId) {
-        await prisma.supportRequest.update({
+        const updated = await prisma.supportRequest.update({
           where: { id: donation.supportRequestId },
           data: { raisedAmount: { increment: donation.amount || 0 } },
         });
+        if (updated.goalAmount && updated.raisedAmount >= updated.goalAmount) {
+          await prisma.supportRequest.update({
+            where: { id: donation.supportRequestId },
+            data: { status: 'FULFILLED' },
+          });
+        }
       }
       if (donation.campaignId) {
-        await prisma.campaign.update({
+        const updated = await prisma.campaign.update({
           where: { id: donation.campaignId },
           data: { raisedAmount: { increment: donation.amount || 0 } },
         });
+        if (updated.raisedAmount >= updated.goalAmount) {
+          await prisma.campaign.update({
+            where: { id: donation.campaignId },
+            data: { status: 'COMPLETED' },
+          });
+        }
       }
 
       // Notify donor

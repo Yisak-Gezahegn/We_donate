@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Heart, TrendingUp, CheckCircle, XCircle, Download } from 'lucide-react';
+import { Heart, TrendingUp, Download } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import api from '../../lib/api';
@@ -159,20 +159,29 @@ export default function AdminDonationsPage() {
                     <td className={cn('px-5 py-3.5', isDark ? 'text-slate-400' : 'text-gray-500')}>{formatDate(d.createdAt)}</td>
                     <td className="px-5 py-3.5"><Badge variant={statusVariant(d.paymentStatus)}>{d.paymentStatus}</Badge></td>
                     <td className="px-5 py-3.5">
-                      {d.paymentStatus === 'PENDING' && (
-                        <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5">
+                        {d.paymentStatus !== 'SUCCESS' && (
                           <button onClick={() => verifyDonation.mutate(d.id)}
-                            className="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 transition-colors">
-                            <CheckCircle className="w-3.5 h-3.5" /> Verify
+                            className={cn('flex items-center justify-center w-8 h-8 rounded-lg transition-colors',
+                              isDark ? 'bg-green-900/30 text-green-400 hover:bg-green-900/50' : 'bg-green-50 text-green-600 hover:bg-green-100')}
+                            title="Approve">
+                            <span className="text-lg font-bold">✓</span>
                           </button>
+                        )}
+                        {d.paymentStatus !== 'FAILED' && (
                           <button onClick={() => setRejectId(d.id)}
-                            className="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 transition-colors">
-                            <XCircle className="w-3.5 h-3.5" /> Reject
+                            className={cn('flex items-center justify-center w-8 h-8 rounded-lg transition-colors',
+                              isDark ? 'bg-red-900/30 text-red-400 hover:bg-red-900/50' : 'bg-red-50 text-red-600 hover:bg-red-100')}
+                            title="Reject">
+                            <span className="text-lg font-bold">✕</span>
                           </button>
-                        </div>
-                      )}
+                        )}
+                      </div>
                       {d.paymentStatus === 'FAILED' && d.rejectionReason && (
-                        <span className={cn('text-[10px]', isDark ? 'text-red-400' : 'text-red-500')}>{d.rejectionReason}</span>
+                        <p className={cn('text-[10px] mt-1', isDark ? 'text-red-400' : 'text-red-500')}>{d.rejectionReason}</p>
+                      )}
+                      {d.paymentStatus === 'SUCCESS' && d.verifiedAt && (
+                        <p className={cn('text-[10px] mt-1', isDark ? 'text-green-400' : 'text-green-600')}>Verified {formatDate(d.verifiedAt)}</p>
                       )}
                     </td>
                   </tr>

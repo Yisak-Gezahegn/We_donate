@@ -5,6 +5,7 @@ import { createError } from '../middleware/errorHandler';
 import { AuthRequest } from '../middleware/auth.middleware';
 
 const ADMIN_ROLES = ['KEBELE_ADMIN','WOREDA_ADMIN','CITY_ADMIN','SUPER_ADMIN'];
+const NEED_VERIFICATION_ROLES = ['NGO','ORGANIZATION','GOVERNMENTAL_ORG'];
 
 export const createRequest = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
@@ -16,15 +17,35 @@ export const createRequest = async (req: AuthRequest, res: Response, next: NextF
       otherBankName, otherBankAccount,
       // Admin-only docs
       supportLetterUrl, nationalIdFrontUrl, nationalIdBackUrl, fanNumber, additionalNotes,
+      // Admin can create on behalf of another user
+      targetUserId,
     } = req.body;
 
     if (!title || !description || !category)
       return next(createError('Title, description and category are required', 400));
 
+    const isAdmin = ADMIN_ROLES.includes(req.user!.role);
+    const effectiveUserId = (isAdmin && targetUserId) ? targetUserId : req.user!.userId;
+
+    if (!isAdmin && NEED_VERIFICATION_ROLES.includes(req.user!.role)) {
+      const currentUser = await prisma.user.findUnique({
+        where: { id: req.user!.userId },
+        select: { orgStatus: true },
+      });
+      if (!currentUser || currentUser.orgStatus !== 'APPROVED') {
+        return next(createError('Your organization must be verified by an admin before you can create support requests. Please wait for verification.', 403));
+      }
+    }
+
+    if (isAdmin && targetUserId) {
+      const targetUser = await prisma.user.findUnique({ where: { id: targetUserId }, select: { id: true } });
+      if (!targetUser) return next(createError('Target user not found', 404));
+    }
+
     const request = await prisma.supportRequest.create({
       data: {
         id: uuidv4(),
-        userId: req.user!.userId,
+        userId: effectiveUserId,
         title, description, category,
         urgencyLevel: urgencyLevel ? parseInt(urgencyLevel) : 1,
         goalAmount:   goalAmount  ? parseFloat(goalAmount)  : null,
@@ -44,6 +65,17 @@ export const createRequest = async (req: AuthRequest, res: Response, next: NextF
         additionalNotes:    additionalNotes    || null,
       },
     });
+
+    if (isAdmin && targetUserId) {
+      await prisma.auditLog.create({
+        data: {
+          id: uuidv4(), userId: req.user!.userId, action: 'CREATE_SUPPORT_REQUEST',
+          resource: 'support_request', resourceId: request.id,
+          details: `Created support request "${title}" on behalf of user ${targetUserId}`,
+        },
+      });
+    }
+
     res.status(201).json({ success: true, data: request });
   } catch (error) { next(error); }
 };

@@ -1,11 +1,16 @@
+import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { Users, Heart, TrendingUp, AlertCircle, BarChart3, Clock, CheckCircle, Eye, FileText } from 'lucide-react';
+import {
+  Users, Heart, TrendingUp, AlertCircle, BarChart3, Clock, CheckCircle, Eye, FileText,
+  ArrowRight, ShieldCheck, Building2, ClipboardList, UserCheck, BadgeCheck,
+} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '../../lib/api';
+import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { cn } from '../../lib/utils';
-import { formatCurrency, formatDate, timeAgo } from '../../lib/utils';
+import { formatCurrency, timeAgo } from '../../lib/utils';
 import Card from '../../components/ui/Card';
 import Badge, { statusVariant } from '../../components/ui/Badge';
 
@@ -26,6 +31,7 @@ const ACTION_COLORS: Record<string, string> = {
 
 export default function AdminDashboard() {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const { isDark } = useTheme();
   const { data: stats, isLoading } = useQuery({
     queryKey: ['admin-dashboard'],
@@ -33,16 +39,57 @@ export default function AdminDashboard() {
   });
 
   const statCards = stats ? [
-    { label: t('admin.total_users'),       value: stats.totalUsers,              icon: Users,       color: 'text-blue-500',   bg: 'bg-blue-50' },
-    { label: t('admin.total_donations'),   value: stats.totalDonations,          icon: Heart,       color: 'text-green-500',  bg: 'bg-green-50' },
-    { label: t('admin.total_raised'),      value: formatCurrency(stats.totalAmount), icon: TrendingUp, color: 'text-amber-500',  bg: 'bg-amber-50' },
-    { label: t('admin.total_campaigns'),   value: stats.totalCampaigns,          icon: BarChart3,   color: 'text-indigo-500', bg: 'bg-indigo-50' },
-    { label: t('admin.pending_requests'),  value: stats.pendingRequests,         icon: AlertCircle, color: 'text-orange-500', bg: 'bg-orange-50' },
-    { label: t('admin.pending_campaigns'), value: stats.pendingCampaigns,        icon: Clock,       color: 'text-red-500',    bg: 'bg-red-50' },
-    { label: 'Fulfilled Requests',         value: stats.fulfilledRequests,       icon: CheckCircle, color: 'text-teal-500',   bg: 'bg-teal-50' },
-    { label: 'Pending Verifications',      value: stats.pendingVerifications,    icon: Eye,         color: 'text-yellow-500', bg: 'bg-yellow-50' },
-    { label: 'Active Campaigns',           value: stats.activeCampaigns,         icon: BarChart3,   color: 'text-purple-500', bg: 'bg-purple-50' },
+    { label: t('admin.total_users'),       value: stats.totalUsers,              icon: Users,       color: 'text-blue-500',   bg: 'bg-blue-50',   link: '/admin/users' },
+    { label: t('admin.total_donations'),   value: stats.totalDonations,          icon: Heart,       color: 'text-green-500',  bg: 'bg-green-50',  link: '/admin/donations' },
+    { label: t('admin.total_raised'),      value: formatCurrency(stats.totalAmount), icon: TrendingUp, color: 'text-amber-500',  bg: 'bg-amber-50',  link: '/admin/donations' },
+    { label: t('admin.total_campaigns'),   value: stats.totalCampaigns,          icon: BarChart3,   color: 'text-indigo-500', bg: 'bg-indigo-50', link: '/admin/requests' },
+    { label: t('admin.pending_requests'),  value: stats.pendingRequests,         icon: AlertCircle, color: 'text-orange-500', bg: 'bg-orange-50', link: '/admin/requests' },
+    { label: t('admin.pending_campaigns'), value: stats.pendingCampaigns,        icon: Clock,       color: 'text-red-500',    bg: 'bg-red-50',    link: '/admin/requests' },
+    { label: 'Fulfilled Requests',         value: stats.fulfilledRequests,       icon: CheckCircle, color: 'text-teal-500',   bg: 'bg-teal-50',   link: '/admin/requests' },
+    { label: 'Pending Verifications',      value: stats.pendingVerifications,    icon: Eye,         color: 'text-yellow-500', bg: 'bg-yellow-50', link: '/admin/verification' },
+    { label: 'Active Campaigns',           value: stats.activeCampaigns,         icon: BarChart3,   color: 'text-purple-500', bg: 'bg-purple-50', link: '/admin/requests' },
   ] : [];
+
+  const managementCards = [
+    {
+      title: 'Manage Users',
+      description: 'View, create, and manage all platform users and their roles',
+      icon: Users,
+      color: 'from-blue-500 to-blue-600',
+      link: '/admin/users',
+      badge: stats?.totalUsers,
+      badgeLabel: 'total',
+    },
+    {
+      title: 'Verify Organizations',
+      description: 'Review pending registrations, approve or reject organizations',
+      icon: Building2,
+      color: 'from-amber-500 to-orange-500',
+      link: '/admin/verification',
+      badge: stats?.pendingVerifications,
+      badgeLabel: 'pending',
+      urgent: (stats?.pendingVerifications ?? 0) > 0,
+    },
+    {
+      title: 'Manage Donations',
+      description: 'Verify payments, reject invalid donations, export reports',
+      icon: Heart,
+      color: 'from-green-500 to-emerald-600',
+      link: '/admin/donations',
+      badge: stats?.totalDonations,
+      badgeLabel: 'total',
+    },
+    {
+      title: 'Approve Requests',
+      description: 'Review and approve support requests and campaigns',
+      icon: ClipboardList,
+      color: 'from-purple-500 to-indigo-600',
+      link: '/admin/requests',
+      badge: (stats?.pendingRequests ?? 0) + (stats?.pendingCampaigns ?? 0),
+      badgeLabel: 'pending',
+      urgent: ((stats?.pendingRequests ?? 0) + (stats?.pendingCampaigns ?? 0)) > 0,
+    },
+  ];
 
   const monthlyData = (stats?.monthlyDonations as any[]) || [];
   const maxMonthly = Math.max(...monthlyData.map((m: any) => m.total || 0), 1);
@@ -50,13 +97,94 @@ export default function AdminDashboard() {
   const th = cn('text-left px-5 py-3.5 font-semibold text-sm', isDark ? 'text-slate-400' : 'text-gray-600');
   const td = cn('px-5 py-3.5 text-sm', isDark ? 'text-slate-300' : 'text-gray-700');
 
+  const totalPending = (stats?.pendingRequests ?? 0) + (stats?.pendingCampaigns ?? 0) + (stats?.pendingVerifications ?? 0);
+
   return (
     <div className="space-y-8">
+      {/* Hero Welcome */}
+      <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}
+        className="gradient-hero rounded-3xl p-7 text-white relative overflow-hidden">
+        <div className="absolute inset-0 opacity-10 bg-cover bg-center" style={{ backgroundImage: "url('/Adama-City.jpg')" }} />
+        <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/4" />
+        <div className="relative">
+          <div className="flex items-center gap-4 mb-1">
+            {user?.profileImage ? (
+              <img src={user.profileImage} alt="" className="w-14 h-14 rounded-2xl object-cover border-2 border-white/30" />
+            ) : (
+              <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center text-white text-xl font-bold border-2 border-white/30">
+                {user?.firstName?.[0]}{user?.lastName?.[0]}
+              </div>
+            )}
+            <div>
+              <p className="text-white/70 text-sm mb-1">Welcome back,</p>
+              <h1 className="text-2xl font-extrabold mb-1">{user?.firstName} {user?.lastName}</h1>
+              <p className="text-white/60 text-sm capitalize flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5" />
+                {user?.role?.toLowerCase().replace(/_/g, ' ')}
+              </p>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Pending Alerts */}
+      {totalPending > 0 && (
+        <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
+          className={cn('flex items-center gap-4 p-4 rounded-2xl border',
+            isDark ? 'bg-amber-900/20 border-amber-700/40 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-800')}>
+          <AlertCircle className="w-5 h-5 shrink-0" />
+          <div className="flex-1 text-sm">
+            <span className="font-semibold">{totalPending} item{totalPending > 1 ? 's' : ''} need your attention — </span>
+            {stats?.pendingVerifications > 0 && <span>{stats.pendingVerifications} organization{stats.pendingVerifications > 1 ? 's' : ''} awaiting verification</span>}
+            {stats?.pendingVerifications > 0 && (stats?.pendingRequests > 0 || stats?.pendingCampaigns > 0) && <span> · </span>}
+            {(stats?.pendingRequests ?? 0) + (stats?.pendingCampaigns ?? 0) > 0 && <span>{(stats?.pendingRequests ?? 0) + (stats?.pendingCampaigns ?? 0)} request{(stats?.pendingRequests ?? 0) + (stats?.pendingCampaigns ?? 0) > 1 ? 's' : ''} pending review</span>}
+          </div>
+          <Link to="/admin/requests">
+            <span className="text-xs font-bold px-3 py-1.5 rounded-lg bg-amber-500 text-white hover:bg-amber-600 transition-colors cursor-pointer">
+              Review Now
+            </span>
+          </Link>
+        </motion.div>
+      )}
+
+      {/* Management Quick Actions */}
       <div>
-        <h1 className={cn('text-2xl font-extrabold', isDark ? 'text-white' : 'text-gray-900')}>{t('admin.dashboard_title')}</h1>
-        <p className={cn('text-sm mt-1', isDark ? 'text-slate-400' : 'text-gray-500')}>{t('admin.dashboard_subtitle')}</p>
+        <h2 className={cn('text-lg font-bold mb-4', isDark ? 'text-white' : 'text-gray-900')}>Management Hub</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {managementCards.map((card, i) => (
+            <motion.div key={card.title} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.08 }}>
+              <Link to={card.link}>
+                <Card hover className="relative overflow-hidden h-full">
+                  <div className={cn('absolute top-0 left-0 w-full h-1 bg-gradient-to-r', card.color)} />
+                  <div className="pt-4">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className={cn('w-11 h-11 rounded-xl flex items-center justify-center bg-gradient-to-br text-white', card.color)}>
+                        <card.icon className="w-5 h-5" />
+                      </div>
+                      {card.badge !== undefined && card.badge > 0 && (
+                        <span className={cn('text-xs font-bold px-2 py-0.5 rounded-full',
+                          card.urgent
+                            ? 'bg-red-100 text-red-700 animate-pulse'
+                            : isDark ? 'bg-slate-700 text-slate-300' : 'bg-gray-100 text-gray-600')}>
+                          {card.badge} {card.badgeLabel}
+                        </span>
+                      )}
+                    </div>
+                    <h3 className={cn('text-sm font-bold mb-1', isDark ? 'text-white' : 'text-gray-900')}>{card.title}</h3>
+                    <p className={cn('text-xs leading-relaxed', isDark ? 'text-slate-400' : 'text-gray-500')}>{card.description}</p>
+                    <div className="flex items-center gap-1 mt-3 text-xs font-semibold text-green-500">
+                      Manage <ArrowRight className="w-3 h-3" />
+                    </div>
+                  </div>
+                </Card>
+              </Link>
+            </motion.div>
+          ))}
+        </div>
       </div>
 
+      {/* Stats Grid */}
       {isLoading ? (
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-5">
           {[...Array(9)].map((_, i) => (
@@ -68,16 +196,21 @@ export default function AdminDashboard() {
           {statCards.map((s, i) => (
             <motion.div key={i} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.06 }}>
-              <Card className="p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center',
-                    isDark ? `${s.bg}/20` : s.bg)}>
-                    <s.icon className={cn('w-5 h-5', s.color)} />
+              <Link to={s.link}>
+                <Card hover className="p-5">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center',
+                      isDark ? `${s.bg}/20` : s.bg)}>
+                      <s.icon className={cn('w-5 h-5', s.color)} />
+                    </div>
+                    {Number(s.value) > 0 && (s.label.includes('Pending') || s.label.includes('Verif')) && (
+                      <span className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse" />
+                    )}
                   </div>
-                </div>
-                <p className={cn('text-2xl font-extrabold', isDark ? 'text-white' : 'text-gray-900')}>{s.value}</p>
-                <p className={cn('text-xs mt-1', isDark ? 'text-slate-400' : 'text-gray-500')}>{s.label}</p>
-              </Card>
+                  <p className={cn('text-2xl font-extrabold', isDark ? 'text-white' : 'text-gray-900')}>{s.value}</p>
+                  <p className={cn('text-xs mt-1', isDark ? 'text-slate-400' : 'text-gray-500')}>{s.label}</p>
+                </Card>
+              </Link>
             </motion.div>
           ))}
         </div>
@@ -113,7 +246,12 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Recent Donations */}
         <div>
-          <h2 className={cn('text-lg font-bold mb-4', isDark ? 'text-white' : 'text-gray-900')}>{t('admin.recent_donations')}</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className={cn('text-lg font-bold', isDark ? 'text-white' : 'text-gray-900')}>{t('admin.recent_donations')}</h2>
+            <Link to="/admin/donations" className="text-xs text-green-500 font-semibold hover:underline flex items-center gap-1">
+              View All <ArrowRight className="w-3 h-3" />
+            </Link>
+          </div>
           <Card padding="none" className="overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">

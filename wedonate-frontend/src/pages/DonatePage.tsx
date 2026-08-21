@@ -103,6 +103,8 @@ function CampaignCard({ camp, onDonate, onDetail, isDark }: { camp: any; onDonat
   const daysLeft = camp.deadline
     ? Math.max(0, Math.ceil((new Date(camp.deadline).getTime() - Date.now()) / 86400000))
     : null;
+  const goalReached = camp.raisedAmount >= camp.goalAmount;
+  const isCompleted = camp.status === 'COMPLETED';
 
   return (
     <Card className="overflow-hidden flex flex-col h-full" padding="none">
@@ -116,7 +118,12 @@ function CampaignCard({ camp, onDonate, onDetail, isDark }: { camp: any; onDonat
             {camp.category.replace('_',' ')}
           </span>
         </div>
-        {daysLeft !== null && (
+        {isCompleted && (
+          <div className="absolute inset-0 bg-green-900/60 flex items-center justify-center">
+            <span className="text-white font-extrabold text-lg tracking-wide">✓ COMPLETED</span>
+          </div>
+        )}
+        {!isCompleted && daysLeft !== null && (
           <div className="absolute top-3 right-3 flex items-center gap-1 bg-black/50 text-white text-xs px-2 py-1 rounded-full">
             <Calendar className="w-3 h-3" />
             {daysLeft}d left
@@ -151,10 +158,17 @@ function CampaignCard({ camp, onDonate, onDetail, isDark }: { camp: any; onDonat
             leftIcon={<Eye className="w-3.5 h-3.5" />}>
             Show Detail
           </Button>
-          <Button size="sm" className="flex-1" onClick={() => onDonate(camp.id, camp.title, camp)}
-            rightIcon={<ChevronRight className="w-4 h-4" />}>
-            Donate
-          </Button>
+          {isCompleted || goalReached ? (
+            <Button size="sm" className="flex-1" disabled
+              rightIcon={<Check className="w-3.5 h-3.5" />}>
+              Goal Reached
+            </Button>
+          ) : (
+            <Button size="sm" className="flex-1" onClick={() => onDonate(camp.id, camp.title, camp)}
+              rightIcon={<ChevronRight className="w-4 h-4" />}>
+              Donate
+            </Button>
+          )}
         </div>
       </div>
     </Card>
@@ -170,6 +184,8 @@ function RequestCard({ req, onDonate, onDetail, isDark }: { req: any; onDonate: 
     1: { label: '🟢 Standard', color: 'bg-green-100 text-green-700 border border-green-200' },
   };
   const urgency = urgencyMap[req.urgencyLevel] || urgencyMap[1];
+  const goalReached = req.goalAmount && req.raisedAmount >= req.goalAmount;
+  const isFulfilled = req.status === 'FULFILLED';
 
   return (
     <Card className="overflow-hidden flex flex-col h-full" padding="none">
@@ -183,11 +199,18 @@ function RequestCard({ req, onDonate, onDetail, isDark }: { req: any; onDonate: 
             {urgency.label}
           </span>
         </div>
-        <div className="absolute top-3 right-3">
-          <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-black/50 text-white">
-            {req.category}
-          </span>
-        </div>
+        {isFulfilled && (
+          <div className="absolute inset-0 bg-green-900/60 flex items-center justify-center">
+            <span className="text-white font-extrabold text-lg tracking-wide">✓ FULFILLED</span>
+          </div>
+        )}
+        {!isFulfilled && (
+          <div className="absolute top-3 right-3">
+            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-black/50 text-white">
+              {req.category}
+            </span>
+          </div>
+        )}
       </div>
 
       <div className="p-5 flex flex-col flex-1">
@@ -222,10 +245,17 @@ function RequestCard({ req, onDonate, onDetail, isDark }: { req: any; onDonate: 
             leftIcon={<Eye className="w-3.5 h-3.5" />}>
             Show Detail
           </Button>
-          <Button size="sm" className="flex-1" onClick={() => onDonate(req.id, req.title, req)}
-            rightIcon={<Heart className="w-3.5 h-3.5" />}>
-            Donate
-          </Button>
+          {isFulfilled || goalReached ? (
+            <Button size="sm" className="flex-1" disabled
+              rightIcon={<Check className="w-3.5 h-3.5" />}>
+              Goal Reached
+            </Button>
+          ) : (
+            <Button size="sm" className="flex-1" onClick={() => onDonate(req.id, req.title, req)}
+              rightIcon={<Heart className="w-3.5 h-3.5" />}>
+              Donate
+            </Button>
+          )}
         </div>
       </div>
     </Card>

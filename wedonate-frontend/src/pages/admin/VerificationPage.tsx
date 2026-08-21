@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { BadgeCheck, Search, FileText, Building2, MapPin, User, Phone, ExternalLink, X } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { BadgeCheck, Search, FileText, Building2, MapPin, User, Phone, ExternalLink, X, Calendar, Shield, Hash } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../lib/api';
 import { useTheme } from '../../context/ThemeContext';
@@ -146,10 +147,22 @@ export default function VerificationPage() {
 
                   {/* Org Details Grid */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
-                    {org.representativeName && (
+                    {org.orgName && (
+                      <div className="flex items-center gap-1.5 text-xs">
+                        <Building2 className={cn('w-3.5 h-3.5', isDark ? 'text-slate-500' : 'text-gray-400')} />
+                        <span className={isDark ? 'text-slate-400' : 'text-gray-500'}>{org.orgName}</span>
+                      </div>
+                    )}
+                    {org.firstName && org.lastName && (
                       <div className="flex items-center gap-1.5 text-xs">
                         <User className={cn('w-3.5 h-3.5', isDark ? 'text-slate-500' : 'text-gray-400')} />
-                        <span className={isDark ? 'text-slate-400' : 'text-gray-500'}>{org.representativeName}</span>
+                        <span className={isDark ? 'text-slate-400' : 'text-gray-500'}>{org.firstName} {org.lastName}</span>
+                      </div>
+                    )}
+                    {org.representativeName && (
+                      <div className="flex items-center gap-1.5 text-xs">
+                        <Shield className={cn('w-3.5 h-3.5', isDark ? 'text-slate-500' : 'text-gray-400')} />
+                        <span className={isDark ? 'text-slate-400' : 'text-gray-500'}>Rep: {org.representativeName}</span>
                       </div>
                     )}
                     {org.email && (
@@ -171,8 +184,20 @@ export default function VerificationPage() {
                     )}
                     {org.licenseNumber && (
                       <div className="flex items-center gap-1.5 text-xs">
-                        <FileText className={cn('w-3.5 h-3.5', isDark ? 'text-slate-500' : 'text-gray-400')} />
+                        <Hash className={cn('w-3.5 h-3.5', isDark ? 'text-slate-500' : 'text-gray-400')} />
                         <span className={isDark ? 'text-slate-400' : 'text-gray-500'}>License: {org.licenseNumber}</span>
+                      </div>
+                    )}
+                    {org.registrationExpiry && (
+                      <div className="flex items-center gap-1.5 text-xs">
+                        <Calendar className={cn('w-3.5 h-3.5', isDark ? 'text-slate-500' : 'text-gray-400')} />
+                        <span className={isDark ? 'text-slate-400' : 'text-gray-500'}>Reg. Expiry: {formatDate(org.registrationExpiry)}</span>
+                      </div>
+                    )}
+                    {org.licenseExpiry && (
+                      <div className="flex items-center gap-1.5 text-xs">
+                        <Calendar className={cn('w-3.5 h-3.5', isDark ? 'text-slate-500' : 'text-gray-400')} />
+                        <span className={isDark ? 'text-slate-400' : 'text-gray-500'}>License Expiry: {formatDate(org.licenseExpiry)}</span>
                       </div>
                     )}
                   </div>

@@ -6,7 +6,7 @@ import {
   LayoutDashboard, FileText, Bell, User,
   LogOut, Menu, X, Users, BarChart2, ClipboardList, ChevronRight, Heart, Target, Image, Quote, Images,
   Sun, Moon, Globe, ChevronDown, BadgeCheck, Receipt, Search, FileBarChart, Newspaper,
-  HelpCircle, Calendar, Mail, Settings, CheckCheck, Trash2,
+  HelpCircle, Calendar, Mail, Settings, CheckCheck, Trash2, AlertTriangle,
 } from 'lucide-react';
 import i18n from '../../i18n';
 import { useAuth } from '../../context/AuthContext';
@@ -278,7 +278,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { to: '/admin/settings',       icon: Settings,      label: t('admin.settings') },
   ];
 
-  const links = isAdmin ? adminLinks
+  const kebeleAdminLinks = [
+    { to: '/admin',                icon: BarChart2,     label: t('admin.overview') },
+    { to: '/admin/users',          icon: Users,         label: t('admin.manage_users') },
+    { to: '/admin/donations',      icon: Heart,         label: t('admin.donations') },
+    { to: '/admin/requests',       icon: ClipboardList, label: 'Support & Campaigns' },
+    { to: '/dashboard/donate',     icon: Heart,         label: t('nav.donate') },
+    { to: '/dashboard/requests',   icon: ClipboardList, label: t('dashboard.my_requests') },
+    { to: '/dashboard/campaigns',  icon: Target,        label: t('dashboard.my_campaigns') },
+    { to: '/dashboard/donations',  icon: FileText,      label: t('dashboard.my_donations') },
+    { to: '/dashboard/notifications', icon: Bell,       label: t('dashboard.notifications') },
+    { to: '/dashboard/profile',    icon: User,           label: t('nav.profile') },
+  ];
+
+  const links = user?.role === 'KEBELE_ADMIN' ? kebeleAdminLinks
+    : isAdmin ? adminLinks
     : user?.role === 'BENEFICIARY' ? beneficiaryLinks
     : donorLinks;
 
@@ -376,7 +390,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <NotificationDropdown isDark={isDark} />
         </header>
 
-        <main className="flex-1 p-4 lg:p-8">{children}</main>
+        <main className="flex-1 p-4 lg:p-8">
+          {user && ['NGO', 'ORGANIZATION', 'GOVERNMENTAL_ORG'].includes(user.role) && (user as any).orgStatus === 'PENDING' && (
+            <div className={cn('mb-6 flex items-center gap-3 p-4 rounded-2xl border',
+              isDark ? 'bg-amber-900/20 border-amber-700/40 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-800')}>
+              <AlertTriangle className="w-5 h-5 shrink-0" />
+              <div className="flex-1 text-sm">
+                <span className="font-semibold">Your organization is pending verification. </span>
+                Campaign and support request creation will be available after admin approval. You can still browse the dashboard and donate.
+              </div>
+            </div>
+          )}
+          {children}
+        </main>
       </div>
     </div>
   );

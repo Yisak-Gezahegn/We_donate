@@ -8,6 +8,8 @@ interface User {
   email: string;
   role: string;
   profileImage?: string;
+  orgStatus?: string;
+  isVerified?: boolean;
 }
 
 interface AuthContextType {
@@ -53,6 +55,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
       }
+      api.get('/auth/me').then(({ data }) => {
+        if (data?.data) {
+          setUser(data.data);
+          localStorage.setItem('user', JSON.stringify(data.data));
+        }
+      }).catch(() => {});
     }
     setIsLoading(false);
   }, []);

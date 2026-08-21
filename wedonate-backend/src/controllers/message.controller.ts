@@ -4,6 +4,8 @@ import prisma from '../lib/prisma';
 import { createError } from '../middleware/errorHandler';
 import { AuthRequest } from '../middleware/auth.middleware';
 
+const ADMIN_ROLES = ['KEBELE_ADMIN','WOREDA_ADMIN','CITY_ADMIN','SUPER_ADMIN'];
+
 export const getMessages = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const messages = await prisma.message.findMany({
@@ -107,5 +109,43 @@ export const getUnreadCount = async (req: AuthRequest, res: Response, next: Next
       where: { recipientId: req.user!.userId, isRead: false },
     });
     res.json({ success: true, data: { count } });
+  } catch (error) { next(error); }
+};
+
+export const contactForm = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { name, email, phone, subject, message } = req.body;
+    if (!name || !email || !subject || !message)
+      return next(createError('Name, email, subject and message are required', 400));
+
+    const admins = await prisma.user.findMany({
+      where: { role: { in: ADMIN_ROLES as any[] } },
+      select: { id: true },
+    });
+
+    if (!admins.length)
+      return next(createError('No administrators available to receive messages', 500));
+
+    const body = `[Contact Form]\nFrom: ${name}\nEmail: ${email}${phone ? `\nPhone: ${phone}` : ''}\n\n${message}`;
+
+    const messages = await Promise.all(
+      admins.map(admin =>
+        prisma.message.create({
+          data: {
+            id: uuidv4(),
+            senderId: admins[0].id,
+            recipientId: admin.id,
+            subject: `[Contact Us] ${subject}`,
+            body,
+          },
+        })
+      )
+    );
+
+    res.status(201).json({
+      success: true,
+      message: 'Your message has been sent. We will get back to you shortly.',
+      data: { count: messages.length },
+    });
   } catch (error) { next(error); }
 };

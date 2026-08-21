@@ -1,10 +1,11 @@
 import { Router } from 'express';
-import { getMessages, getSentMessages, sendMessage, broadcastMessage, markMessageRead, getUnreadCount } from '../controllers/message.controller';
+import { getMessages, getSentMessages, sendMessage, broadcastMessage, markMessageRead, getUnreadCount, contactForm } from '../controllers/message.controller';
 import { authenticate, authorize } from '../middleware/auth.middleware';
 
 const router = Router();
 const ADMIN = ['KEBELE_ADMIN','WOREDA_ADMIN','CITY_ADMIN','SUPER_ADMIN'];
 
+router.post('/contact',          contactForm);
 router.get('/',             authenticate, getMessages);
 router.get('/sent',         authenticate, getSentMessages);
 router.get('/unread-count', authenticate, getUnreadCount);

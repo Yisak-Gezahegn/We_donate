@@ -16,6 +16,30 @@ export const createDonation = async (req: AuthRequest, res: Response, next: Next
     if (!supportRequestId && !campaignId)
       return next(createError('A support request or campaign must be specified', 400));
 
+    // Check if goal is already reached
+    if (supportRequestId) {
+      const sr = await prisma.supportRequest.findUnique({
+        where: { id: supportRequestId },
+        select: { goalAmount: true, raisedAmount: true, status: true },
+      });
+      if (!sr) return next(createError('Support request not found', 404));
+      if (sr.status === 'FULFILLED' || sr.status === 'COMPLETED' as any)
+        return next(createError('This support request has been completed and is no longer accepting donations', 400));
+      if (sr.goalAmount && sr.raisedAmount >= sr.goalAmount)
+        return next(createError('The fundraising goal for this request has been reached', 400));
+    }
+    if (campaignId) {
+      const camp = await prisma.campaign.findUnique({
+        where: { id: campaignId },
+        select: { goalAmount: true, raisedAmount: true, status: true },
+      });
+      if (!camp) return next(createError('Campaign not found', 404));
+      if (camp.status === 'COMPLETED')
+        return next(createError('This campaign has been completed and is no longer accepting donations', 400));
+      if (camp.raisedAmount >= camp.goalAmount)
+        return next(createError('The fundraising goal for this campaign has been reached', 400));
+    }
+
     const donation = await prisma.donation.create({
       data: {
         id: uuidv4(),
@@ -42,16 +66,28 @@ export const createDonation = async (req: AuthRequest, res: Response, next: Next
     // Update raised amount immediately for non-Chapa donations with proof
     if (donation.paymentStatus === 'SUCCESS' && donation.amount) {
       if (supportRequestId) {
-        await prisma.supportRequest.update({
+        const updated = await prisma.supportRequest.update({
           where: { id: supportRequestId },
           data: { raisedAmount: { increment: donation.amount } },
         });
+        if (updated.goalAmount && updated.raisedAmount >= updated.goalAmount) {
+          await prisma.supportRequest.update({
+            where: { id: supportRequestId },
+            data: { status: 'FULFILLED' },
+          });
+        }
       }
       if (campaignId) {
-        await prisma.campaign.update({
+        const updated = await prisma.campaign.update({
           where: { id: campaignId },
           data: { raisedAmount: { increment: donation.amount } },
         });
+        if (updated.raisedAmount >= updated.goalAmount) {
+          await prisma.campaign.update({
+            where: { id: campaignId },
+            data: { status: 'COMPLETED' },
+          });
+        }
       }
     }
 

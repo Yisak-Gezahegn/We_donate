@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import {
   Heart, Users, TrendingUp, Shield, ArrowRight,
   Star, Quote, ChevronLeft, ChevronRight, Target, Clock, Share2,
+  Send, Mail, Phone, User as UserIcon, MapPin,
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import api from '../lib/api';
 import { formatCurrency, formatDate } from '../lib/utils';
 import { useTheme } from '../context/ThemeContext';
@@ -35,6 +37,7 @@ export default function HomePage() {
   const [slide, setSlide]     = useState(0);
   const [paused, setPaused]   = useState(false);
   const [direction, setDirection] = useState(1); // 1 = forward, -1 = backward
+  const [contactForm, setContactForm] = useState({ name: '', email: '', phone: '', subject: '', message: '' });
 
   useEffect(() => {
     if (paused) return;
@@ -73,6 +76,24 @@ export default function HomePage() {
     queryKey: ['featured-requests'],
     queryFn: () => api.get('/support-requests', { params: { limit: 3 } }).then(r => r.data.data),
   });
+
+  const contactMutation = useMutation({
+    mutationFn: (data: typeof contactForm) => api.post('/messages/contact', data),
+    onSuccess: () => {
+      toast.success('Message sent! We will get back to you shortly.');
+      setContactForm({ name: '', email: '', phone: '', subject: '', message: '' });
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.message || 'Failed to send message'),
+  });
+
+  const handleContactSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!contactForm.name.trim() || !contactForm.email.trim() || !contactForm.subject.trim() || !contactForm.message.trim()) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+    contactMutation.mutate(contactForm);
+  };
 
   const HERO_IMAGES = apiHeroImages?.length
     ? apiHeroImages.map((img: any) => ({ src: img.imageUrl, caption: img.caption }))
@@ -540,6 +561,145 @@ export default function HomePage() {
           </div>
         </section>
       )}
+
+      {/* ════════════════════════════════════════════════
+          CONTACT US
+      ════════════════════════════════════════════════ */}
+      <section className={sectionMuted}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }}
+            variants={fadeUp} className="text-center mb-14">
+            <h2 className={h2Class}>Contact Us</h2>
+            <p className={subClass}>Have questions or want to get involved? Send us a message.</p>
+          </motion.div>
+          <div className="grid lg:grid-cols-2 gap-10">
+            {/* Contact Info */}
+            <motion.div initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }} transition={{ duration: 0.6 }}>
+              <Card className="h-full p-8">
+                <h3 className={cn('text-xl font-bold mb-6', isDark ? 'text-white' : 'text-gray-900')}>
+                  Get in Touch
+                </h3>
+                <div className="space-y-5">
+                  <div className="flex items-center gap-4">
+                    <div className={cn('w-11 h-11 rounded-xl flex items-center justify-center shrink-0',
+                      isDark ? 'bg-green-900/30' : 'bg-green-50')}>
+                      <MapPin className="w-5 h-5 text-green-600" />
+                    </div>
+                    <div>
+                      <p className={cn('text-sm font-semibold', isDark ? 'text-white' : 'text-gray-900')}>Address</p>
+                      <p className={cn('text-sm', isDark ? 'text-slate-400' : 'text-gray-500')}>Adama City Administration, Oromia, Ethiopia</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className={cn('w-11 h-11 rounded-xl flex items-center justify-center shrink-0',
+                      isDark ? 'bg-green-900/30' : 'bg-green-50')}>
+                      <Mail className="w-5 h-5 text-green-600" />
+                    </div>
+                    <div>
+                      <p className={cn('text-sm font-semibold', isDark ? 'text-white' : 'text-gray-900')}>Email</p>
+                      <p className={cn('text-sm', isDark ? 'text-slate-400' : 'text-gray-500')}>info@wedonate.et</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className={cn('w-11 h-11 rounded-xl flex items-center justify-center shrink-0',
+                      isDark ? 'bg-green-900/30' : 'bg-green-50')}>
+                      <Phone className="w-5 h-5 text-green-600" />
+                    </div>
+                    <div>
+                      <p className={cn('text-sm font-semibold', isDark ? 'text-white' : 'text-gray-900')}>Phone</p>
+                      <p className={cn('text-sm', isDark ? 'text-slate-400' : 'text-gray-500')}>+251 91 234 5678</p>
+                    </div>
+                  </div>
+                </div>
+                <div className={cn('mt-8 p-4 rounded-xl', isDark ? 'bg-slate-700/50' : 'bg-green-50')}>
+                  <p className={cn('text-sm', isDark ? 'text-slate-300' : 'text-gray-600')}>
+                    Our team typically responds within 24–48 hours during business days.
+                  </p>
+                </div>
+              </Card>
+            </motion.div>
+
+            {/* Contact Form */}
+            <motion.div initial={{ opacity: 0, x: 20 }} whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.15 }}>
+              <Card className="p-8">
+                <form onSubmit={handleContactSubmit} className="space-y-4">
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className={cn('block text-sm font-medium mb-1.5', isDark ? 'text-slate-300' : 'text-gray-700')}>
+                        Name *
+                      </label>
+                      <div className="relative">
+                        <UserIcon className={cn('absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4', isDark ? 'text-slate-500' : 'text-gray-400')} />
+                        <input type="text" value={contactForm.name}
+                          onChange={e => setContactForm(p => ({ ...p, name: e.target.value }))}
+                          placeholder="Your full name"
+                          className={cn('w-full rounded-xl border pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors',
+                            isDark ? 'bg-slate-700 border-slate-600 text-white placeholder:text-slate-500' : 'bg-white border-gray-200 placeholder:text-gray-400')} />
+                      </div>
+                    </div>
+                    <div>
+                      <label className={cn('block text-sm font-medium mb-1.5', isDark ? 'text-slate-300' : 'text-gray-700')}>
+                        Email *
+                      </label>
+                      <div className="relative">
+                        <Mail className={cn('absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4', isDark ? 'text-slate-500' : 'text-gray-400')} />
+                        <input type="email" value={contactForm.email}
+                          onChange={e => setContactForm(p => ({ ...p, email: e.target.value }))}
+                          placeholder="you@example.com"
+                          className={cn('w-full rounded-xl border pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors',
+                            isDark ? 'bg-slate-700 border-slate-600 text-white placeholder:text-slate-500' : 'bg-white border-gray-200 placeholder:text-gray-400')} />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className={cn('block text-sm font-medium mb-1.5', isDark ? 'text-slate-300' : 'text-gray-700')}>
+                        Phone
+                      </label>
+                      <div className="relative">
+                        <Phone className={cn('absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4', isDark ? 'text-slate-500' : 'text-gray-400')} />
+                        <input type="tel" value={contactForm.phone}
+                          onChange={e => setContactForm(p => ({ ...p, phone: e.target.value }))}
+                          placeholder="+251 91 234 5678"
+                          className={cn('w-full rounded-xl border pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors',
+                            isDark ? 'bg-slate-700 border-slate-600 text-white placeholder:text-slate-500' : 'bg-white border-gray-200 placeholder:text-gray-400')} />
+                      </div>
+                    </div>
+                    <div>
+                      <label className={cn('block text-sm font-medium mb-1.5', isDark ? 'text-slate-300' : 'text-gray-700')}>
+                        Subject *
+                      </label>
+                      <input type="text" value={contactForm.subject}
+                        onChange={e => setContactForm(p => ({ ...p, subject: e.target.value }))}
+                        placeholder="How can we help?"
+                        className={cn('w-full rounded-xl border px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors',
+                          isDark ? 'bg-slate-700 border-slate-600 text-white placeholder:text-slate-500' : 'bg-white border-gray-200 placeholder:text-gray-400')} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className={cn('block text-sm font-medium mb-1.5', isDark ? 'text-slate-300' : 'text-gray-700')}>
+                      Message *
+                    </label>
+                    <textarea value={contactForm.message} rows={5}
+                      onChange={e => setContactForm(p => ({ ...p, message: e.target.value }))}
+                      placeholder="Write your message here..."
+                      className={cn('w-full rounded-xl border px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors',
+                        isDark ? 'bg-slate-700 border-slate-600 text-white placeholder:text-slate-500' : 'bg-white border-gray-200 placeholder:text-gray-400')} />
+                  </div>
+                  <Button type="submit" size="lg" className="w-full"
+                    leftIcon={<Send className="w-4 h-4" />}
+                    isLoading={contactMutation.isPending}
+                    disabled={!contactForm.name.trim() || !contactForm.email.trim() || !contactForm.subject.trim() || !contactForm.message.trim()}>
+                    Send Message
+                  </Button>
+                </form>
+              </Card>
+            </motion.div>
+          </div>
+        </div>
+      </section>
 
       {/* ════════════════════════════════════════════════
           CTA BANNER

@@ -14,7 +14,7 @@ const ADMIN = ['KEBELE_ADMIN','WOREDA_ADMIN','CITY_ADMIN','SUPER_ADMIN'];
 
 router.get('/users',               authenticate, authorize(...ADMIN), getAllUsers);
 router.post('/users',              authenticate, authorize(...ADMIN), createUser);
-router.patch('/users/:id/role',    authenticate, authorize('SUPER_ADMIN'), assignRole);
+router.patch('/users/:id/role',    authenticate, authorize('SUPER_ADMIN', 'CITY_ADMIN'), assignRole);
 router.patch('/users/:id/toggle-active', authenticate, authorize(...ADMIN), toggleUserActive);
 router.patch('/users/:id/toggle-verification', authenticate, authorize(...ADMIN), toggleVerification);
 router.patch('/users/:id/document-expiry', authenticate, authorize(...ADMIN), updateDocumentExpiry);

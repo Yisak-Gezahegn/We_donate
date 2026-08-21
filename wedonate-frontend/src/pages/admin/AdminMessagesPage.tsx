@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Send, Inbox, Mail, MailOpen, Users } from 'lucide-react';
+import { Send, Inbox, Mail, MailOpen, Users, MessageSquare, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../lib/api';
 import { useTheme } from '../../context/ThemeContext';
@@ -16,6 +16,8 @@ export default function AdminMessagesPage() {
   const [tab, setTab] = useState<Tab>('inbox');
   const [form, setForm] = useState({ recipientId: '', subject: '', body: '' });
   const [isBroadcast, setIsBroadcast] = useState(false);
+  const [viewMessage, setViewMessage] = useState<any>(null);
+  const [inboxFilter, setInboxFilter] = useState<'all' | 'contact'>('all');
   const qc = useQueryClient();
 
   const { data: messages, isLoading } = useQuery({
@@ -55,6 +57,9 @@ export default function AdminMessagesPage() {
   };
 
   const unreadCount = messages?.filter((m: any) => !m.isRead).length || 0;
+  const contactMessages = messages?.filter((m: any) => m.subject?.startsWith('[Contact Us]')) || [];
+  const regularMessages = messages?.filter((m: any) => !m.subject?.startsWith('[Contact Us]')) || [];
+  const displayedMessages = inboxFilter === 'contact' ? contactMessages : regularMessages;
 
   return (
     <div className="space-y-6">
@@ -80,42 +85,120 @@ export default function AdminMessagesPage() {
       </div>
 
       {tab === 'inbox' && (
-        isLoading ? (
-          <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-green-600 border-t-transparent rounded-full animate-spin" /></div>
-        ) : !messages?.length ? (
-          <Card className={cn('text-center py-16', isDark ? 'text-slate-400' : 'text-gray-400')}>
-            <Mail className={cn('w-12 h-12 mx-auto mb-3', isDark ? 'text-slate-600' : 'text-gray-200')} />
-            <p className="font-medium">No messages yet</p>
-          </Card>
-        ) : (
-          <div className="space-y-2">
-            {messages.map((m: any) => (
-              <Card key={m.id} className={cn('p-4 cursor-pointer transition-colors',
-                !m.isRead && (isDark ? 'border-blue-800 bg-blue-900/10' : 'border-blue-200 bg-blue-50/50'),
-                m.isRead && (isDark ? 'hover:bg-slate-700/40' : 'hover:bg-gray-50'))}
-                onClick={() => { if (!m.isRead) markRead.mutate(m.id); }}>
-                <div className="flex items-start gap-3">
-                  <div className={cn('w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0',
-                    isDark ? 'bg-green-900/40 text-green-400' : 'bg-green-100 text-green-700')}>
-                    {m.sender?.firstName?.[0]}{m.sender?.lastName?.[0]}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      {!m.isRead && <MailOpen className="w-3 h-3 text-blue-500" />}
-                      <h4 className={cn('text-sm font-semibold', isDark ? 'text-white' : 'text-gray-900')}>{m.subject}</h4>
-                    </div>
-                    <p className={cn('text-xs truncate', isDark ? 'text-slate-400' : 'text-gray-500')}>{m.body}</p>
-                    <div className="flex items-center gap-2 mt-1 text-[10px]">
-                      <span className={isDark ? 'text-slate-500' : 'text-gray-400'}>From: {m.sender?.firstName} {m.sender?.lastName}</span>
-                      <span className={isDark ? 'text-slate-600' : 'text-gray-300'}>·</span>
-                      <span className={isDark ? 'text-slate-600' : 'text-gray-400'}>{timeAgo(m.createdAt)}</span>
-                    </div>
+        <>
+          {/* Message detail view */}
+          {viewMessage && (
+            <Card className="p-6">
+              <button onClick={() => setViewMessage(null)}
+                className={cn('flex items-center gap-1.5 text-sm font-medium mb-4 transition-colors',
+                  isDark ? 'text-green-400 hover:text-green-300' : 'text-green-700 hover:text-green-600')}>
+                <ArrowLeft className="w-4 h-4" /> Back to inbox
+              </button>
+              <div className="flex items-start gap-3 mb-4">
+                <div className={cn('w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold shrink-0',
+                  isDark ? 'bg-green-900/40 text-green-400' : 'bg-green-100 text-green-700')}>
+                  {viewMessage.sender?.firstName?.[0]}{viewMessage.sender?.lastName?.[0]}
+                </div>
+                <div className="flex-1">
+                  <h3 className={cn('text-lg font-bold', isDark ? 'text-white' : 'text-gray-900')}>{viewMessage.subject}</h3>
+                  <div className="flex items-center gap-2 text-xs mt-1">
+                    <span className={isDark ? 'text-slate-400' : 'text-gray-500'}>
+                      From: {viewMessage.sender?.firstName} {viewMessage.sender?.lastName}
+                    </span>
+                    <span className={isDark ? 'text-slate-600' : 'text-gray-300'}>·</span>
+                    <span className={isDark ? 'text-slate-500' : 'text-gray-400'}>{timeAgo(viewMessage.createdAt)}</span>
                   </div>
                 </div>
-              </Card>
-            ))}
-          </div>
-        )
+              </div>
+              <div className={cn('whitespace-pre-wrap text-sm leading-relaxed p-4 rounded-xl',
+                isDark ? 'bg-slate-700/50 text-slate-300' : 'bg-gray-50 text-gray-700')}>
+                {viewMessage.body}
+              </div>
+            </Card>
+          )}
+
+          {/* Message list */}
+          {!viewMessage && (
+            <>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setInboxFilter('all')}
+                  className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors',
+                    inboxFilter === 'all'
+                      ? 'bg-green-700 text-white'
+                      : (isDark ? 'bg-slate-700 text-slate-400 hover:text-white' : 'bg-gray-100 text-gray-500 hover:text-gray-800'))}>
+                  <Inbox className="w-3.5 h-3.5" /> Regular ({regularMessages.length})
+                </button>
+                <button onClick={() => setInboxFilter('contact')}
+                  className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors',
+                    inboxFilter === 'contact'
+                      ? 'bg-amber-500 text-white'
+                      : (isDark ? 'bg-slate-700 text-slate-400 hover:text-white' : 'bg-gray-100 text-gray-500 hover:text-gray-800'))}>
+                  <MessageSquare className="w-3.5 h-3.5" /> Contact Us ({contactMessages.length})
+                </button>
+              </div>
+
+              {isLoading ? (
+                <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-green-600 border-t-transparent rounded-full animate-spin" /></div>
+              ) : !displayedMessages?.length ? (
+                <Card className={cn('text-center py-16', isDark ? 'text-slate-400' : 'text-gray-400')}>
+                  <Mail className={cn('w-12 h-12 mx-auto mb-3', isDark ? 'text-slate-600' : 'text-gray-200')} />
+                  <p className="font-medium">{inboxFilter === 'contact' ? 'No contact form messages' : 'No messages yet'}</p>
+                </Card>
+              ) : (
+                <div className="space-y-2">
+                  {displayedMessages.map((m: any) => {
+                    const isContact = m.subject?.startsWith('[Contact Us]');
+                    const displayName = isContact
+                      ? m.body?.match(/From: (.+)/)?.[1]?.split('\n')[0] || m.sender?.firstName
+                      : `${m.sender?.firstName} ${m.sender?.lastName}`;
+                    const displayEmail = isContact
+                      ? m.body?.match(/Email: (.+)/)?.[1]?.split('\n')[0]
+                      : null;
+                    const iconBg = isContact
+                      ? (isDark ? 'bg-amber-900/40 text-amber-400' : 'bg-amber-100 text-amber-700')
+                      : (isDark ? 'bg-green-900/40 text-green-400' : 'bg-green-100 text-green-700');
+                    return (
+                      <Card key={m.id} className={cn('p-4 cursor-pointer transition-colors',
+                        !m.isRead && (isDark ? 'border-blue-800 bg-blue-900/10' : 'border-blue-200 bg-blue-50/50'),
+                        m.isRead && (isDark ? 'hover:bg-slate-700/40' : 'hover:bg-gray-50'))}
+                        onClick={() => { if (!m.isRead) markRead.mutate(m.id); setViewMessage(m); }}>
+                        <div className="flex items-start gap-3">
+                          <div className={cn('w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0', iconBg)}>
+                            {isContact ? <MessageSquare className="w-3.5 h-3.5" /> : <>{m.sender?.firstName?.[0]}{m.sender?.lastName?.[0]}</>}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              {!m.isRead && <MailOpen className="w-3 h-3 text-blue-500" />}
+                              {isContact && (
+                                <span className={cn('text-[10px] font-bold px-1.5 py-0.5 rounded-full',
+                                  isDark ? 'bg-amber-900/40 text-amber-400' : 'bg-amber-100 text-amber-700')}>
+                                  Contact
+                                </span>
+                              )}
+                              <h4 className={cn('text-sm font-semibold truncate', isDark ? 'text-white' : 'text-gray-900')}>
+                                {m.subject?.replace('[Contact Us] ', '')}
+                              </h4>
+                            </div>
+                            <p className={cn('text-xs truncate', isDark ? 'text-slate-400' : 'text-gray-500')}>
+                              {isContact ? `${displayName}${displayEmail ? ` (${displayEmail})` : ''}` : m.body}
+                            </p>
+                            <div className="flex items-center gap-2 mt-1 text-[10px]">
+                              <span className={isDark ? 'text-slate-500' : 'text-gray-400'}>
+                                {isContact ? `From: ${displayName}` : `From: ${m.sender?.firstName} ${m.sender?.lastName}`}
+                              </span>
+                              <span className={isDark ? 'text-slate-600' : 'text-gray-300'}>·</span>
+                              <span className={isDark ? 'text-slate-600' : 'text-gray-400'}>{timeAgo(m.createdAt)}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+            </>
+          )}
+        </>
       )}
 
       {tab === 'compose' && (

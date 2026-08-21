@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { CheckCircle, XCircle, ChevronDown, ChevronUp, Eye, ExternalLink, BadgeCheck } from 'lucide-react';
+import { CheckCircle, XCircle, ChevronDown, ChevronUp, Eye, ExternalLink, BadgeCheck, Send, CheckSquare } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import api from '../../lib/api';
@@ -12,13 +12,14 @@ import Badge, { statusVariant } from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
 
 type ViewMode = 'requests' | 'campaigns';
+type StatusFilter = 'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'FULFILLED';
 
 const URGENCY_MAP: Record<number, { label: string; color: string }> = {
-  5: { label: '🚨 Emergency', color: 'bg-red-100 text-red-700 border-red-200' },
-  4: { label: '🔴 Critical', color: 'bg-orange-100 text-orange-700 border-orange-200' },
-  3: { label: '🟠 High', color: 'bg-amber-100 text-amber-700 border-amber-200' },
-  2: { label: '🟡 Medium', color: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
-  1: { label: '🟢 Standard', color: 'bg-green-100 text-green-700 border-green-200' },
+  5: { label: 'Emergency', color: 'bg-red-100 text-red-700 border-red-200' },
+  4: { label: 'Critical', color: 'bg-orange-100 text-orange-700 border-orange-200' },
+  3: { label: 'High', color: 'bg-amber-100 text-amber-700 border-amber-200' },
+  2: { label: 'Medium', color: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
+  1: { label: 'Standard', color: 'bg-green-100 text-green-700 border-green-200' },
 };
 
 function DetailRow({ label, value, isDark }: { label: string; value?: string | null; isDark: boolean }) {
@@ -59,6 +60,7 @@ export default function AdminRequestsPage() {
   const qc = useQueryClient();
   const { isDark } = useTheme();
   const [view, setView] = useState<ViewMode>('requests');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [expanded, setExpanded] = useState<string | null>(null);
 
@@ -81,26 +83,44 @@ export default function AdminRequestsPage() {
     onSuccess: () => { toast.success(t('admin.updated')); qc.invalidateQueries({ queryKey: ['admin-campaigns'] }); },
     onError: () => toast.error(t('admin.failed')),
   });
+  const publishReq = useMutation({
+    mutationFn: (id: string) => api.patch(`/admin/requests/${id}/publish`),
+    onSuccess: () => { toast.success('Request published'); qc.invalidateQueries({ queryKey: ['admin-requests'] }); },
+    onError: (e: any) => toast.error(e?.response?.data?.message || 'Failed'),
+  });
+  const fulfillReq = useMutation({
+    mutationFn: (id: string) => api.patch(`/admin/requests/${id}/fulfill`),
+    onSuccess: () => { toast.success('Request fulfilled'); qc.invalidateQueries({ queryKey: ['admin-requests'] }); },
+    onError: (e: any) => toast.error(e?.response?.data?.message || 'Failed'),
+  });
+  const publishCamp = useMutation({
+    mutationFn: (id: string) => api.patch(`/admin/campaigns/${id}/publish`),
+    onSuccess: () => { toast.success('Campaign published'); qc.invalidateQueries({ queryKey: ['admin-campaigns'] }); },
+    onError: (e: any) => toast.error(e?.response?.data?.message || 'Failed'),
+  });
 
   const toggleExpand = (id: string) => setExpanded(prev => prev === id ? null : id);
 
   const handleReject = (id: string, type: 'requests' | 'campaigns') => {
     const reason = notes[id]?.trim();
-    if (!reason) {
-      toast.error(t('admin.rejection_reason_required'));
-      return;
-    }
+    if (!reason) { toast.error(t('admin.rejection_reason_required')); return; }
     const mutate = type === 'requests' ? updateReq : updateCamp;
     mutate.mutate({ id, status: 'REJECTED', adminNote: reason });
+  };
+
+  const filterItems = (items: any[]) => {
+    if (statusFilter === 'ALL') return items;
+    if (statusFilter === 'FULFILLED') return items.filter((i: any) => i.status === 'FULFILLED');
+    return items.filter((i: any) => i.status === statusFilter);
   };
 
   const ItemCard = ({ item, type }: { item: any; type: 'requests' | 'campaigns' }) => {
     const isOpen = expanded === item.id;
     const mutate = type === 'requests' ? updateReq : updateCamp;
+    const publishMutate = type === 'requests' ? publishReq : publishCamp;
 
     return (
       <Card key={item.id} className="overflow-hidden">
-        {/* Main row */}
         <div className="p-5">
           <div className="flex flex-col lg:flex-row lg:items-start gap-4">
             <div className="flex-1 min-w-0">
@@ -113,14 +133,15 @@ export default function AdminRequestsPage() {
                   </span>
                 )}
                 {item.urgencyLevel && (
-                  <span className={cn('text-xs px-2 py-0.5 rounded-full border font-semibold', URGENCY_MAP[item.urgencyLevel]?.color || 'bg-gray-100 text-gray-600')}>
-                    {URGENCY_MAP[item.urgencyLevel]?.label || `Level ${item.urgencyLevel}`}
+                  <span className={cn('text-xs px-2 py-0.5 rounded-full border font-semibold', URGENCY_MAP[item.urgencyLevel]?.color)}>
+                    {URGENCY_MAP[item.urgencyLevel]?.label}
                   </span>
                 )}
+                {item.isPublished && (
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-semibold">Published</span>
+                )}
               </div>
-
               <p className={cn('text-xs line-clamp-2 mb-2', isDark ? 'text-slate-400' : 'text-gray-600')}>{item.description}</p>
-
               <div className="flex items-center gap-3 text-xs">
                 {item.user?.profileImage ? (
                   <img src={item.user.profileImage} className="w-5 h-5 rounded-full object-cover" alt="" />
@@ -137,7 +158,7 @@ export default function AdminRequestsPage() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-2 shrink-0 flex-wrap">
               <button onClick={() => toggleExpand(item.id)}
                 className={cn('flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg font-medium transition-colors',
                   isDark ? 'bg-slate-700 hover:bg-slate-600 text-slate-300' : 'bg-gray-100 hover:bg-gray-200 text-gray-600')}>
@@ -148,7 +169,7 @@ export default function AdminRequestsPage() {
             </div>
           </div>
 
-          {/* Admin note + actions */}
+          {/* Admin note + actions for PENDING */}
           {item.status === 'PENDING' && (
             <div className="mt-4 pt-4 border-t border-gray-100 dark:border-slate-700">
               <div className="flex flex-col sm:flex-row gap-3">
@@ -171,6 +192,26 @@ export default function AdminRequestsPage() {
             </div>
           )}
 
+          {/* Actions for APPROVED */}
+          {item.status === 'APPROVED' && (
+            <div className="mt-4 pt-4 border-t border-gray-100 dark:border-slate-700 flex gap-2">
+              {!item.isPublished && (
+                <Button size="sm" leftIcon={<Send className="w-3.5 h-3.5" />}
+                  isLoading={publishMutate.isPending}
+                  onClick={() => publishMutate.mutate(item.id)}>
+                  Publish
+                </Button>
+              )}
+              {type === 'requests' && (
+                <Button size="sm" variant="secondary" leftIcon={<CheckSquare className="w-3.5 h-3.5" />}
+                  isLoading={fulfillReq.isPending}
+                  onClick={() => fulfillReq.mutate(item.id)}>
+                  Mark Fulfilled
+                </Button>
+              )}
+            </div>
+          )}
+
           {item.adminNote && (
             <div className={cn('mt-3 text-xs px-3 py-2 rounded-lg',
               isDark ? 'bg-blue-900/30 text-blue-300' : 'bg-blue-50 text-blue-700')}>
@@ -182,19 +223,13 @@ export default function AdminRequestsPage() {
         {/* Expanded details */}
         {isOpen && (
           <div className={cn('px-5 pb-5 border-t space-y-4', isDark ? 'border-slate-700 bg-slate-700/30' : 'border-gray-100 bg-gray-50/50')}>
-            <p className={cn('text-xs font-bold pt-4 mb-3', isDark ? 'text-slate-300' : 'text-gray-600')}>
-              {t('admin.full_details')}
-            </p>
-
-            {/* Request image */}
+            <p className={cn('text-xs font-bold pt-4 mb-3', isDark ? 'text-slate-300' : 'text-gray-600')}>{t('admin.full_details')}</p>
             {item.imageUrl && (
               <div>
                 <p className={cn('text-xs font-semibold mb-2', isDark ? 'text-slate-400' : 'text-gray-500')}>{t('admin.request_photo')}</p>
                 <img src={item.imageUrl} alt="Request" className="rounded-xl max-h-48 object-cover w-full" />
               </div>
             )}
-
-            {/* Support letter */}
             {item.supportLetterUrl && (
               <div>
                 <p className={cn('text-xs font-semibold mb-2', isDark ? 'text-slate-400' : 'text-gray-500')}>{t('admin.support_letter')}</p>
@@ -208,26 +243,12 @@ export default function AdminRequestsPage() {
                 </a>
               </div>
             )}
-
-            {/* National ID Front */}
             {item.nationalIdFrontUrl && (
               <div>
                 <p className={cn('text-xs font-semibold mb-2', isDark ? 'text-slate-400' : 'text-gray-500')}>{t('admin.national_id')}</p>
-                <img src={item.nationalIdUrl} alt="National ID"
-                  className="rounded-xl max-h-40 object-contain w-full border" />
+                <img src={item.nationalIdFrontUrl} alt="National ID" className="rounded-xl max-h-40 object-contain w-full border" />
               </div>
             )}
-
-            {/* Registration doc (campaigns) */}
-            {item.registrationUrl && (
-              <div>
-                <p className={cn('text-xs font-semibold mb-2', isDark ? 'text-slate-400' : 'text-gray-500')}>{t('admin.org_registration')}</p>
-                <img src={item.registrationUrl} alt="Registration"
-                  className="rounded-xl max-h-40 object-contain w-full border" />
-              </div>
-            )}
-
-            {/* Info fields */}
             <div className={cn('rounded-xl p-4 space-y-2', isDark ? 'bg-slate-800' : 'bg-white border')}>
               <DetailRow label={t('admin.location_label')} value={item.location} isDark={isDark} />
               <DetailRow label={t('admin.family_size')} value={item.familySize ? `${item.familySize} people` : null} isDark={isDark} />
@@ -235,8 +256,6 @@ export default function AdminRequestsPage() {
               <DetailRow label={t('admin.additional_notes')} value={item.additionalNotes} isDark={isDark} />
               <DetailRow label={t('admin.phone')} value={item.user?.phone} isDark={isDark} />
             </div>
-
-            {/* Payment accounts */}
             <div>
               <p className={cn('text-xs font-semibold mb-2', isDark ? 'text-slate-400' : 'text-gray-500')}>{t('admin.payment_accounts')}</p>
               <AccountInfo data={item} isDark={isDark} />
@@ -247,18 +266,18 @@ export default function AdminRequestsPage() {
     );
   };
 
+  const currentItems = view === 'requests' ? filterItems(requests || []) : filterItems(campaigns || []);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className={cn('text-2xl font-extrabold', isDark ? 'text-white' : 'text-gray-900')}>{t('admin.approvals_title')}</h1>
-          <p className={cn('text-sm mt-1', isDark ? 'text-slate-400' : 'text-gray-500')}>
-            {t('admin.approvals_subtitle')}
-          </p>
+          <p className={cn('text-sm mt-1', isDark ? 'text-slate-400' : 'text-gray-500')}>{t('admin.approvals_subtitle')}</p>
         </div>
         <div className={cn('flex gap-1 p-1 rounded-xl', isDark ? 'bg-slate-800' : 'bg-gray-100')}>
           {(['requests','campaigns'] as ViewMode[]).map(v => (
-            <button key={v} onClick={() => setView(v)}
+            <button key={v} onClick={() => { setView(v); setStatusFilter('ALL'); }}
               className={cn('px-4 py-2 rounded-lg text-sm font-semibold transition-all capitalize',
                 view === v ? 'bg-green-700 text-white shadow' : (isDark ? 'text-slate-400 hover:text-white' : 'text-gray-500 hover:text-gray-800'))}>
               {v} ({v === 'requests'
@@ -269,16 +288,29 @@ export default function AdminRequestsPage() {
         </div>
       </div>
 
+      {/* Status filter tabs */}
+      <div className="flex gap-2 flex-wrap">
+        {(['ALL','PENDING','APPROVED','REJECTED','FULFILLED'] as StatusFilter[]).map(s => (
+          <button key={s} onClick={() => setStatusFilter(s)}
+            className={cn('px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors',
+              statusFilter === s
+                ? 'bg-green-700 text-white'
+                : (isDark ? 'bg-slate-700 text-slate-400 hover:text-white' : 'bg-gray-100 text-gray-500 hover:text-gray-800'))}>
+            {s}
+          </button>
+        ))}
+      </div>
+
       {view === 'requests' && (
         loadingReqs ? (
           <div className="flex justify-center py-20">
             <div className="w-8 h-8 border-4 border-green-600 border-t-transparent rounded-full animate-spin" />
           </div>
-        ) : !requests?.length ? (
+        ) : !currentItems.length ? (
           <Card className={cn('text-center py-16', isDark ? 'text-slate-400' : 'text-gray-400')}>{t('admin.no_support_requests')}</Card>
         ) : (
           <div className="space-y-4">
-            {requests.map((req: any) => <ItemCard key={req.id} item={req} type="requests" />)}
+            {currentItems.map((req: any) => <ItemCard key={req.id} item={req} type="requests" />)}
           </div>
         )
       )}
@@ -288,11 +320,11 @@ export default function AdminRequestsPage() {
           <div className="flex justify-center py-20">
             <div className="w-8 h-8 border-4 border-green-600 border-t-transparent rounded-full animate-spin" />
           </div>
-        ) : !campaigns?.length ? (
+        ) : !currentItems.length ? (
           <Card className={cn('text-center py-16', isDark ? 'text-slate-400' : 'text-gray-400')}>{t('admin.no_campaigns')}</Card>
         ) : (
           <div className="space-y-4">
-            {campaigns.map((camp: any) => <ItemCard key={camp.id} item={camp} type="campaigns" />)}
+            {currentItems.map((camp: any) => <ItemCard key={camp.id} item={camp} type="campaigns" />)}
           </div>
         )
       )}

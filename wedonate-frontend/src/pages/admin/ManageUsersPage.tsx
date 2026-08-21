@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Search, UserCog, Shield, ShieldOff, ShieldCheck, BadgeCheck } from 'lucide-react';
+import { Search, UserCog, BadgeCheck, UserPlus, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import api from '../../lib/api';
@@ -21,6 +21,8 @@ export default function ManageUsersPage() {
   const [roleFilter, setRoleFilter] = useState('');
   const [assigningUser, setAssigningUser] = useState<string | null>(null);
   const [editingExpiry, setEditingExpiry] = useState<string | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [createForm, setCreateForm] = useState({ firstName: '', lastName: '', email: '', password: '', phone: '', role: 'USER' });
   const { user: currentUser } = useAuth();
   const qc = useQueryClient();
 
@@ -34,39 +36,32 @@ export default function ManageUsersPage() {
   const assignRole = useMutation({
     mutationFn: ({ userId, role }: { userId: string; role: string }) =>
       api.patch(`/admin/users/${userId}/role`, { role }),
-    onSuccess: () => {
-      toast.success(t('admin.role_updated'));
-      qc.invalidateQueries({ queryKey: ['admin-users'] });
-      setAssigningUser(null);
-    },
+    onSuccess: () => { toast.success(t('admin.role_updated')); qc.invalidateQueries({ queryKey: ['admin-users'] }); setAssigningUser(null); },
     onError: (e: any) => toast.error(e?.response?.data?.message || t('admin.role_update_failed')),
   });
 
   const toggleActive = useMutation({
     mutationFn: (userId: string) => api.patch(`/admin/users/${userId}/toggle-active`),
-    onSuccess: (data) => {
-      toast.success(data.data.message || 'User status updated');
-      qc.invalidateQueries({ queryKey: ['admin-users'] });
-    },
-    onError: (e: any) => toast.error(e?.response?.data?.message || 'Failed to update user status'),
+    onSuccess: (data) => { toast.success(data.data.message || 'User status updated'); qc.invalidateQueries({ queryKey: ['admin-users'] }); },
+    onError: (e: any) => toast.error(e?.response?.data?.message || 'Failed'),
   });
 
   const toggleVerification = useMutation({
     mutationFn: (userId: string) => api.patch(`/admin/users/${userId}/toggle-verification`),
-    onSuccess: (data) => {
-      toast.success(data.data.message || 'Verification updated');
-      qc.invalidateQueries({ queryKey: ['admin-users'] });
-    },
-    onError: (e: any) => toast.error(e?.response?.data?.message || 'Failed to update verification'),
+    onSuccess: (data) => { toast.success(data.data.message || 'Verification updated'); qc.invalidateQueries({ queryKey: ['admin-users'] }); },
+    onError: (e: any) => toast.error(e?.response?.data?.message || 'Failed'),
   });
 
   const updateExpiry = useMutation({
     mutationFn: ({ userId, data }: { userId: string; data: any }) => api.patch(`/admin/users/${userId}/document-expiry`, data),
-    onSuccess: () => {
-      toast.success('Document expiry updated');
-      qc.invalidateQueries({ queryKey: ['admin-users'] });
-    },
-    onError: (e: any) => toast.error(e?.response?.data?.message || 'Failed to update expiry'),
+    onSuccess: () => { toast.success('Document expiry updated'); qc.invalidateQueries({ queryKey: ['admin-users'] }); },
+    onError: (e: any) => toast.error(e?.response?.data?.message || 'Failed'),
+  });
+
+  const createUser = useMutation({
+    mutationFn: (data: any) => api.post('/admin/users', data),
+    onSuccess: () => { toast.success('User created successfully'); qc.invalidateQueries({ queryKey: ['admin-users'] }); setShowCreateModal(false); setCreateForm({ firstName: '', lastName: '', email: '', password: '', phone: '', role: 'USER' }); },
+    onError: (e: any) => toast.error(e?.response?.data?.message || 'Failed to create user'),
   });
 
   const roleColors: Record<string, string> = {
@@ -77,9 +72,14 @@ export default function ManageUsersPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className={cn('text-2xl font-extrabold', isDark ? 'text-white' : 'text-gray-900')}>{t('admin.manage_users_title')}</h1>
-        <p className={cn('text-sm mt-1', isDark ? 'text-slate-400' : 'text-gray-500')}>{users?.length ?? 0} {t('admin.total_users_suffix')}</p>
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h1 className={cn('text-2xl font-extrabold', isDark ? 'text-white' : 'text-gray-900')}>{t('admin.manage_users_title')}</h1>
+          <p className={cn('text-sm mt-1', isDark ? 'text-slate-400' : 'text-gray-500')}>{users?.length ?? 0} {t('admin.total_users_suffix')}</p>
+        </div>
+        <Button leftIcon={<UserPlus className="w-4 h-4" />} onClick={() => setShowCreateModal(true)}>
+          Create User
+        </Button>
       </div>
 
       {/* Filters */}
@@ -96,6 +96,45 @@ export default function ManageUsersPage() {
         </select>
       </div>
 
+      {/* Create User Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowCreateModal(false)} />
+          <Card className="relative z-10 w-full max-w-lg p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className={cn('text-lg font-bold', isDark ? 'text-white' : 'text-gray-900')}>Create New User</h2>
+              <button onClick={() => setShowCreateModal(false)} className={cn('p-1.5 rounded-lg', isDark ? 'hover:bg-slate-700 text-slate-400' : 'hover:bg-gray-100 text-gray-500')}>
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <Input label="First Name" value={createForm.firstName} onChange={e => setCreateForm(p => ({ ...p, firstName: e.target.value }))} placeholder="First name" />
+                <Input label="Last Name" value={createForm.lastName} onChange={e => setCreateForm(p => ({ ...p, lastName: e.target.value }))} placeholder="Last name" />
+              </div>
+              <Input label="Email" type="email" value={createForm.email} onChange={e => setCreateForm(p => ({ ...p, email: e.target.value }))} placeholder="user@example.com" />
+              <Input label="Password" type="password" value={createForm.password} onChange={e => setCreateForm(p => ({ ...p, password: e.target.value }))} placeholder="Min 6 characters" />
+              <Input label="Phone (optional)" value={createForm.phone} onChange={e => setCreateForm(p => ({ ...p, phone: e.target.value }))} placeholder="+251..." />
+              <div>
+                <label className={cn('block text-sm font-medium mb-1', isDark ? 'text-slate-300' : 'text-gray-700')}>Role</label>
+                <select value={createForm.role} onChange={e => setCreateForm(p => ({ ...p, role: e.target.value }))}
+                  className={cn('w-full rounded-xl border px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500',
+                    isDark ? 'bg-slate-700 border-slate-600 text-white' : 'border-gray-300')}>
+                  {ALL_ROLES.map(r => <option key={r} value={r}>{r.replace('_', ' ')}</option>)}
+                </select>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <Button onClick={() => createUser.mutate(createForm)} isLoading={createUser.isPending}
+                  disabled={!createForm.firstName || !createForm.lastName || !createForm.email || !createForm.password}>
+                  Create User
+                </Button>
+                <Button variant="ghost" onClick={() => setShowCreateModal(false)}>Cancel</Button>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
+
       {isLoading ? (
         <div className="flex items-center justify-center h-48">
           <div className="w-8 h-8 border-4 border-green-600 border-t-transparent rounded-full animate-spin" />
@@ -111,9 +150,6 @@ export default function ManageUsersPage() {
                   <th className={cn('text-left px-5 py-3.5 font-semibold', isDark ? 'text-slate-400' : 'text-gray-600')}>{t('admin.role')}</th>
                   <th className={cn('text-left px-5 py-3.5 font-semibold', isDark ? 'text-slate-400' : 'text-gray-600')}>{t('admin.joined')}</th>
                   <th className={cn('text-left px-5 py-3.5 font-semibold', isDark ? 'text-slate-400' : 'text-gray-600')}>{t('admin.status')}</th>
-                  {['NGO','ORGANIZATION','GOVERNMENTAL_ORG'].includes(roleFilter || '') && (
-                    <th className={cn('text-left px-5 py-3.5 font-semibold', isDark ? 'text-slate-400' : 'text-gray-600')}>Doc Expiry</th>
-                  )}
                   <th className={cn('text-left px-5 py-3.5 font-semibold', isDark ? 'text-slate-400' : 'text-gray-600')}>{t('admin.actions')}</th>
                 </tr>
               </thead>
@@ -150,41 +186,10 @@ export default function ManageUsersPage() {
                     </td>
                     <td className={cn('px-5 py-3.5', isDark ? 'text-slate-400' : 'text-gray-500')}>{formatDate(u.createdAt)}</td>
                     <td className="px-5 py-3.5">
-                      <Badge variant={u.isActive ? 'success' : 'danger'}>{u.isActive ? t('admin.active') : t('admin.inactive')}</Badge>
+                      <button onClick={() => toggleActive.mutate(u.id)}>
+                        <Badge variant={u.isActive ? 'success' : 'danger'}>{u.isActive ? t('admin.active') : t('admin.inactive')}</Badge>
+                      </button>
                     </td>
-                    {['NGO','ORGANIZATION','GOVERNMENTAL_ORG'].includes(u.role) && (
-                      <td className="px-5 py-3.5">
-                        {editingExpiry === u.id ? (
-                          <div className="flex flex-col gap-1">
-                            <label className={cn('text-[10px]', isDark ? 'text-slate-500' : 'text-gray-400')}>Registration</label>
-                            <input type="date" defaultValue={u.registrationExpiry?.split('T')[0] || ''}
-                              onChange={e => updateExpiry.mutate({ userId: u.id, data: { registrationExpiry: e.target.value || null } })}
-                              className={cn('rounded-lg border px-2 py-1 text-xs', isDark ? 'bg-slate-700 border-slate-600 text-white' : 'border-gray-300')} />
-                            <label className={cn('text-[10px]', isDark ? 'text-slate-500' : 'text-gray-400')}>License</label>
-                            <input type="date" defaultValue={u.licenseExpiry?.split('T')[0] || ''}
-                              onChange={e => updateExpiry.mutate({ userId: u.id, data: { licenseExpiry: e.target.value || null } })}
-                              className={cn('rounded-lg border px-2 py-1 text-xs', isDark ? 'bg-slate-700 border-slate-600 text-white' : 'border-gray-300')} />
-                            <button onClick={() => setEditingExpiry(null)} className="text-xs text-green-500 hover:underline">Done</button>
-                          </div>
-                        ) : (
-                          <button onClick={() => setEditingExpiry(u.id)}
-                            className={cn('text-xs hover:underline cursor-pointer', isDark ? 'text-slate-400' : 'text-gray-500')}>
-                            {u.registrationExpiry ? (
-                              <span className={new Date(u.registrationExpiry) < new Date() ? 'text-red-500 font-semibold' : ''}>
-                                Reg: {new Date(u.registrationExpiry).toLocaleDateString()}
-                                {new Date(u.registrationExpiry) < new Date() && ' ⚠️'}
-                              </span>
-                            ) : <span className="opacity-50">Set dates</span>}
-                            {u.licenseExpiry && (
-                              <span className={cn('block', new Date(u.licenseExpiry) < new Date() ? 'text-red-500 font-semibold' : '')}>
-                                Lic: {new Date(u.licenseExpiry).toLocaleDateString()}
-                                {new Date(u.licenseExpiry) < new Date() && ' ⚠️'}
-                              </span>
-                            )}
-                          </button>
-                        )}
-                      </td>
-                    )}
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-2">
                         {['NGO','ORGANIZATION','GOVERNMENTAL_ORG'].includes(u.role) && (
@@ -196,11 +201,13 @@ export default function ManageUsersPage() {
                             <BadgeCheck className="w-3.5 h-3.5" /> {u.isVerified ? 'Unverify' : 'Verify'}
                           </button>
                         )}
-                        <button onClick={() => setAssigningUser(u.id)}
-                          className={cn('flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors',
-                            isDark ? 'text-green-400 hover:text-green-300 bg-green-900/30 hover:bg-green-900/50' : 'text-green-700 hover:text-green-800 bg-green-50 hover:bg-green-100')}>
-                          <UserCog className="w-3.5 h-3.5" /> {t('admin.assign_role')}
-                        </button>
+                        {isSuperAdmin && (
+                          <button onClick={() => setAssigningUser(u.id)}
+                            className={cn('flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors',
+                              isDark ? 'text-green-400 hover:text-green-300 bg-green-900/30 hover:bg-green-900/50' : 'text-green-700 hover:text-green-800 bg-green-50 hover:bg-green-100')}>
+                            <UserCog className="w-3.5 h-3.5" /> {t('admin.assign_role')}
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

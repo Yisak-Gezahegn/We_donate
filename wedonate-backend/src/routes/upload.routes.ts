@@ -13,10 +13,10 @@ const storage = multer.diskStorage({
 });
 
 const fileFilter = (_req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
-  const allowed = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.jfif'];
+  const allowed = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.jfif', '.pdf'];
   const ext = path.extname(file.originalname).toLowerCase();
   if (allowed.includes(ext)) cb(null, true);
-  else cb(new Error('Only image files are allowed'));
+  else cb(new Error('Only image and PDF files are allowed'));
 };
 
 const upload = multer({
@@ -27,7 +27,7 @@ const upload = multer({
 
 const router = Router();
 
-router.post('/', authenticate, upload.single('image'), (req: Request, res: Response, next: NextFunction) => {
+router.post('/', upload.single('image'), (req: Request, res: Response, next: NextFunction) => {
   try {
     if (!req.file) {
       res.status(400).json({ success: false, message: 'No file uploaded' });

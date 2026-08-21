@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import prisma from '../lib/prisma';
 import { createError } from '../middleware/errorHandler';
@@ -20,10 +21,12 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) return next(createError('Email already in use', 409));
 
+    const hashedPassword = await bcrypt.hash(password, 12);
+
     const user = await prisma.user.create({
       data: {
         id: uuidv4(), firstName, lastName, email,
-        password, phone: phone || null,
+        password: hashedPassword, phone: phone || null,
         role: 'USER',
       },
       select: { id: true, firstName: true, lastName: true, email: true, role: true, createdAt: true },
@@ -47,7 +50,8 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user || !user.isActive) return next(createError('Invalid credentials', 401));
 
-    if (password !== user.password) return next(createError('Invalid credentials', 401));
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) return next(createError('Invalid credentials', 401));
 
     const token = generateToken(user.id, user.email, user.role);
 

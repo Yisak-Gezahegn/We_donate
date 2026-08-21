@@ -72,7 +72,7 @@ npm run dev
 - Profile picture upload
 - Post support requests (food, medicine, clothes, money, other)
 - Full request form: payment accounts (TeleBirr, CBE, BOA, Awash), support letter, national ID
-- Donate to any approved request — multiple payment methods
+- Donate to any approved request; multiple payment methods
 - View campaigns and donate
 
 ### Payment Methods Available

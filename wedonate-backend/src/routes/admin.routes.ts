@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import {
   getAllUsers, assignRole, toggleUserActive, getDashboardStats, getAuditLogs,
-  toggleVerification, updateDocumentExpiry, createUser, deleteUser,
+  clearAuditLogs, toggleVerification, updateDocumentExpiry, createUser, deleteUser,
   getAllDonationsAdmin, getPendingDonations, verifyDonation, rejectDonation,
   publishRequest, fulfillRequest, publishCampaign,
   getPendingOrganizations, approveOrganization, rejectOrganization,
@@ -26,6 +26,7 @@ router.patch('/organizations/:id/reject', authenticate, authorize(...ADMIN), rej
 
 router.get('/dashboard',           authenticate, authorize(...ADMIN), getDashboardStats);
 router.get('/audit-logs',          authenticate, authorize('SUPER_ADMIN','CITY_ADMIN'), getAuditLogs);
+router.delete('/audit-logs',       authenticate, authorize('SUPER_ADMIN','CITY_ADMIN'), clearAuditLogs);
 
 router.get('/donations',           authenticate, authorize(...ADMIN), getAllDonationsAdmin);
 router.get('/donations/pending',   authenticate, authorize(...ADMIN), getPendingDonations);

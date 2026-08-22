@@ -233,6 +233,20 @@ export const getAuditLogs = async (req: Request, res: Response, next: NextFuncti
   } catch (error) { next(error); }
 };
 
+export const clearAuditLogs = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const result = await prisma.auditLog.deleteMany({});
+    await prisma.auditLog.create({
+      data: {
+        id: uuidv4(), userId: req.user!.userId,
+        action: 'CLEAR_AUDIT_LOGS', resource: 'audit_log',
+        details: `Cleared all audit logs (${result.count} entries removed)`,
+      },
+    });
+    res.json({ success: true, message: `All audit logs cleared (${result.count} entries removed)` });
+  } catch (error) { next(error); }
+};
+
 export const updateDocumentExpiry = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { registrationExpiry, licenseExpiry } = req.body;

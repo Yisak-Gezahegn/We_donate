@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Shield, Search, Download, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Shield, Search, Download, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import toast from 'react-hot-toast';
 import api from '../../lib/api';
 import { useTheme } from '../../context/ThemeContext';
 import { cn, formatDate, timeAgo } from '../../lib/utils';
@@ -31,11 +32,13 @@ const ACTION_COLORS: Record<string, string> = {
 export default function AuditLogsPage() {
   const { t } = useTranslation();
   const { isDark } = useTheme();
+  const qc = useQueryClient();
   const [search, setSearch] = useState('');
   const [actionFilter, setActionFilter] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [page, setPage] = useState(1);
+  const [showClearModal, setShowClearModal] = useState(false);
   const limit = 20;
 
   const { data, isLoading } = useQuery({
@@ -52,6 +55,17 @@ export default function AuditLogsPage() {
   const logs = data?.data || [];
   const pagination = data?.pagination;
 
+  const clearLogs = useMutation({
+    mutationFn: () => api.delete('/admin/audit-logs'),
+    onSuccess: (res) => {
+      toast.success(res.data.message || 'All audit logs cleared');
+      setShowClearModal(false);
+      setPage(1);
+      qc.invalidateQueries({ queryKey: ['audit-logs'] });
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.message || 'Failed to clear logs'),
+  });
+
   const exportCSV = () => {
     if (!logs.length) return;
     const headers = ['Action', 'User', 'Resource', 'Resource ID', 'Details', 'Date'];
@@ -59,14 +73,14 @@ export default function AuditLogsPage() {
       l.action, l.user ? `${l.user.firstName} ${l.user.lastName}` : 'System',
       l.resource, l.resourceId || '', l.details || '', new Date(l.createdAt).toLocaleString(),
     ]);
-    const csv = [headers, ...rows].map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+    const csv = [headers, ...rows].map(r => r.map((c: any) => `"${c}"`).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href = url; a.download = `audit-logs-${Date.now()}.csv`; a.click();
     URL.revokeObjectURL(url);
   };
 
-  const uniqueActions = [...new Set(logs.map((l: any) => l.action))].sort();
+  const uniqueActions = [...new Set<string>(logs.map((l: any) => l.action))].sort();
 
   return (
     <div className="space-y-6">
@@ -77,10 +91,46 @@ export default function AuditLogsPage() {
             {pagination?.total ?? logs.length} total entries
           </p>
         </div>
-        <Button variant="outline" size="sm" leftIcon={<Download className="w-4 h-4" />} onClick={exportCSV}>
-          Export CSV
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" leftIcon={<Download className="w-4 h-4" />} onClick={exportCSV}>
+            Export CSV
+          </Button>
+          <Button variant="danger" size="sm" leftIcon={<Trash2 className="w-4 h-4" />} onClick={() => setShowClearModal(true)}>
+            Clear All
+          </Button>
+        </div>
       </div>
+
+      {/* ── Clear All Confirmation Modal ── */}
+      {showClearModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowClearModal(false)} />
+          <Card className="relative z-10 w-full max-w-md p-6">
+            <div className="flex items-start gap-4">
+              <div className={cn('w-12 h-12 rounded-full flex items-center justify-center shrink-0',
+                isDark ? 'bg-red-900/40' : 'bg-red-100')}>
+                <Trash2 className={cn('w-6 h-6', isDark ? 'text-red-400' : 'text-red-600')} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h2 className={cn('text-lg font-bold', isDark ? 'text-white' : 'text-gray-900')}>
+                  Clear All Audit Logs
+                </h2>
+                <p className={cn('text-sm mt-2', isDark ? 'text-slate-400' : 'text-gray-500')}>
+                  This will permanently delete all <span className="font-semibold">{pagination?.total ?? logs.length}</span> audit log entries. This action cannot be undone.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6 justify-end">
+              <Button variant="ghost" onClick={() => setShowClearModal(false)}>Cancel</Button>
+              <Button variant="danger" leftIcon={<Trash2 className="w-4 h-4" />}
+                isLoading={clearLogs.isPending}
+                onClick={() => clearLogs.mutate()}>
+                Delete All Logs
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">

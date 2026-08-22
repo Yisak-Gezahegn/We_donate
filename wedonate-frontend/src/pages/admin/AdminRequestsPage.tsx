@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { CheckCircle, XCircle, ChevronDown, ChevronUp, Eye, ExternalLink, BadgeCheck, Send, CheckSquare, Plus, X, FileText } from 'lucide-react';
+import { CheckCircle, XCircle, ChevronDown, ChevronUp, Eye, ExternalLink, BadgeCheck, Send, CheckSquare, Plus, X, FileText, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import api from '../../lib/api';
@@ -347,6 +347,7 @@ export default function AdminRequestsPage() {
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [expanded, setExpanded] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [deletingItem, setDeletingItem] = useState<{ item: any; type: ViewMode } | null>(null);
 
   const isKebeleAdmin = currentUser?.role === 'KEBELE_ADMIN';
 
@@ -383,6 +384,26 @@ export default function AdminRequestsPage() {
     mutationFn: (id: string) => api.patch(`/admin/campaigns/${id}/publish`),
     onSuccess: () => { toast.success('Campaign published'); qc.invalidateQueries({ queryKey: ['admin-campaigns'] }); },
     onError: (e: any) => toast.error(e?.response?.data?.message || 'Failed'),
+  });
+  const deleteReq = useMutation({
+    mutationFn: (id: string) => api.delete(`/support-requests/${id}`),
+    onSuccess: () => {
+      toast.success('Request deleted');
+      qc.invalidateQueries({ queryKey: ['admin-requests'] });
+      setDeletingItem(null);
+      setExpanded(null);
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.message || 'Failed to delete'),
+  });
+  const deleteCamp = useMutation({
+    mutationFn: (id: string) => api.delete(`/campaigns/${id}`),
+    onSuccess: () => {
+      toast.success('Campaign deleted');
+      qc.invalidateQueries({ queryKey: ['admin-campaigns'] });
+      setDeletingItem(null);
+      setExpanded(null);
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.message || 'Failed to delete'),
   });
 
   const toggleExpand = (id: string) => setExpanded(prev => prev === id ? null : id);
@@ -452,6 +473,14 @@ export default function AdminRequestsPage() {
                 {isOpen ? t('admin.hide') : t('admin.view_details')}
                 {isOpen ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
               </button>
+              <button
+                onClick={() => setDeletingItem({ item, type })}
+                title={type === 'requests' ? 'Delete request' : 'Delete campaign'}
+                className={cn('flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg font-semibold transition-colors',
+                  isDark ? 'bg-red-900/30 hover:bg-red-900/50 text-red-400' : 'bg-red-50 hover:bg-red-100 text-red-700')}>
+                <Trash2 className="w-3.5 h-3.5" />
+                Delete
+              </button>
             </div>
           </div>
 
@@ -506,46 +535,141 @@ export default function AdminRequestsPage() {
           )}
         </div>
 
-        {/* Expanded details */}
+        {/* Expanded details — full information */}
         {isOpen && (
-          <div className={cn('px-5 pb-5 border-t space-y-4', isDark ? 'border-slate-700 bg-slate-700/30' : 'border-gray-100 bg-gray-50/50')}>
-            <p className={cn('text-xs font-bold pt-4 mb-3', isDark ? 'text-slate-300' : 'text-gray-600')}>{t('admin.full_details')}</p>
+          <div className={cn('px-5 pb-5 border-t space-y-5', isDark ? 'border-slate-700 bg-slate-700/30' : 'border-gray-100 bg-gray-50/50')}>
+            <p className={cn('text-xs font-bold pt-4 mb-1 uppercase tracking-wide', isDark ? 'text-slate-300' : 'text-gray-600')}>{t('admin.full_details')}</p>
+
+            {/* Full description */}
+            <div>
+              <p className={cn('text-xs font-semibold mb-2', isDark ? 'text-slate-400' : 'text-gray-500')}>Description</p>
+              <div className={cn('rounded-xl p-4 text-xs whitespace-pre-wrap leading-relaxed', isDark ? 'bg-slate-800 text-slate-300' : 'bg-white border text-gray-700')}>
+                {item.description}
+              </div>
+            </div>
+
+            {/* Main photo */}
             {item.imageUrl && (
               <div>
                 <p className={cn('text-xs font-semibold mb-2', isDark ? 'text-slate-400' : 'text-gray-500')}>{t('admin.request_photo')}</p>
-                <img src={item.imageUrl} alt="Request" className="rounded-xl max-h-48 object-cover w-full" />
-              </div>
-            )}
-            {item.supportLetterUrl && (
-              <div>
-                <p className={cn('text-xs font-semibold mb-2', isDark ? 'text-slate-400' : 'text-gray-500')}>{t('admin.support_letter')}</p>
-                <a href={item.supportLetterUrl} target="_blank" rel="noopener noreferrer">
-                  <img src={item.supportLetterUrl} alt="Support Letter"
-                    className="rounded-xl max-h-64 object-contain w-full border cursor-pointer hover:opacity-90 transition-opacity"
-                    onError={e => (e.currentTarget.style.display='none')} />
+                <a href={item.imageUrl} target="_blank" rel="noopener noreferrer">
+                  <img src={item.imageUrl} alt="Request" className="rounded-xl max-h-64 object-contain w-full border cursor-pointer hover:opacity-90 transition-opacity" />
                   <span className={cn('flex items-center gap-1 text-xs mt-1', isDark ? 'text-blue-400' : 'text-blue-600')}>
                     <ExternalLink className="w-3 h-3" /> {t('admin.open_full_image')}
                   </span>
                 </a>
               </div>
             )}
-            {item.nationalIdFrontUrl && (
+
+            {/* Funding progress */}
+            {item.goalAmount && (
               <div>
-                <p className={cn('text-xs font-semibold mb-2', isDark ? 'text-slate-400' : 'text-gray-500')}>{t('admin.national_id')}</p>
-                <img src={item.nationalIdFrontUrl} alt="National ID" className="rounded-xl max-h-40 object-contain w-full border" />
+                <p className={cn('text-xs font-semibold mb-2', isDark ? 'text-slate-400' : 'text-gray-500')}>Funding</p>
+                <div className={cn('rounded-xl p-4', isDark ? 'bg-slate-800' : 'bg-white border')}>
+                  <div className="flex justify-between text-xs mb-2">
+                    <span className="text-green-500 font-semibold">{formatCurrency(item.raisedAmount)} raised</span>
+                    <span className={isDark ? 'text-slate-400' : 'text-gray-500'}>goal {formatCurrency(item.goalAmount)}</span>
+                  </div>
+                  <div className={cn('h-2 rounded-full overflow-hidden', isDark ? 'bg-slate-700' : 'bg-gray-200')}>
+                    <div className="h-full bg-green-500 rounded-full"
+                      style={{ width: `${Math.min(((item.raisedAmount || 0) / item.goalAmount) * 100, 100)}%` }} />
+                  </div>
+                </div>
               </div>
             )}
+
+            {/* Overview grid */}
             <div className={cn('rounded-xl p-4 space-y-2', isDark ? 'bg-slate-800' : 'bg-white border')}>
+              <DetailRow label="Status" value={item.status} isDark={isDark} />
+              {item.urgencyLevel && (
+                <DetailRow label="Urgency" value={`${URGENCY_MAP[item.urgencyLevel]?.label || item.urgencyLevel} (Level ${item.urgencyLevel})`} isDark={isDark} />
+              )}
               <DetailRow label={t('admin.location_label')} value={item.location} isDark={isDark} />
               <DetailRow label={t('admin.family_size')} value={item.familySize ? `${item.familySize} people` : null} isDark={isDark} />
               <DetailRow label={t('admin.goal_amount')} value={item.goalAmount ? formatCurrency(item.goalAmount) : null} isDark={isDark} />
-              <DetailRow label={t('admin.additional_notes')} value={item.additionalNotes} isDark={isDark} />
-              <DetailRow label={t('admin.phone')} value={item.user?.phone} isDark={isDark} />
+              <DetailRow label="Raised So Far" value={formatCurrency(item.raisedAmount || 0)} isDark={isDark} />
+              {type === 'campaigns' && (
+                <DetailRow label="Deadline" value={item.deadline ? formatDate(item.deadline) : null} isDark={isDark} />
+              )}
+              <DetailRow label="Published" value={
+                item.isPublished
+                  ? `Yes${item.publishedAt ? ` — ${formatDate(item.publishedAt)}` : ''}`
+                  : null
+              } isDark={isDark} />
+              <DetailRow label="Submitted" value={formatDate(item.createdAt)} isDark={isDark} />
+              <DetailRow label="Last Updated" value={formatDate(item.updatedAt)} isDark={isDark} />
             </div>
+
+            {/* Requester info */}
+            <div>
+              <p className={cn('text-xs font-semibold mb-2', isDark ? 'text-slate-400' : 'text-gray-500')}>Requester Information</p>
+              <div className={cn('rounded-xl p-4 space-y-2', isDark ? 'bg-slate-800' : 'bg-white border')}>
+                <DetailRow label="Name" value={item.user ? `${item.user.firstName ?? ''} ${item.user.lastName ?? ''}`.trim() : null} isDark={isDark} />
+                <DetailRow label="Email" value={item.user?.email} isDark={isDark} />
+                <DetailRow label={t('admin.phone')} value={item.user?.phone} isDark={isDark} />
+              </div>
+            </div>
+
+            {/* Documents */}
+            {(item.supportLetterUrl || item.nationalIdFrontUrl || item.nationalIdBackUrl) && (
+              <div>
+                <p className={cn('text-xs font-semibold mb-2', isDark ? 'text-slate-400' : 'text-gray-500')}>{t('admin.support_letter')} & National ID</p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {[
+                    { label: t('admin.support_letter'), url: item.supportLetterUrl },
+                    { label: 'National ID — Front', url: item.nationalIdFrontUrl },
+                    { label: 'National ID — Back', url: item.nationalIdBackUrl },
+                  ].filter(d => d.url).map(d => (
+                    <a key={d.label} href={d.url} target="_blank" rel="noopener noreferrer"
+                      className={cn('rounded-xl overflow-hidden border group relative block',
+                        isDark ? 'border-slate-600 bg-slate-800' : 'border-gray-200 bg-white')}>
+                      <img src={d.url} alt={d.label}
+                        className="w-full h-28 object-cover group-hover:opacity-80 transition-opacity"
+                        onError={e => (e.currentTarget.style.display = 'none')} />
+                      <span className={cn('block text-[10px] font-medium px-2 py-1.5 truncate',
+                        isDark ? 'text-blue-400' : 'text-blue-600')}>
+                        {d.label} ↗
+                      </span>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Success proof (completed campaigns) */}
+            {(item.successPhotoUrl || item.successNote) && (
+              <div>
+                <p className={cn('text-xs font-semibold mb-2', isDark ? 'text-slate-400' : 'text-gray-500')}>Success Proof</p>
+                {item.successPhotoUrl && (
+                  <a href={item.successPhotoUrl} target="_blank" rel="noopener noreferrer">
+                    <img src={item.successPhotoUrl} alt="Success proof" className="rounded-xl max-h-64 object-contain w-full border cursor-pointer hover:opacity-90 transition-opacity" />
+                  </a>
+                )}
+                {item.successNote && (
+                  <p className={cn('mt-2 rounded-xl p-3 text-xs whitespace-pre-wrap leading-relaxed', isDark ? 'bg-slate-800 text-slate-300' : 'bg-white border text-gray-700')}>
+                    {item.successNote}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* FAN + additional notes */}
+            <div className={cn('rounded-xl p-4 space-y-2', isDark ? 'bg-slate-800' : 'bg-white border')}>
+              <DetailRow label="FAN Number" value={item.fanNumber} isDark={isDark} />
+              <DetailRow label={t('admin.additional_notes')} value={item.additionalNotes} isDark={isDark} />
+            </div>
+
+            {/* Payment accounts */}
             <div>
               <p className={cn('text-xs font-semibold mb-2', isDark ? 'text-slate-400' : 'text-gray-500')}>{t('admin.payment_accounts')}</p>
               <AccountInfo data={item} isDark={isDark} />
             </div>
+
+            {item.adminNote && (
+              <div className={cn('text-xs px-3 py-2 rounded-lg', isDark ? 'bg-blue-900/30 text-blue-300' : 'bg-blue-50 text-blue-700')}>
+                <span className="font-semibold">Admin note: </span>{item.adminNote}
+              </div>
+            )}
           </div>
         )}
       </Card>
@@ -557,6 +681,47 @@ export default function AdminRequestsPage() {
   return (
     <div className="space-y-6">
       <CreateForUserModal isOpen={showCreateModal} onClose={() => setShowCreateModal(false)} isDark={isDark} />
+
+      {/* Delete Confirmation Modal */}
+      {deletingItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setDeletingItem(null)} />
+          <Card className="relative z-10 w-full max-w-md p-6">
+            <div className="flex items-start gap-4">
+              <div className={cn('w-12 h-12 rounded-full flex items-center justify-center shrink-0',
+                isDark ? 'bg-red-900/40' : 'bg-red-100')}>
+                <Trash2 className={cn('w-6 h-6', isDark ? 'text-red-400' : 'text-red-600')} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h2 className={cn('text-lg font-bold', isDark ? 'text-white' : 'text-gray-900')}>
+                  Delete {deletingItem.type === 'requests' ? 'Support Request' : 'Campaign'}
+                </h2>
+                <p className={cn('text-sm mt-2', isDark ? 'text-slate-400' : 'text-gray-500')}>
+                  Permanently delete{' '}
+                  <span className={cn('font-semibold break-words', isDark ? 'text-white' : 'text-gray-800')}>
+                    “{deletingItem.item.title}”
+                  </span>{' '}
+                  by {deletingItem.item.user?.firstName} {deletingItem.item.user?.lastName}?
+                </p>
+                <p className={cn('text-xs mt-3 px-3 py-2 rounded-lg',
+                  isDark ? 'bg-red-900/20 text-red-300 border border-red-700/40' : 'bg-red-50 text-red-700 border border-red-200')}>
+                  All donations and inspection reports linked to it will also be removed, and the owner will be notified. This action cannot be undone.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6 justify-end">
+              <Button variant="ghost" onClick={() => setDeletingItem(null)}>Cancel</Button>
+              <Button variant="danger" leftIcon={<Trash2 className="w-4 h-4" />}
+                isLoading={deleteReq.isPending || deleteCamp.isPending}
+                onClick={() => deletingItem.type === 'requests'
+                  ? deleteReq.mutate(deletingItem.item.id)
+                  : deleteCamp.mutate(deletingItem.item.id)}>
+                Delete Permanently
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
 
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>

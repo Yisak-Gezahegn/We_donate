@@ -143,6 +143,44 @@ export const getAllCampaigns = async (_req: Request, res: Response, next: NextFu
   } catch (error) { next(error); }
 };
 
+// Admin — permanently delete a campaign and its related records
+export const deleteCampaign = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const campaign = await prisma.campaign.findUnique({
+      where: { id },
+      select: { userId: true, title: true },
+    });
+    if (!campaign) return next(createError('Campaign not found', 404));
+
+    await prisma.$transaction([
+      prisma.donation.deleteMany({ where: { campaignId: id } }),
+      prisma.campaignUpdate.deleteMany({ where: { campaignId: id } }),
+      prisma.inspectionReport.deleteMany({ where: { campaignId: id } }),
+      prisma.campaign.delete({ where: { id } }),
+      prisma.notification.create({
+        data: {
+          id: uuidv4(), userId: campaign.userId,
+          title: 'Campaign Removed',
+          message: `Your campaign "${campaign.title}" was removed by an administrator.`,
+          type: 'ERROR',
+        },
+      }),
+    ]);
+
+    await prisma.auditLog.create({
+      data: {
+        id: uuidv4(), userId: req.user!.userId,
+        action: 'DELETE_CAMPAIGN',
+        resource: 'campaign', resourceId: id,
+        details: `Deleted campaign "${campaign.title}" of user ${campaign.userId}`,
+      },
+    });
+
+    res.json({ success: true, message: 'Campaign deleted' });
+  } catch (error) { next(error); }
+};
+
 export const updateCampaignStatus = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { status, adminNote } = req.body;

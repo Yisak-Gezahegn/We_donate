@@ -153,6 +153,43 @@ export const getMyRequests = async (req: AuthRequest, res: Response, next: NextF
   } catch (error) { next(error); }
 };
 
+// Admin — permanently delete a support request and its related records
+export const deleteRequest = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const request = await prisma.supportRequest.findUnique({
+      where: { id },
+      select: { userId: true, title: true },
+    });
+    if (!request) return next(createError('Request not found', 404));
+
+    await prisma.$transaction([
+      prisma.donation.deleteMany({ where: { supportRequestId: id } }),
+      prisma.inspectionReport.deleteMany({ where: { supportRequestId: id } }),
+      prisma.supportRequest.delete({ where: { id } }),
+      prisma.notification.create({
+        data: {
+          id: uuidv4(), userId: request.userId,
+          title: 'Request Removed',
+          message: `Your support request "${request.title}" was removed by an administrator.`,
+          type: 'ERROR',
+        },
+      }),
+    ]);
+
+    await prisma.auditLog.create({
+      data: {
+        id: uuidv4(), userId: req.user!.userId,
+        action: 'DELETE_SUPPORT_REQUEST',
+        resource: 'support_request', resourceId: id,
+        details: `Deleted support request "${request.title}" of user ${request.userId}`,
+      },
+    });
+
+    res.json({ success: true, message: 'Support request deleted' });
+  } catch (error) { next(error); }
+};
+
 export const updateRequestStatus = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { status, adminNote } = req.body;

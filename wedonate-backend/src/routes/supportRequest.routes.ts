@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import {
   createRequest, getApprovedRequests, getAllRequests,
-  getMyRequests, updateRequestStatus, getRequestById,
+  getMyRequests, updateRequestStatus, getRequestById, deleteRequest,
 } from '../controllers/supportRequest.controller';
 import { authenticate, authorize } from '../middleware/auth.middleware';
 
@@ -15,5 +15,6 @@ router.get('/my',        authenticate, getMyRequests);
 router.get('/all',       authenticate, authorize(...ADMIN_ROLES), getAllRequests);
 router.get('/:id',       authenticate, getRequestById);
 router.patch('/:id/status', authenticate, authorize(...ADMIN_ROLES), updateRequestStatus);
+router.delete('/:id',    authenticate, authorize(...ADMIN_ROLES), deleteRequest);
 
 export default router;

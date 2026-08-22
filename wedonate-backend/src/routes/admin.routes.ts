@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import {
   getAllUsers, assignRole, toggleUserActive, getDashboardStats, getAuditLogs,
-  toggleVerification, updateDocumentExpiry, createUser,
+  toggleVerification, updateDocumentExpiry, createUser, deleteUser,
   getAllDonationsAdmin, getPendingDonations, verifyDonation, rejectDonation,
   publishRequest, fulfillRequest, publishCampaign,
   getPendingOrganizations, approveOrganization, rejectOrganization,
@@ -14,6 +14,7 @@ const ADMIN = ['KEBELE_ADMIN','WOREDA_ADMIN','CITY_ADMIN','SUPER_ADMIN'];
 
 router.get('/users',               authenticate, authorize(...ADMIN), getAllUsers);
 router.post('/users',              authenticate, authorize(...ADMIN), createUser);
+router.delete('/users/:id',        authenticate, authorize(...ADMIN), deleteUser);
 router.patch('/users/:id/role',    authenticate, authorize('SUPER_ADMIN', 'CITY_ADMIN'), assignRole);
 router.patch('/users/:id/toggle-active', authenticate, authorize(...ADMIN), toggleUserActive);
 router.patch('/users/:id/toggle-verification', authenticate, authorize(...ADMIN), toggleVerification);

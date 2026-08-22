@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Search, UserCog, BadgeCheck, UserPlus, X, Eye, ExternalLink, MapPin, Phone, Mail, Building2, FileText, Calendar, Shield } from 'lucide-react';
+import { Search, UserCog, BadgeCheck, UserPlus, X, Eye, ExternalLink, MapPin, Phone, Mail, Building2, FileText, Calendar, Shield, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import api from '../../lib/api';
@@ -210,6 +210,7 @@ export default function ManageUsersPage() {
   const [editingExpiry, setEditingExpiry] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [viewingUser, setViewingUser] = useState<any>(null);
+  const [deletingUser, setDeletingUser] = useState<any>(null);
   const [createForm, setCreateForm] = useState({ firstName: '', lastName: '', email: '', password: '', phone: '', role: 'USER' });
   const { user: currentUser } = useAuth();
   const qc = useQueryClient();
@@ -248,6 +249,16 @@ export default function ManageUsersPage() {
     onError: (e: any) => toast.error(e?.response?.data?.message || 'Failed to create user'),
   });
 
+  const deleteUser = useMutation({
+    mutationFn: (userId: string) => api.delete(`/admin/users/${userId}`),
+    onSuccess: () => { toast.success('User deleted successfully'); qc.invalidateQueries({ queryKey: ['admin-users'] }); setDeletingUser(null); },
+    onError: (e: any) => toast.error(e?.response?.data?.message || 'Failed to delete user'),
+  });
+
+  const canDeleteUser = (u: any) =>
+    u.id !== currentUser?.id &&
+    (isSuperAdmin || !['SUPER_ADMIN', 'CITY_ADMIN'].includes(u.role));
+
   const roleColors: Record<string, string> = {
     SUPER_ADMIN: 'danger', CITY_ADMIN: 'danger', WOREDA_ADMIN: 'warning',
     KEBELE_ADMIN: 'warning', NGO: 'info', ORGANIZATION: 'info', GOVERNMENTAL_ORG: 'info',
@@ -258,6 +269,44 @@ export default function ManageUsersPage() {
     <div className="space-y-6">
       {/* View User Detail Modal */}
       <UserDetailModal user={viewingUser} isOpen={!!viewingUser} onClose={() => setViewingUser(null)} isDark={isDark} />
+
+      {/* Delete User Confirmation Modal */}
+      {deletingUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setDeletingUser(null)} />
+          <Card className="relative z-10 w-full max-w-md p-6">
+            <div className="flex items-start gap-4">
+              <div className={cn('w-12 h-12 rounded-full flex items-center justify-center shrink-0',
+                isDark ? 'bg-red-900/40' : 'bg-red-100')}>
+                <Trash2 className={cn('w-6 h-6', isDark ? 'text-red-400' : 'text-red-600')} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h2 className={cn('text-lg font-bold', isDark ? 'text-white' : 'text-gray-900')}>
+                  Delete User
+                </h2>
+                <p className={cn('text-sm mt-2', isDark ? 'text-slate-400' : 'text-gray-500')}>
+                  Are you sure you want to permanently delete{' '}
+                  <span className={cn('font-semibold', isDark ? 'text-white' : 'text-gray-800')}>
+                    {deletingUser.firstName} {deletingUser.lastName}
+                  </span>{' '}
+                  ({deletingUser.email})?
+                </p>
+                <p className={cn('text-xs mt-3 px-3 py-2 rounded-lg', isDark ? 'bg-red-900/20 text-red-300 border border-red-700/40' : 'bg-red-50 text-red-700 border border-red-200')}>
+                  This will also permanently remove all of their support requests, campaigns, donations, messages and notifications. This action cannot be undone.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6 justify-end">
+              <Button variant="ghost" onClick={() => setDeletingUser(null)}>Cancel</Button>
+              <Button variant="danger" leftIcon={<Trash2 className="w-4 h-4" />}
+                isLoading={deleteUser.isPending}
+                onClick={() => deleteUser.mutate(deletingUser.id)}>
+                Delete Permanently
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
 
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
@@ -402,6 +451,13 @@ export default function ManageUsersPage() {
                             className={cn('flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors',
                               isDark ? 'text-green-400 hover:text-green-300 bg-green-900/30 hover:bg-green-900/50' : 'text-green-700 hover:text-green-800 bg-green-50 hover:bg-green-100')}>
                             <UserCog className="w-3.5 h-3.5" /> {t('admin.assign_role')}
+                          </button>
+                        )}
+                        {canDeleteUser(u) && (
+                          <button onClick={() => setDeletingUser(u)}
+                            className={cn('flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors',
+                              isDark ? 'text-red-400 hover:text-red-300 bg-red-900/30 hover:bg-red-900/50' : 'text-red-700 hover:text-red-800 bg-red-50 hover:bg-red-100')}>
+                            <Trash2 className="w-3.5 h-3.5" /> Delete
                           </button>
                         )}
                       </div>

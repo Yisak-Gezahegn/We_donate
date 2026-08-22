@@ -4,8 +4,7 @@ import prisma from '../lib/prisma';
 import { createError } from '../middleware/errorHandler';
 import { AuthRequest } from '../middleware/auth.middleware';
 
-export const getAllUsers = async (req: Request, res: Response, next: NextFunction) => {
-  try {
+export const getAllUsers = async (req: Request, res: Response, next: NextFunction) => {  try {
     const { role, search } = req.query;
     const users = await prisma.user.findMany({
       where: {
@@ -22,6 +21,60 @@ export const getAllUsers = async (req: Request, res: Response, next: NextFunctio
       orderBy: { createdAt: 'desc' },
     });
     res.json({ success: true, data: users });
+  } catch (error) { next(error); }
+};
+
+export const deleteUser = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+
+    if (id === req.user!.userId) {
+      return next(createError('You cannot delete your own account', 400));
+    }
+
+    const target = await prisma.user.findUnique({ where: { id }, select: { id: true, role: true, firstName: true, lastName: true } });
+    if (!target) return next(createError('User not found', 404));
+
+    // Only a SUPER_ADMIN may delete another SUPER_ADMIN or CITY_ADMIN
+    if (['SUPER_ADMIN', 'CITY_ADMIN'].includes(target.role) && req.user!.role !== 'SUPER_ADMIN') {
+      return next(createError('Only a Super Admin can delete admin accounts', 403));
+    }
+
+    await prisma.$transaction([
+      // Donations made by the user
+      prisma.donation.deleteMany({ where: { donorId: id } }),
+      // Inspection reports authored by the user
+      prisma.inspectionReport.deleteMany({ where: { inspectorId: id } }),
+      // Updates on the user's campaigns
+      prisma.campaignUpdate.deleteMany({ where: { campaign: { userId: id } } }),
+      // Donations from other donors on the user's requests/campaigns
+      prisma.donation.deleteMany({
+        where: { OR: [{ supportRequest: { userId: id } }, { campaign: { userId: id } }] },
+      }),
+      // Inspections on the user's requests/campaigns
+      prisma.inspectionReport.deleteMany({
+        where: { OR: [{ supportRequest: { userId: id } }, { campaign: { userId: id } }] },
+      }),
+      // User's own content
+      prisma.supportRequest.deleteMany({ where: { userId: id } }),
+      prisma.campaign.deleteMany({ where: { userId: id } }),
+      // Messages and notifications involving the user
+      prisma.message.deleteMany({ where: { OR: [{ senderId: id }, { recipientId: id }] } }),
+      prisma.notification.deleteMany({ where: { userId: id } }),
+      // Keep audit history but detach it from the deleted user
+      prisma.auditLog.updateMany({ where: { userId: id }, data: { userId: null } }),
+      prisma.user.delete({ where: { id } }),
+    ]);
+
+    await prisma.auditLog.create({
+      data: {
+        id: uuidv4(), userId: req.user!.userId,
+        action: 'DELETE_USER', resource: 'user', resourceId: id,
+        details: `Deleted user ${target.firstName} ${target.lastName} (${target.role})`,
+      },
+    });
+
+    res.json({ success: true, message: 'User and all related data deleted' });
   } catch (error) { next(error); }
 };
 

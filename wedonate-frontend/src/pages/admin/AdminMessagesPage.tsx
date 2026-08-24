@@ -158,10 +158,10 @@ export default function AdminMessagesPage() {
                       ? (isDark ? 'bg-amber-900/40 text-amber-400' : 'bg-amber-100 text-amber-700')
                       : (isDark ? 'bg-green-900/40 text-green-400' : 'bg-green-100 text-green-700');
                     return (
-                      <Card key={m.id} className={cn('p-4 cursor-pointer transition-colors',
-                        !m.isRead && (isDark ? 'border-blue-800 bg-blue-900/10' : 'border-blue-200 bg-blue-50/50'),
-                        m.isRead && (isDark ? 'hover:bg-slate-700/40' : 'hover:bg-gray-50'))}
-                        onClick={() => { if (!m.isRead) markRead.mutate(m.id); setViewMessage(m); }}>
+                      <div key={m.id} className="cursor-pointer" onClick={() => { if (!m.isRead) markRead.mutate(m.id); setViewMessage(m); }}>
+                        <Card className={cn('p-4 transition-colors',
+                          !m.isRead && (isDark ? 'border-blue-800 bg-blue-900/10' : 'border-blue-200 bg-blue-50/50'),
+                          m.isRead && (isDark ? 'hover:bg-slate-700/40' : 'hover:bg-gray-50'))}>
                         <div className="flex items-start gap-3">
                           <div className={cn('w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0', iconBg)}>
                             {isContact ? <MessageSquare className="w-3.5 h-3.5" /> : <>{m.sender?.firstName?.[0]}{m.sender?.lastName?.[0]}</>}
@@ -191,7 +191,8 @@ export default function AdminMessagesPage() {
                             </div>
                           </div>
                         </div>
-                      </Card>
+                        </Card>
+                      </div>
                     );
                   })}
                 </div>

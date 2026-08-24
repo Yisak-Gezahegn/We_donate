@@ -48,7 +48,7 @@ export default function AdminDonationsPage() {
       d.referenceCode || d.chapaRef || 'N/A', d.paymentStatus,
       new Date(d.createdAt).toLocaleDateString(),
     ]);
-    const csv = [headers, ...rows].map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+    const csv = [headers, ...rows].map(r => r.map((c: any) => `"${c}"`).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');

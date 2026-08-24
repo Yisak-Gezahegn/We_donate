@@ -42,7 +42,7 @@ import AdminEventsPage from './pages/admin/AdminEventsPage';
 import AdminSettingsPage from './pages/admin/AdminSettingsPage';
 import AdminMessagesPage from './pages/admin/AdminMessagesPage';
 
-const ADMIN_ROLES = ['KEBELE_ADMIN', 'WOREDA_ADMIN', 'CITY_ADMIN', 'SUPER_ADMIN'];
+const ADMIN_ROLES = ['KEBELE_ADMIN', 'CITY_ADMIN', 'SYSTEM_ADMIN'];
 
 function ProtectedRoute({ children, roles }: { children: React.ReactNode; roles?: string[] }) {
   const { isAuthenticated, user, isLoading } = useAuth();
@@ -62,7 +62,7 @@ function ProtectedRoute({ children, roles }: { children: React.ReactNode; roles?
   return <>{children}</>;
 }
 
-const HIGH_ADMIN_ROLES = ['CITY_ADMIN', 'SUPER_ADMIN'];
+const HIGH_ADMIN_ROLES = ['CITY_ADMIN', 'SYSTEM_ADMIN'];
 
 function AdminOnlyRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, user, isLoading } = useAuth();
@@ -146,7 +146,7 @@ export default function App() {
       <Route path="/admin/testimonials"   element={AR(<AdminTestimonialsPage />)} />
       <Route path="/admin/hero-images"    element={AR(<AdminHeroImagesPage />)} />
       <Route path="/admin/audit-logs"     element={
-        <ProtectedRoute roles={['SUPER_ADMIN','CITY_ADMIN']}>
+        <ProtectedRoute roles={['SYSTEM_ADMIN','CITY_ADMIN']}>
           <DashboardLayout><AuditLogsPage /></DashboardLayout>
         </ProtectedRoute>
       } />

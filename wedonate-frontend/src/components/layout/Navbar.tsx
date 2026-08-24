@@ -39,7 +39,7 @@ export default function Navbar() {
 
   const handleLogout = () => { logout(); navigate('/'); setUserOpen(false); };
   const currentLang  = LANGUAGES.find(l => l.code === i18n.language) ?? LANGUAGES[0];
-  const isAdmin      = user && ['KEBELE_ADMIN','WOREDA_ADMIN','CITY_ADMIN','SUPER_ADMIN'].includes(user.role);
+  const isAdmin      = user && ['KEBELE_ADMIN', 'CITY_ADMIN', 'SYSTEM_ADMIN'].includes(user.role);
 
   const { data: unreadCount = 0 } = useQuery({
     queryKey: ['notifications-unread'],

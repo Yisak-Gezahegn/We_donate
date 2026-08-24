@@ -236,9 +236,9 @@ export default function MyCampaignsPage() {
   const { t } = useTranslation();
   const { isDark } = useTheme();
   const { user } = useAuth();
-  const isOrgRole = user && ['NGO','ORGANIZATION','GOVERNMENTAL_ORG'].includes(user.role);
-  const isPendingOrg = isOrgRole && (user as any).orgStatus === 'PENDING';
-  const isRejectedOrg = isOrgRole && (user as any).orgStatus === 'REJECTED';
+  const isOrgRole = user && ['ORGANIZATION'].includes(user.role);
+  const isPendingOrg = isOrgRole && (user as any).verificationStatus === 'PENDING';
+  const isRejectedOrg = isOrgRole && (user as any).verificationStatus === 'REJECTED';
 
   const { data: campaigns, isLoading } = useQuery({
     queryKey: ['my-campaigns'],

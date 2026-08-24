@@ -73,7 +73,7 @@ export default function ReportsPage() {
       d.isAnonymous ? 'Anonymous' : `${d.donor?.firstName} ${d.donor?.lastName}`,
       d.amount || 0, d.currency, d.donationType, d.paymentMethod || 'N/A', d.paymentStatus, new Date(d.createdAt).toLocaleDateString(),
     ]);
-    const csv = [headers, ...rows].map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+    const csv = [headers, ...rows].map(r => r.map((c: any) => `"${c}"`).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href = url; a.download = `report-${period}-${Date.now()}.csv`; a.click();

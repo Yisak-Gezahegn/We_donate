@@ -8,8 +8,7 @@ interface User {
   email: string;
   role: string;
   profileImage?: string;
-  orgStatus?: string;
-  isVerified?: boolean;
+  verificationStatus?: string;
 }
 
 interface AuthContextType {

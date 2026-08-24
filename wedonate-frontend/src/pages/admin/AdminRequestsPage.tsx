@@ -468,7 +468,7 @@ export default function AdminRequestsPage() {
                   </div>
                 )}
                 <span className={isDark ? 'text-slate-400' : 'text-gray-500'}>
-                  {item.user?.firstName} {item.user?.lastName} {item.user?.isVerified && <BadgeCheck className="w-3.5 h-3.5 inline text-blue-500" />} · {item.user?.email}
+                  {item.user?.firstName} {item.user?.lastName} {item.user?.verificationStatus === 'VERIFIED' && <BadgeCheck className="w-3.5 h-3.5 inline text-blue-500" />} · {item.user?.email}
                 </span>
                 <span className={isDark ? 'text-slate-600' : 'text-gray-300'}>·</span>
                 <span className={isDark ? 'text-slate-500' : 'text-gray-400'}>{formatDate(item.createdAt)}</span>

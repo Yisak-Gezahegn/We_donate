@@ -14,7 +14,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { cn, timeAgo } from '../../lib/utils';
 import api from '../../lib/api';
 
-const ADMIN_ROLES = ['KEBELE_ADMIN', 'WOREDA_ADMIN', 'CITY_ADMIN', 'SUPER_ADMIN'];
+const ADMIN_ROLES = ['KEBELE_ADMIN', 'CITY_ADMIN', 'SYSTEM_ADMIN'];
 
 interface SidebarProps {
   links: { to: string; icon: React.ElementType; label: string }[];
@@ -243,7 +243,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const isAdmin = user && ADMIN_ROLES.includes(user.role);
 
-  const ORG_ROLES = ['NGO','ORGANIZATION','GOVERNMENTAL_ORG','KEBELE_ADMIN','WOREDA_ADMIN','CITY_ADMIN','SUPER_ADMIN'];
+  const ORG_ROLES = ['ORGANIZATION','CITY_ADMIN','SYSTEM_ADMIN'];
   const canCreateCampaign = user && ORG_ROLES.includes(user.role);
 
   const donorLinks = [
@@ -391,7 +391,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </header>
 
         <main className="flex-1 p-4 lg:p-8">
-          {user && ['NGO', 'ORGANIZATION', 'GOVERNMENTAL_ORG'].includes(user.role) && (user as any).orgStatus === 'PENDING' && (
+          {user && ['ORGANIZATION'].includes(user.role) && (user as any).verificationStatus === 'PENDING' && (
             <div className={cn('mb-6 flex items-center gap-3 p-4 rounded-2xl border',
               isDark ? 'bg-amber-900/20 border-amber-700/40 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-800')}>
               <AlertTriangle className="w-5 h-5 shrink-0" />

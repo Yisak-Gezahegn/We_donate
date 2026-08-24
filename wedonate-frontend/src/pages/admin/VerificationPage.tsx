@@ -77,7 +77,7 @@ function OrgDetailModal({ org, status, onClose, onApprove, onReject, isApproving
                     {status === 'approved' ? 'Approved' : status === 'rejected' ? 'Rejected' : 'Pending'}
                   </Badge>
                   {org.orgType && <Badge variant="info">{ORG_TYPE_LABELS[org.orgType] || org.orgType}</Badge>}
-                  {org.isVerified && (
+                  {org.verificationStatus === 'VERIFIED' && (
                     <span className="inline-flex items-center gap-0.5 text-xs font-semibold text-blue-600 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400 px-2 py-0.5 rounded-full">
                       <BadgeCheck className="w-3 h-3" /> Verified
                     </span>
@@ -161,11 +161,11 @@ function OrgDetailModal({ org, status, onClose, onApprove, onReject, isApproving
               <p className={cn('text-xs font-bold', isDark ? 'text-blue-400' : 'text-blue-700')}>Verification Status</p>
             </div>
             <p className={cn('text-sm', isDark ? 'text-blue-300' : 'text-blue-600')}>
-              {org.orgStatus === 'APPROVED'
+              {org.verificationStatus === 'VERIFIED'
                 ? 'This organization is verified and can create campaigns and support requests.'
-                : org.orgStatus === 'PENDING'
+                : org.verificationStatus === 'PENDING'
                 ? 'Awaiting review — campaign and support request creation is blocked until approved.'
-                : org.orgStatus === 'REJECTED'
+                : org.verificationStatus === 'REJECTED'
                 ? 'Verification was rejected — this organization cannot create campaigns or support requests.'
                 : 'This account has no organization verification status.'}
             </p>
@@ -232,9 +232,9 @@ export default function VerificationPage() {
     onError: (e: any) => toast.error(e?.response?.data?.message || 'Failed'),
   });
 
-  const allOrgs = (users || []).filter((u: any) => ['NGO', 'ORGANIZATION', 'GOVERNMENTAL_ORG'].includes(u.role) && u.orgStatus);
-  const approvedOrgs = allOrgs.filter((u: any) => u.orgStatus === 'APPROVED');
-  const rejectedOrgs = allOrgs.filter((u: any) => u.orgStatus === 'REJECTED');
+  const allOrgs = (users || []).filter((u: any) => ['ORGANIZATION'].includes(u.role) && u.verificationStatus);
+  const approvedOrgs = allOrgs.filter((u: any) => u.verificationStatus === 'VERIFIED');
+  const rejectedOrgs = allOrgs.filter((u: any) => u.verificationStatus === 'REJECTED');
   const pendingCount = pendingOrgs?.length || 0;
 
   const getDisplayList = () => {

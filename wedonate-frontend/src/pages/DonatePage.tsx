@@ -149,7 +149,7 @@ function CampaignCard({ camp, onDonate, onDetail, isDark }: { camp: any; onDonat
             {camp._count?.donations ?? 0} donors
           </span>
           <span className={cn(isDark ? 'text-slate-400' : 'text-gray-500')}>
-            by {camp.user?.firstName} {camp.user?.lastName} {camp.user?.isVerified && <span className="inline-flex items-center gap-0.5 text-blue-500"><BadgeCheck className="w-3 h-3" /></span>}
+            by {camp.user?.firstName} {camp.user?.lastName} {camp.user?.verificationStatus === 'VERIFIED' && <span className="inline-flex items-center gap-0.5 text-blue-500"><BadgeCheck className="w-3 h-3" /></span>}
           </span>
         </div>
 
@@ -235,7 +235,7 @@ function RequestCard({ req, onDonate, onDetail, isDark }: { req: any; onDonate: 
                 {req.user?.firstName?.[0]}
               </div>
             )}
-            <span>{req.user?.firstName} {req.user?.lastName} {req.user?.isVerified && <BadgeCheck className="w-3 h-3 inline text-blue-500" />}</span>
+            <span>{req.user?.firstName} {req.user?.lastName} {req.user?.verificationStatus === 'VERIFIED' && <BadgeCheck className="w-3 h-3 inline text-blue-500" />}</span>
           </div>
           <span className={isDark ? 'text-slate-500' : 'text-gray-400'}>{formatDate(req.createdAt)}</span>
         </div>
@@ -988,7 +988,7 @@ function CreateCampaignForm({ isDark, onSuccess }: { isDark: boolean; onSuccess:
   const [fanNumber, setFanNumber] = useState('');
   const [additionalNotes, setAdditionalNotes] = useState('');
 
-  const isAdmin = user && ['KEBELE_ADMIN', 'WOREDA_ADMIN', 'CITY_ADMIN', 'SUPER_ADMIN'].includes(user.role);
+  const isAdmin = user && ['KEBELE_ADMIN', 'CITY_ADMIN', 'SYSTEM_ADMIN'].includes(user.role);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1207,7 +1207,7 @@ export default function DonatePage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  const canCreateCampaign = user && ['NGO', 'ORGANIZATION', 'GOVERNMENTAL_ORG', 'KEBELE_ADMIN', 'WOREDA_ADMIN', 'CITY_ADMIN', 'SUPER_ADMIN'].includes(user.role);
+  const canCreateCampaign = user && ['ORGANIZATION','KEBELE_ADMIN','CITY_ADMIN','SYSTEM_ADMIN'].includes(user.role);
 
   const [tab, setTab] = useState<DonateTab>('campaigns');
   const [campCat, setCampCat] = useState('');

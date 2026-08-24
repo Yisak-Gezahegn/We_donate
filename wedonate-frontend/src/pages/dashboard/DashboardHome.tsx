@@ -16,11 +16,11 @@ export default function DashboardHome() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const { isDark } = useTheme();
-  const isAdmin = user && ['KEBELE_ADMIN','WOREDA_ADMIN','CITY_ADMIN','SUPER_ADMIN'].includes(user.role);
-  const isOrgRole = user && ['NGO','ORGANIZATION','GOVERNMENTAL_ORG'].includes(user.role);
-  const isPendingOrg = isOrgRole && (user as any).orgStatus === 'PENDING';
-  const isApprovedOrg = isOrgRole && ((user as any).orgStatus === 'APPROVED' || (user as any).isVerified);
-  const isRejectedOrg = isOrgRole && (user as any).orgStatus === 'REJECTED';
+  const isAdmin = user && ['KEBELE_ADMIN', 'CITY_ADMIN', 'SYSTEM_ADMIN'].includes(user.role);
+  const isOrgRole = user && ['ORGANIZATION'].includes(user.role);
+  const isPendingOrg = isOrgRole && (user as any).verificationStatus === 'PENDING';
+  const isApprovedOrg = isOrgRole && (user as any).verificationStatus === 'VERIFIED';
+  const isRejectedOrg = isOrgRole && (user as any).verificationStatus === 'REJECTED';
 
   const { data: myDonations } = useQuery({
     queryKey: ['my-donations'],

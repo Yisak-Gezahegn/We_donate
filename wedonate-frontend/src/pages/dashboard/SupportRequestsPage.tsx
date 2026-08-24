@@ -285,7 +285,7 @@ export default function SupportRequestsPage() {
   const { user } = useAuth();
   const qc = useQueryClient();
 
-  const isAdmin = user && ['KEBELE_ADMIN', 'WOREDA_ADMIN', 'CITY_ADMIN', 'SUPER_ADMIN'].includes(user.role);
+  const isAdmin = user && ['KEBELE_ADMIN', 'CITY_ADMIN', 'SYSTEM_ADMIN'].includes(user.role);
 
   const { data: requests, isLoading } = useQuery({
     queryKey: ['my-requests'],

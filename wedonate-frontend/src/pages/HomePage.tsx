@@ -260,7 +260,7 @@ export default function HomePage() {
 
         {/* Dot indicators */}
         <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2">
-          {HERO_IMAGES.map((_, i) => (
+          {HERO_IMAGES.map((_: any, i: number) => (
             <button key={i} onClick={() => goTo(i)}
               className={cn(
                 'rounded-full transition-all duration-300',
@@ -442,7 +442,7 @@ export default function HomePage() {
             <p className={cn('text-lg', isDark ? 'text-slate-400' : 'text-gray-500')}>Voices from our community</p>
           </motion.div>
           <div className="grid md:grid-cols-3 gap-6">
-            {testimonials.map((item, i) => (
+            {testimonials.map((item: any, i: number) => (
               <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }} transition={{ delay: i * 0.15 }}>
                 <Card className="h-full flex flex-col p-7">

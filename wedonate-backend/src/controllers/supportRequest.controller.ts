@@ -182,7 +182,7 @@ export const deleteRequest = async (req: AuthRequest, res: Response, next: NextF
     const { id } = req.params;
     const request = await prisma.supportRequest.findUnique({
       where: { id },
-      select: { userId: true, title: true, kebeleId: true },
+      select: { userId: true, title: true, kebeleId: true, createdById: true },
     });
     if (!request) return next(createError('Request not found', 404));
 

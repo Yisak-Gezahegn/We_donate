@@ -27,15 +27,15 @@ export default function DashboardHome() {
     queryFn: () => api.get('/donations/my').then(r => r.data.data),
   });
 
-  const { data: myRequests } = useQuery({
+  const { data: myRequests } = useQuery<any[]>({
     queryKey: ['my-requests'],
     queryFn: () => api.get('/support-requests/my').then(r => r.data.data),
   });
 
-  const { data: myCampaigns } = useQuery({
+  const { data: myCampaigns } = useQuery<any[]>({
     queryKey: ['my-campaigns'],
     queryFn: () => api.get('/campaigns/my').then(r => r.data.data),
-    enabled: isOrgRole,
+    enabled: !!isOrgRole,
   });
 
   const { data: adminStats } = useQuery({
@@ -61,8 +61,8 @@ export default function DashboardHome() {
     },
     ...(isOrgRole && !isPendingOrg ? [{
       label: t('dashboard.my_campaigns'),
-      value: myCampaigns?.length ?? 0,
-      sub: `${myCampaigns?.filter((c: any) => c.status === 'ACTIVE').length ?? 0} ${t('dashboard.active')}`,
+      value: (myCampaigns as any[])?.length ?? 0,
+      sub: `${(myCampaigns as any[])?.filter((c: any) => c.status === 'ACTIVE').length ?? 0} ${t('dashboard.active')}`,
       icon: Target, color: 'text-amber-500', bg: isDark ? 'bg-amber-900/30' : 'bg-amber-50',
       to: '/dashboard/campaigns',
     }] : []),
@@ -245,7 +245,7 @@ export default function DashboardHome() {
         </div>
       </div>
 
-      {isOrgRole && myCampaigns && myCampaigns.length > 0 && !isPendingOrg && (
+      {isOrgRole && myCampaigns && (myCampaigns as any[]).length > 0 && !isPendingOrg && (
         <div>
           <div className="flex items-center justify-between mb-4">
             <h2 className={h2}>{t('dashboard.my_campaigns')}</h2>
@@ -254,7 +254,7 @@ export default function DashboardHome() {
             </Link>
           </div>
           <div className="grid sm:grid-cols-2 gap-4">
-            {myCampaigns.slice(0, 2).map((camp: any) => {
+            {(myCampaigns as any[]).slice(0, 2).map((camp: any) => {
               const pct = Math.min((camp.raisedAmount / camp.goalAmount) * 100, 100);
               return (
                 <Card key={camp.id} className="p-5">

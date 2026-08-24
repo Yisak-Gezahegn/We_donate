@@ -1,0 +1,14 @@
+node_modules
+dist
+build
+npm-debug.log
+.env
+.env.*
+!.env.example
+.git
+.gitignore
+uploads
+*.sqlite
+*.sqlite3
+*.db
+coverage

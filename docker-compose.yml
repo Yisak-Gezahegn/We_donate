@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+  # Development Database (Persistent)
+  db:
+    image: postgres:15-alpine
+    container_name: wedonate_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: wedonate2026
+      POSTGRES_DB: wedonate_db
+    ports:
+      - "5433:5432" # Mapped to 5433 on the host to match the existing .env
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d wedonate_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Test Database (Ephemeral/In-Memory)
+  db_test:
+    image: postgres:15-alpine
+    container_name: wedonate_test_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: wedonate2026
+      POSTGRES_DB: wedonate_test_db
+    ports:
+      - "5434:5432" # Separate port for integration tests
+    tmpfs:
+      - /var/lib/postgresql/data # Keep it entirely in memory for test speed
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d wedonate_test_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Production Backend Container
+  backend:
+    build:
+      context: ./wedonate-backend
+      dockerfile: Dockerfile
+    container_name: wedonate_backend
+    environment:
+      # Override local .env to use the 'db' service name instead of localhost
+      - DATABASE_URL=postgresql://postgres:wedonate2026@db:5432/wedonate_db
+      - JWT_SECRET=your-super-secret-jwt-key-change-in-production
+      - JWT_EXPIRES_IN=7d
+      - PORT=5000
+      - NODE_ENV=production
+      - FRONTEND_URL=http://localhost:5173
+    ports:
+      - "5000:5000"
+    depends_on:
+      db:
+        condition: service_healthy
+    # Apply safe migrations and start the server
+    command: /bin/sh -c "npx prisma migrate deploy && npm start"
+
+  # Production Frontend Container
+  frontend:
+    build:
+      context: ./wedonate-frontend
+      dockerfile: Dockerfile
+    container_name: wedonate_frontend
+    ports:
+      - "5173:80" # Map Nginx's port 80 to 5173 to match the usual development URL
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:

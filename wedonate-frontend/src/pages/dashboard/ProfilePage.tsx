@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { User, Mail, Phone, Save, Camera } from 'lucide-react';
+import { User, Mail, Phone, Save, Camera, BadgeCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
@@ -102,6 +102,15 @@ export default function ProfilePage() {
             )}>
               {roleLabel(user?.role || 'USER')}
             </span>
+            {(user as any)?.verificationStatus === 'VERIFIED' && (
+              <span className={cn(
+                'inline-flex items-center gap-1 mt-2 ml-2 text-xs px-3 py-1 rounded-full font-semibold',
+                isDark ? 'bg-blue-900/40 text-blue-400' : 'bg-blue-100 text-blue-700',
+              )}>
+                <BadgeCheck className="w-3.5 h-3.5" />
+                Verified by Kebele
+              </span>
+            )}
             <p className={cn('text-xs mt-2', isDark ? 'text-slate-500' : 'text-gray-400')}>
               {t('dashboard.camera_hint')}
             </p>

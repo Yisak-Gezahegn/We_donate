@@ -98,6 +98,14 @@ model User {
   officeAddress      String?
   rejectionReason    String?
 
+  // Identity Verification fields (for USER)
+  nationalIdFrontUrl String?
+  nationalIdBackUrl  String?
+  fanNumber          String?
+  verifiedById       String?
+  verifiedByRole     String?
+  verifiedAt         DateTime?
+
   // Assisted account fields
   accountSource      String   @default("SELF_REGISTERED")
   createdByAdminId   String?
@@ -149,9 +157,6 @@ model SupportRequest {
 
   // Admin-only information
   supportLetterUrl   String?   // official support letter image
-  nationalIdFrontUrl String?   // national ID front side image
-  nationalIdBackUrl  String?   // national ID back side image
-  fanNumber          String?   // Federal Admin Number
   additionalNotes    String?   // extra info for admin
 
   // Publishing
@@ -195,9 +200,6 @@ model Campaign {
   // Admin-only information
   supportLetterUrl   String?
   registrationUrl    String?   // org registration document
-  nationalIdFrontUrl String?   // national ID front side image
-  nationalIdBackUrl  String?   // national ID back side image
-  fanNumber          String?   // Federal Admin Number
   additionalNotes    String?
 
   // Publishing

@@ -143,18 +143,22 @@ export default function DashboardHome() {
         </motion.div>
       )}
 
-      {isAdmin && adminStats && (adminStats.pendingRequests > 0 || adminStats.pendingCampaigns > 0) && (
+      {isAdmin && adminStats && (adminStats.pendingRequests > 0 || adminStats.pendingCampaigns > 0 || adminStats.pendingVerifications > 0 || adminStats.pendingUserVerifications > 0) && (
         <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
           className={cn('flex items-center gap-4 p-4 rounded-2xl border',
             isDark ? 'bg-amber-900/20 border-amber-700/40 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-800')}>
           <Bell className="w-5 h-5 shrink-0" />
           <div className="flex-1 text-sm">
             <span className="font-semibold">{t('dashboard.admin_alert')} </span>
-            {adminStats.pendingRequests > 0 && `${adminStats.pendingRequests} ${t('dashboard.support_request')}${adminStats.pendingRequests > 1 ? 's' : ''}`}
-            {adminStats.pendingRequests > 0 && adminStats.pendingCampaigns > 0 && ' · '}
-            {adminStats.pendingCampaigns > 0 && `${adminStats.pendingCampaigns} ${t('dashboard.campaign')}${adminStats.pendingCampaigns > 1 ? 's' : ''}`}
+            {adminStats.pendingRequests > 0 && `${adminStats.pendingRequests} request${adminStats.pendingRequests > 1 ? 's' : ''} pending review`}
+            {(adminStats.pendingRequests > 0) && (adminStats.pendingCampaigns > 0 || adminStats.pendingVerifications > 0 || adminStats.pendingUserVerifications > 0) && ' · '}
+            {adminStats.pendingCampaigns > 0 && `${adminStats.pendingCampaigns} campaign${adminStats.pendingCampaigns > 1 ? 's' : ''} pending`}
+            {(adminStats.pendingCampaigns > 0) && (adminStats.pendingVerifications > 0 || adminStats.pendingUserVerifications > 0) && ' · '}
+            {adminStats.pendingVerifications > 0 && `${adminStats.pendingVerifications} verification${adminStats.pendingVerifications > 1 ? 's' : ''} pending`}
+            {(adminStats.pendingVerifications > 0) && (adminStats.pendingUserVerifications > 0) && ' · '}
+            {adminStats.pendingUserVerifications > 0 && `${adminStats.pendingUserVerifications} user verification${adminStats.pendingUserVerifications > 1 ? 's' : ''} pending`}
           </div>
-          <Link to="/admin/requests">
+          <Link to={adminStats.pendingUserVerifications > 0 && user?.role === 'KEBELE_ADMIN' ? "/admin/user-verification" : "/admin/requests"}>
             <Button size="sm" variant="secondary">{t('dashboard.review')}</Button>
           </Link>
         </motion.div>

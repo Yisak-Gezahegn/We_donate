@@ -6,7 +6,7 @@ import {
   LayoutDashboard, FileText, Bell, User,
   LogOut, Menu, X, Users, BarChart2, ClipboardList, ChevronRight, Heart, Target, Image, Quote, Images,
   Sun, Moon, Globe, ChevronDown, BadgeCheck, Receipt, Search, FileBarChart, Newspaper,
-  HelpCircle, Calendar, Mail, Settings, CheckCheck, Trash2, AlertTriangle,
+  HelpCircle, Calendar, Mail, Settings, CheckCheck, Trash2, AlertTriangle, ShieldCheck,
 } from 'lucide-react';
 import i18n from '../../i18n';
 import { useAuth } from '../../context/AuthContext';
@@ -196,7 +196,11 @@ function NotificationDropdown({ isDark }: { isDark: boolean }) {
                   isDark ? 'text-blue-400 hover:bg-slate-700' : 'text-blue-600 hover:bg-blue-50')}>
                 <CheckCheck className="w-3 h-3" /> Mark All Read
               </button>
-              <button onClick={() => clearAll.mutate()}
+              <button onClick={() => {
+                if (window.confirm('Are you sure you want to clear all notifications?')) {
+                  clearAll.mutate();
+                }
+              }}
                 className={cn('flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-lg transition-colors',
                   isDark ? 'text-red-400 hover:bg-slate-700' : 'text-red-600 hover:bg-red-50')}>
                 <Trash2 className="w-3 h-3" /> Clear All
@@ -335,6 +339,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     {
       title: 'Operations',
       links: [
+        { to: '/admin/user-verification', icon: ShieldCheck, label: 'User Verification' },
         { to: '/admin/requests', icon: ClipboardList, label: 'Support Requests' },
         { to: '/admin/users', icon: Users, label: 'Local Individuals' },
       ]

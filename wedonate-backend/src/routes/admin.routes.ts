@@ -5,6 +5,7 @@ import {
   getAllDonationsAdmin, getPendingDonations, verifyDonation, rejectDonation,
   publishRequest, fulfillRequest, publishCampaign,
   getPendingOrganizations, approveOrganization, rejectOrganization,
+  getPendingUserVerifications, approveUser, rejectUser
 } from '../controllers/admin.controller';
 import { getInspectionReports, createInspectionReport, resolveInspection, deleteInspection } from '../controllers/inspection.controller';
 import { authenticate, authorize } from '../middleware/auth.middleware';
@@ -26,6 +27,10 @@ router.patch('/users/:id/document-expiry', authenticate, authorize(...CITY_AND_S
 router.get('/organizations/pending', authenticate, authorize(...CITY_AND_SYSTEM), getPendingOrganizations);
 router.patch('/organizations/:id/approve', authenticate, authorize(...CITY_AND_SYSTEM), approveOrganization);
 router.patch('/organizations/:id/reject', authenticate, authorize(...CITY_AND_SYSTEM), rejectOrganization);
+
+router.get('/user-verifications/pending', authenticate, authorize(...ALL_ADMINS), getPendingUserVerifications);
+router.patch('/users/:id/approve', authenticate, authorize(...ALL_ADMINS), approveUser);
+router.patch('/users/:id/reject', authenticate, authorize(...ALL_ADMINS), rejectUser);
 
 router.get('/dashboard',           authenticate, authorize(...ALL_ADMINS), getDashboardStats);
 router.get('/audit-logs',          authenticate, authorize(...SYSTEM_ONLY), getAuditLogs);

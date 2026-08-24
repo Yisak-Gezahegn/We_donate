@@ -152,7 +152,7 @@ export const getDashboardStats = async (req: AuthRequest, res: Response, next: N
       pendingRequests, pendingCampaigns,
       recentDonations, totalCampaigns, fulfilledRequests,
       pendingVerifications, publishedRequests, activeCampaigns,
-      recentActivity, monthlyDonations,
+      recentActivity, monthlyDonations, pendingUserVerifications,
     ] = await Promise.all([
       prisma.user.count({ where: isKebeleAdmin ? { role: 'USER', ...kebeleWhere } : {} }),
       prisma.donation.count({ where: { paymentStatus: 'SUCCESS' } }),
@@ -182,6 +182,7 @@ export const getDashboardStats = async (req: AuthRequest, res: Response, next: N
         GROUP BY TO_CHAR("createdAt", 'YYYY-MM')
         ORDER BY month ASC
       `,
+      prisma.user.count({ where: { verificationStatus: 'PENDING', ...kebeleWhere, role: 'USER' } }),
     ]);
 
     res.json({
@@ -192,7 +193,7 @@ export const getDashboardStats = async (req: AuthRequest, res: Response, next: N
         pendingRequests, pendingCampaigns,
         recentDonations, totalCampaigns, fulfilledRequests,
         pendingVerifications, publishedRequests, activeCampaigns,
-        recentActivity, monthlyDonations,
+        recentActivity, monthlyDonations, pendingUserVerifications,
       },
     });
   } catch (error) { next(error); }
@@ -577,3 +578,117 @@ export const rejectOrganization = async (req: AuthRequest, res: Response, next: 
     res.json({ success: true, data: user, message: 'Organization rejected' });
   } catch (error) { next(error); }
 };
+
+export const getPendingUserVerifications = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const kebeleId = req.user!.kebeleId;
+    if (!kebeleId && req.user!.role !== 'SYSTEM_ADMIN') {
+      return next(createError('No kebele assigned to admin', 400));
+    }
+    
+    let whereClause: any = { role: 'USER', verificationStatus: { in: ['PENDING', 'CHANGES_REQUESTED', 'REJECTED'] } };
+    if (req.user!.role === 'KEBELE_ADMIN') {
+      whereClause.kebeleId = kebeleId;
+    }
+
+    const users = await prisma.user.findMany({
+      where: whereClause,
+      select: {
+        id: true, firstName: true, lastName: true, email: true, phone: true,
+        verificationStatus: true, nationalIdFrontUrl: true, nationalIdBackUrl: true,
+        fanNumber: true, createdAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    res.json({ success: true, data: users });
+  } catch (error) { next(error); }
+};
+
+export const approveUser = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const targetUser = await prisma.user.findUnique({
+      where: { id: req.params.id },
+      select: { id: true, verificationStatus: true, firstName: true, lastName: true, kebeleId: true },
+    });
+    
+    if (!targetUser) return next(createError('User not found', 404));
+    
+    if (req.user!.role === 'KEBELE_ADMIN' && targetUser.kebeleId !== req.user!.kebeleId) {
+      return next(createError('Unauthorized to verify user from another Kebele', 403));
+    }
+
+    const user = await prisma.user.update({
+      where: { id: req.params.id },
+      data: { 
+        verificationStatus: 'VERIFIED',
+        verifiedById: req.user!.userId,
+        verifiedByRole: req.user!.role,
+        verifiedAt: new Date()
+      },
+      select: { id: true, firstName: true, lastName: true, email: true, role: true, verificationStatus: true },
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        id: uuidv4(), userId: req.user!.userId,
+        action: 'APPROVE_USER', resource: 'user', resourceId: req.params.id,
+        details: `Approved user: ${targetUser.firstName} ${targetUser.lastName}`,
+      },
+    });
+
+    await prisma.notification.create({
+      data: {
+        id: uuidv4(), userId: req.params.id,
+        title: 'Identity Verified',
+        message: 'Your identity has been verified by the Kebele administration. You can now request support.',
+        type: 'SUCCESS',
+      },
+    });
+
+    res.json({ success: true, data: user, message: 'User approved successfully' });
+  } catch (error) { next(error); }
+};
+
+export const rejectUser = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const { reason, requestChanges } = req.body;
+    const targetUser = await prisma.user.findUnique({
+      where: { id: req.params.id },
+      select: { id: true, verificationStatus: true, firstName: true, lastName: true, kebeleId: true },
+    });
+    
+    if (!targetUser) return next(createError('User not found', 404));
+    
+    if (req.user!.role === 'KEBELE_ADMIN' && targetUser.kebeleId !== req.user!.kebeleId) {
+      return next(createError('Unauthorized to reject user from another Kebele', 403));
+    }
+
+    const newStatus = requestChanges ? 'CHANGES_REQUESTED' : 'REJECTED';
+
+    const user = await prisma.user.update({
+      where: { id: req.params.id },
+      data: { verificationStatus: newStatus as any, rejectionReason: reason || null },
+      select: { id: true, firstName: true, lastName: true, email: true, role: true, verificationStatus: true, rejectionReason: true },
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        id: uuidv4(), userId: req.user!.userId,
+        action: 'REJECT_USER', resource: 'user', resourceId: req.params.id,
+        details: `${requestChanges ? 'Requested changes for' : 'Rejected'} user: ${targetUser.firstName} ${targetUser.lastName}. Reason: ${reason || 'N/A'}`,
+      },
+    });
+
+    await prisma.notification.create({
+      data: {
+        id: uuidv4(), userId: req.params.id,
+        title: requestChanges ? 'Verification Changes Requested' : 'Verification Rejected',
+        message: `Your identity verification was ${requestChanges ? 'returned for changes' : 'rejected'}.${reason ? ` Reason: ${reason}` : ''}`,
+        type: 'ERROR',
+      },
+    });
+
+    res.json({ success: true, data: user, message: `User ${requestChanges ? 'returned for changes' : 'rejected'}` });
+  } catch (error) { next(error); }
+};
+

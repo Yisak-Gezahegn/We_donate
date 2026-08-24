@@ -10,14 +10,20 @@ import { cn } from '../../lib/utils';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 
+import ImageUpload from '../../components/ui/ImageUpload';
+
 export default function UserVerificationPage() {
   const { user, updateUser } = useAuth();
   const { isDark } = useTheme();
   const { t } = useTranslation();
   const qc = useQueryClient();
 
+  const [idFront, setIdFront] = useState('');
+  const [idBack, setIdBack] = useState('');
+  const [fanNumber, setFanNumber] = useState('');
+
   const mutation = useMutation({
-    mutationFn: () => api.post('/users/verify-request'),
+    mutationFn: (data: any) => api.post('/users/verify-request', data),
     onSuccess: (data) => {
       toast.success('Verification request submitted successfully');
       // Update local context
@@ -43,18 +49,51 @@ export default function UserVerificationPage() {
       </div>
 
       <Card className="p-6">
-        {status === 'UNVERIFIED' && (
-          <div className="text-center py-8">
-            <ShieldCheck className={cn('w-16 h-16 mx-auto mb-4', isDark ? 'text-slate-600' : 'text-gray-300')} />
-            <h2 className={cn('text-xl font-bold mb-2', isDark ? 'text-white' : 'text-gray-900')}>
-              Your Account is Not Verified
-            </h2>
-            <p className={cn('text-sm mb-6 max-w-md mx-auto', isDark ? 'text-slate-400' : 'text-gray-500')}>
-              To ensure trust on our platform, you must verify your identity with your local Kebele Administration before submitting a support request.
-            </p>
-            <Button size="lg" isLoading={mutation.isPending} onClick={() => mutation.mutate()}>
-              Request Verification
-            </Button>
+        {(status === 'UNVERIFIED' || status === 'CHANGES_REQUESTED' || status === 'REJECTED') && (
+          <div className="space-y-5 py-4">
+            <div className="text-center mb-6">
+              <ShieldCheck className={cn('w-12 h-12 mx-auto mb-2', isDark ? 'text-slate-600' : 'text-gray-300')} />
+              <h2 className={cn('text-xl font-bold mb-1', isDark ? 'text-white' : 'text-gray-900')}>
+                Identity Verification
+              </h2>
+              <p className={cn('text-sm max-w-md mx-auto', isDark ? 'text-slate-400' : 'text-gray-500')}>
+                To ensure trust on our platform, you must verify your identity with your local Kebele Administration before submitting a support request.
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div>
+                <label className={cn('block text-sm font-semibold mb-1.5', isDark ? 'text-slate-300' : 'text-gray-700')}>
+                  National ID (Front) *
+                </label>
+                <ImageUpload label="" value={idFront} onChange={setIdFront} hint="Upload front of ID" />
+              </div>
+              <div>
+                <label className={cn('block text-sm font-semibold mb-1.5', isDark ? 'text-slate-300' : 'text-gray-700')}>
+                  National ID (Back) *
+                </label>
+                <ImageUpload label="" value={idBack} onChange={setIdBack} hint="Upload back of ID" />
+              </div>
+            </div>
+
+            <div>
+              <label className={cn('block text-sm font-semibold mb-1.5', isDark ? 'text-slate-300' : 'text-gray-700')}>
+                FAN Number (Federal Admin Number) *
+              </label>
+              <input type="text" value={fanNumber} onChange={e => setFanNumber(e.target.value)}
+                className={cn('w-full px-4 py-2.5 rounded-xl border text-sm transition-all focus:ring-2 outline-none',
+                  isDark ? 'bg-slate-900/50 border-slate-700 text-white focus:border-green-500 focus:ring-green-500/20' 
+                         : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-green-500 focus:ring-green-500/20'
+                )} placeholder="Enter your FAN number" />
+            </div>
+
+            <div className="pt-4 flex justify-end">
+              <Button size="lg" isLoading={mutation.isPending} 
+                disabled={!idFront || !idBack || !fanNumber}
+                onClick={() => mutation.mutate({ nationalIdFrontUrl: idFront, nationalIdBackUrl: idBack, fanNumber })}>
+                Submit Verification
+              </Button>
+            </div>
           </div>
         )}
 
@@ -82,20 +121,7 @@ export default function UserVerificationPage() {
           </div>
         )}
 
-        {status === 'REJECTED' && (
-          <div className="text-center py-8">
-            <AlertTriangle className="w-16 h-16 mx-auto mb-4 text-red-500" />
-            <h2 className={cn('text-xl font-bold mb-2', isDark ? 'text-white' : 'text-gray-900')}>
-              Verification Rejected
-            </h2>
-            <p className={cn('text-sm mb-6 max-w-md mx-auto', isDark ? 'text-slate-400' : 'text-gray-500')}>
-              Your verification request was rejected. Please contact your Kebele Admin or update your profile information and try again.
-            </p>
-            <Button size="lg" isLoading={mutation.isPending} onClick={() => mutation.mutate()}>
-              Submit Again
-            </Button>
-          </div>
-        )}
+
       </Card>
     </div>
   );

@@ -15,7 +15,7 @@ export const createCampaign = async (req: AuthRequest, res: Response, next: Next
       telebirrAccount, cbeAccount, boaAccount, awashAccount,
       otherBankName, otherBankAccount,
       requesterPhone,
-      supportLetterUrl, registrationUrl, nationalIdFrontUrl, nationalIdBackUrl, fanNumber, additionalNotes,
+      supportLetterUrl, registrationUrl, additionalNotes,
       // Admin can create on behalf of another user
       targetUserId,
     } = req.body;
@@ -60,9 +60,6 @@ export const createCampaign = async (req: AuthRequest, res: Response, next: Next
         requesterPhone: requesterPhone || null,
         supportLetterUrl: supportLetterUrl || null,
         registrationUrl: registrationUrl || null,
-        nationalIdFrontUrl: nationalIdFrontUrl || null,
-        nationalIdBackUrl: nationalIdBackUrl || null,
-        fanNumber: fanNumber || null,
         additionalNotes: additionalNotes || null,
       },
     });

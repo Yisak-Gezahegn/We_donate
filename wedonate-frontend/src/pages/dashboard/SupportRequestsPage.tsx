@@ -71,8 +71,6 @@ function RequestDetailModal({ requestId, onClose, isDark }: { requestId: string 
 
   const docs = [
     { label: 'Support Letter', url: req?.supportLetterUrl },
-    { label: 'National ID — Front', url: req?.nationalIdFrontUrl },
-    { label: 'National ID — Back', url: req?.nationalIdBackUrl },
   ].filter(d => d.url);
 
   return (
@@ -211,7 +209,6 @@ function RequestDetailModal({ requestId, onClose, isDark }: { requestId: string 
                         </a>
                       ))}
                     </div>
-                    <DetailRow label="FAN Number" value={req.fanNumber} isDark={isDark} />
                   </div>
                 )}
 
@@ -279,9 +276,6 @@ export default function SupportRequestsPage() {
   const [viewingId, setViewingId] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState('');
   const [supportLetterUrl, setSupportLetterUrl] = useState('');
-  const [nationalIdFrontUrl, setNationalIdFrontUrl] = useState('');
-  const [nationalIdBackUrl, setNationalIdBackUrl] = useState('');
-  const [fanNumber, setFanNumber] = useState('');
   const { isDark } = useTheme();
   const { user } = useAuth();
   const qc = useQueryClient();
@@ -298,16 +292,13 @@ export default function SupportRequestsPage() {
   const { register, handleSubmit, reset, formState: { errors } } = useForm<any>();
 
   const mutation = useMutation({
-    mutationFn: (data: any) => api.post('/support-requests', { ...data, imageUrl, supportLetterUrl, nationalIdFrontUrl, nationalIdBackUrl, fanNumber }),
+    mutationFn: (data: any) => api.post('/support-requests', { ...data, imageUrl, supportLetterUrl }),
     onSuccess: () => {
       toast.success('Request submitted! Awaiting admin approval.');
       qc.invalidateQueries({ queryKey: ['my-requests'] });
       reset();
       setImageUrl('');
       setSupportLetterUrl('');
-      setNationalIdFrontUrl('');
-      setNationalIdBackUrl('');
-      setFanNumber('');
       setShowForm(false);
     },
     onError: (e: any) => toast.error(e?.response?.data?.message || 'Failed to submit'),
@@ -327,14 +318,11 @@ export default function SupportRequestsPage() {
     reset();
     setImageUrl('');
     setSupportLetterUrl('');
-    setNationalIdFrontUrl('');
-    setNationalIdBackUrl('');
-    setFanNumber('');
   };
 
   const onFormSubmit = (data: any) => {
-    if (isAdmin && (!supportLetterUrl || !nationalIdFrontUrl || !nationalIdBackUrl || !fanNumber)) {
-      toast.error('Admin users must upload a support letter, national ID (front & back), and provide FAN number');
+    if (isAdmin && !supportLetterUrl) {
+      toast.error('Admin users must upload a support letter');
       return;
     }
     mutation.mutate(data);
@@ -532,23 +520,6 @@ export default function SupportRequestsPage() {
                     onChange={setSupportLetterUrl}
                     hint="Upload a kebele support letter, hospital letter, or official document"
                   />
-                  <ImageUpload
-                    label={isAdmin ? "National ID - Front Side *" : "National ID - Front Side"}
-                    value={nationalIdFrontUrl}
-                    onChange={setNationalIdFrontUrl}
-                    hint="Upload the front side of your national ID"
-                  />
-                  <ImageUpload
-                    label={isAdmin ? "National ID - Back Side *" : "National ID - Back Side"}
-                    value={nationalIdBackUrl}
-                    onChange={setNationalIdBackUrl}
-                    hint="Upload the back side of your national ID"
-                  />
-                  <div>
-                    <label className={lbl}>{isAdmin ? "FAN Number (Federal Admin Number) *" : "FAN Number (Federal Admin Number)"}</label>
-                    <input className={sel} placeholder="e.g. 1234567890"
-                      value={fanNumber} onChange={e => setFanNumber(e.target.value)} />
-                  </div>
                   <div>
                     <label className={lbl}>Additional Notes for Admin</label>
                     <textarea rows={3}

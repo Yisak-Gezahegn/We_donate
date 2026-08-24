@@ -35,6 +35,7 @@ import AdminTestimonialsPage from './pages/admin/AdminTestimonialsPage';
 import AdminHeroImagesPage from './pages/admin/AdminHeroImagesPage';
 import PaymentReconciliationPage from './pages/admin/PaymentReconciliationPage';
 import VerificationPage from './pages/admin/VerificationPage';
+import IndividualVerificationPage from './pages/admin/IndividualVerificationPage';
 import InspectionsPage from './pages/admin/InspectionsPage';
 import ReportsPage from './pages/admin/ReportsPage';
 import AdminNewsPage from './pages/admin/AdminNewsPage';
@@ -180,6 +181,9 @@ export default function App() {
       
       {/* City & System Admins */}
       <Route path="/admin/verification"   element={withLayout(<VerificationPage />, CITY_AND_SYSTEM)} />
+      
+      {/* Kebele, City, System Admins */}
+      <Route path="/admin/user-verification" element={withLayout(<IndividualVerificationPage />, ALL_ADMINS)} />
       <Route path="/admin/donations"      element={withLayout(<AdminDonationsPage />, CITY_AND_SYSTEM)} />
       <Route path="/admin/reports"        element={withLayout(<ReportsPage />, CITY_AND_SYSTEM)} />
       <Route path="/admin/news"           element={withLayout(<AdminNewsPage />, CITY_AND_SYSTEM)} />

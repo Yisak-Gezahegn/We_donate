@@ -27,14 +27,45 @@ router.post('/profile/image', authenticate, async (req: AuthRequest, res: Respon
 
 router.post('/verify-request', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
+    const { nationalIdFrontUrl, nationalIdBackUrl, fanNumber } = req.body;
+    
+    if (!nationalIdFrontUrl || !nationalIdBackUrl || !fanNumber) {
+      res.status(400).json({ success: false, message: 'Front ID, Back ID, and FAN number are required.' });
+      return;
+    }
+
     const user = await prisma.user.findUnique({ where: { id: req.user!.userId } });
     if (!user) { res.status(404).json({ success: false, message: 'User not found' }); return; }
     if (user.verificationStatus === 'VERIFIED') { res.status(400).json({ success: false, message: 'Already verified' }); return; }
+    if (!user.kebeleId) { res.status(400).json({ success: false, message: 'No Kebele assigned to your account. Please update your profile.' }); return; }
     
     await prisma.user.update({
       where: { id: req.user!.userId },
-      data: { verificationStatus: 'PENDING' }
+      data: { 
+        verificationStatus: 'PENDING',
+        nationalIdFrontUrl,
+        nationalIdBackUrl,
+        fanNumber
+      }
     });
+
+    // Notify the Kebele Admins of that Kebele
+    const kebeleAdmins = await prisma.user.findMany({
+      where: { role: 'KEBELE_ADMIN', kebeleId: user.kebeleId }
+    });
+
+    if (kebeleAdmins.length > 0) {
+      await prisma.notification.createMany({
+        data: kebeleAdmins.map(admin => ({
+          id: uuidv4(),
+          userId: admin.id,
+          title: 'New Verification Request',
+          message: `${user.firstName} ${user.lastName} submitted their identity verification.`,
+          type: 'INFO',
+          isRead: false
+        }))
+      });
+    }
 
     res.json({ success: true, message: 'Verification requested' });
   } catch (error) { next(error); }

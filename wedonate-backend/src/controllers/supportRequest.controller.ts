@@ -17,7 +17,7 @@ export const createRequest = async (req: AuthRequest, res: Response, next: NextF
       otherBankName, otherBankAccount,
       requesterPhone,
       // Admin-only docs
-      supportLetterUrl, nationalIdFrontUrl, nationalIdBackUrl, fanNumber, additionalNotes,
+      supportLetterUrl, additionalNotes,
       // Admin can create on behalf of another user
       targetUserId,
     } = req.body;
@@ -69,9 +69,6 @@ export const createRequest = async (req: AuthRequest, res: Response, next: NextF
         otherBankAccount: otherBankAccount || null,
         requesterPhone: requesterPhone || null,
         supportLetterUrl: supportLetterUrl || null,
-        nationalIdFrontUrl: nationalIdFrontUrl || null,
-        nationalIdBackUrl:  nationalIdBackUrl  || null,
-        fanNumber:          fanNumber          || null,
         additionalNotes:    additionalNotes    || null,
         kebeleId: kebeleId || 'UNASSIGNED',
         source: (isAdmin && targetUserId) ? 'ASSISTED' : 'SELF_SERVICE',

@@ -35,6 +35,7 @@ export default function DashboardHome() {
   const { data: myCampaigns } = useQuery({
     queryKey: ['my-campaigns'],
     queryFn: () => api.get('/campaigns/my').then(r => r.data.data),
+    enabled: isOrgRole,
   });
 
   const { data: adminStats } = useQuery({
@@ -58,7 +59,7 @@ export default function DashboardHome() {
       icon: FileText, color: 'text-blue-500', bg: isDark ? 'bg-blue-900/30' : 'bg-blue-50',
       to: '/dashboard/requests',
     },
-    ...(!isPendingOrg ? [{
+    ...(isOrgRole && !isPendingOrg ? [{
       label: t('dashboard.my_campaigns'),
       value: myCampaigns?.length ?? 0,
       sub: `${myCampaigns?.filter((c: any) => c.status === 'ACTIVE').length ?? 0} ${t('dashboard.active')}`,
@@ -244,7 +245,7 @@ export default function DashboardHome() {
         </div>
       </div>
 
-      {myCampaigns && myCampaigns.length > 0 && !isPendingOrg && (
+      {isOrgRole && myCampaigns && myCampaigns.length > 0 && !isPendingOrg && (
         <div>
           <div className="flex items-center justify-between mb-4">
             <h2 className={h2}>{t('dashboard.my_campaigns')}</h2>

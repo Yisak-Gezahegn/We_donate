@@ -22,6 +22,7 @@ import SupportRequestsPage from './pages/dashboard/SupportRequestsPage';
 import MyCampaignsPage from './pages/dashboard/MyCampaignsPage';
 import NotificationsPage from './pages/dashboard/NotificationsPage';
 import ProfilePage from './pages/dashboard/ProfilePage';
+import UserVerificationPage from './pages/dashboard/UserVerificationPage';
 
 // Admin Pages
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -164,7 +165,8 @@ export default function App() {
       <Route path="/dashboard"                  element={<AdminOnlyRoute>{DR(<DashboardHome />)}</AdminOnlyRoute>} />
       <Route path="/dashboard/donate"           element={<AdminOnlyRoute>{DR(<DonatePage />)}</AdminOnlyRoute>} />
       <Route path="/dashboard/donations"        element={<AdminOnlyRoute>{DR(<MyDonationsPage />)}</AdminOnlyRoute>} />
-      <Route path="/dashboard/requests"         element={<AdminOnlyRoute>{DR(<SupportRequestsPage />)}</AdminOnlyRoute>} />
+      <Route path="/dashboard/requests"         element={<ProtectedRoute>{DR(<SupportRequestsPage />)}</ProtectedRoute>} />
+      <Route path="/dashboard/verification"     element={<ProtectedRoute>{DR(<UserVerificationPage />)}</ProtectedRoute>} />
       <Route path="/dashboard/campaigns"        element={<AdminOnlyRoute>{DR(<MyCampaignsPage />)}</AdminOnlyRoute>} />
       <Route path="/dashboard/notifications"    element={DR(<NotificationsPage />)} />
       <Route path="/dashboard/profile"          element={DR(<ProfilePage />)} />

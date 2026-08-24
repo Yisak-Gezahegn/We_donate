@@ -434,7 +434,8 @@ export default function ManageUsersPage() {
                             isDark ? 'text-blue-400 hover:text-blue-300 bg-blue-900/30 hover:bg-blue-900/50' : 'text-blue-700 hover:text-blue-800 bg-blue-50 hover:bg-blue-100')}>
                           <Eye className="w-3.5 h-3.5" /> View Info
                         </button>
-                        {['ORGANIZATION'].includes(u.role) && ['CITY_ADMIN', 'SYSTEM_ADMIN'].includes(currentUser?.role || '') && (
+                        {((['ORGANIZATION'].includes(u.role) && ['CITY_ADMIN', 'SYSTEM_ADMIN'].includes(currentUser?.role || '')) || 
+                          (['USER'].includes(u.role) && ['KEBELE_ADMIN', 'CITY_ADMIN', 'SYSTEM_ADMIN'].includes(currentUser?.role || ''))) && (
                           <button onClick={() => toggleVerification.mutate(u.id)}
                             className={cn('flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors',
                               u.verificationStatus === 'VERIFIED'

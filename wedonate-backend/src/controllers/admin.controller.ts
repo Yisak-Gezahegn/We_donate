@@ -254,8 +254,15 @@ export const toggleVerification = async (req: AuthRequest, res: Response, next: 
     });
     if (!targetUser) return next(createError('User not found', 404));
 
-    if (targetUser.role !== 'ORGANIZATION') {
-      return next(createError('Only organizations can be verified', 400));
+    if (targetUser.role === 'ORGANIZATION' && !['CITY_ADMIN', 'SYSTEM_ADMIN'].includes(req.user!.role)) {
+      return next(createError('Only City or System Admins can verify organizations', 403));
+    }
+
+    if (targetUser.role === 'USER' && req.user!.role === 'KEBELE_ADMIN') {
+      const targetUserFull = await prisma.user.findUnique({ where: { id: req.params.id }, select: { kebeleId: true } });
+      if (targetUserFull?.kebeleId !== req.user!.kebeleId) {
+        return next(createError('You can only verify users in your Kebele', 403));
+      }
     }
 
     const newVerifiedState = targetUser.verificationStatus !== 'VERIFIED';

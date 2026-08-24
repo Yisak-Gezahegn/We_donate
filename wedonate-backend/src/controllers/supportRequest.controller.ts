@@ -231,7 +231,7 @@ export const updateRequestStatus = async (req: AuthRequest, res: Response, next:
     }
 
     // Anti-self-approval rule
-    if (['PUBLISHED', 'FULFILLED', 'REJECTED'].includes(status) && (request.createdById === req.user!.userId || request.userId === req.user!.userId)) {
+    if (['APPROVED', 'PUBLISHED', 'FULFILLED', 'REJECTED'].includes(status) && (request.createdById === req.user!.userId || request.userId === req.user!.userId)) {
       return next(createError('Conflict of Interest: You cannot approve or reject a request you created', 403));
     }
 

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useLocation } from 'react-router-dom';
 import { CheckCircle, XCircle, ChevronDown, ChevronUp, Eye, ExternalLink, BadgeCheck, Send, CheckSquare, Plus, X, FileText, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
@@ -138,13 +139,8 @@ function CreateForUserModal({ isOpen, onClose, isDark }: { isOpen: boolean; onCl
 
   const handleSubmit = () => {
     if (!targetUserId) { toast.error('Please select a user'); return; }
-    if (createType === 'requests') {
-      if (!reqForm.title || !reqForm.description || !reqForm.category) { toast.error('Fill required fields'); return; }
-      createRequest.mutate({ ...reqForm, targetUserId });
-    } else {
-      if (!campForm.title || !campForm.description || !campForm.category || !campForm.goalAmount) { toast.error('Fill required fields'); return; }
-      createCampaign.mutate({ ...campForm, targetUserId });
-    }
+    if (!reqForm.title || !reqForm.description || !reqForm.category) { toast.error('Fill required fields'); return; }
+    createRequest.mutate({ ...reqForm, targetUserId });
   };
 
   if (!isOpen) return null;
@@ -154,37 +150,25 @@ function CreateForUserModal({ isOpen, onClose, isDark }: { isOpen: boolean; onCl
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
       <Card className="relative z-10 w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
         <div className="flex items-center justify-between mb-5">
-          <h2 className={cn('text-lg font-bold', isDark ? 'text-white' : 'text-gray-900')}>Create for User</h2>
+          <h2 className={cn('text-lg font-bold', isDark ? 'text-white' : 'text-gray-900')}>Create Assisted Request</h2>
           <button onClick={onClose} className={cn('p-1.5 rounded-lg', isDark ? 'hover:bg-slate-700 text-slate-400' : 'hover:bg-gray-100 text-gray-500')}>
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Type Toggle */}
-        <div className={cn('flex rounded-xl p-1 mb-4 border', isDark ? 'bg-slate-800 border-slate-700' : 'bg-gray-100 border-gray-200')}>
-          {(['requests', 'campaigns'] as ViewMode[]).map(v => (
-            <button key={v} type="button" onClick={() => setCreateType(v)}
-              className={cn('flex-1 py-2 rounded-lg text-sm font-semibold transition-all capitalize',
-                createType === v ? 'bg-green-600 text-white shadow' : (isDark ? 'text-slate-400 hover:text-white' : 'text-gray-500 hover:text-gray-900'))}>
-              {v === 'requests' ? 'Support Request' : 'Campaign'}
-            </button>
-          ))}
-        </div>
-
         {/* User Selector */}
         <div className="mb-4">
-          <label className={label}>Select User *</label>
+          <label className={label}>Select Beneficiary (Citizen) *</label>
           <select value={targetUserId} onChange={e => setTargetUserId(e.target.value)}
             className={cn(input, !targetUserId && 'opacity-60')}>
-            <option value="">— Choose a user —</option>
+            <option value="">— Choose a local citizen —</option>
             {users?.map((u: any) => (
-              <option key={u.id} value={u.id}>{u.firstName} {u.lastName} ({u.email}) — {u.role}</option>
+              <option key={u.id} value={u.id}>{u.firstName} {u.lastName} ({u.email})</option>
             ))}
           </select>
         </div>
 
         {/* Support Request Form */}
-        {createType === 'requests' && (
           <div className="space-y-3">
             <div>
               <label className={label}>Title *</label>
@@ -261,84 +245,12 @@ function CreateForUserModal({ isOpen, onClose, isDark }: { isOpen: boolean; onCl
                 <textarea className={cn(input, 'resize-none')} rows={2} value={reqForm.additionalNotes} onChange={e => setReqForm(p => ({ ...p, additionalNotes: e.target.value }))} /></div>
             </div>
           </div>
-        )}
-
-        {/* Campaign Form */}
-        {createType === 'campaigns' && (
-          <div className="space-y-3">
-            <div>
-              <label className={label}>Title *</label>
-              <input className={input} placeholder="Campaign title" value={campForm.title}
-                onChange={e => setCampForm(p => ({ ...p, title: e.target.value }))} />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className={label}>Category *</label>
-                <select className={input} value={campForm.category}
-                  onChange={e => setCampForm(p => ({ ...p, category: e.target.value }))}>
-                  {CAMPAIGN_CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className={label}>Goal Amount (ETB) *</label>
-                <input type="number" className={input} placeholder="Required" value={campForm.goalAmount}
-                  onChange={e => setCampForm(p => ({ ...p, goalAmount: e.target.value }))} />
-              </div>
-            </div>
-            <div>
-              <label className={label}>Deadline</label>
-              <input type="date" className={input} value={campForm.deadline}
-                onChange={e => setCampForm(p => ({ ...p, deadline: e.target.value }))} />
-            </div>
-            <div>
-              <label className={label}>Description *</label>
-              <textarea className={cn(input, 'resize-none')} rows={3} placeholder="Describe the campaign..."
-                value={campForm.description} onChange={e => setCampForm(p => ({ ...p, description: e.target.value }))} />
-            </div>
-            <div>
-              <label className={label}>Campaign Image</label>
-              <ImageUpload label="" value={campForm.imageUrl} onChange={v => setCampForm(p => ({ ...p, imageUrl: v }))}
-                hint="Optional image" accept="image/*" />
-            </div>
-            <div className={cn('rounded-xl p-4 space-y-3', isDark ? 'bg-slate-700/50 border border-slate-600' : 'bg-green-50 border border-green-200')}>
-              <p className={cn('text-xs font-bold', isDark ? 'text-green-400' : 'text-green-700')}>Payment Accounts</p>
-              <div className="grid grid-cols-2 gap-3">
-                <div><label className={label}>TeleBirr</label><input className={input} value={campForm.telebirrAccount} onChange={e => setCampForm(p => ({ ...p, telebirrAccount: e.target.value }))} /></div>
-                <div><label className={label}>CBE</label><input className={input} value={campForm.cbeAccount} onChange={e => setCampForm(p => ({ ...p, cbeAccount: e.target.value }))} /></div>
-                <div><label className={label}>BOA</label><input className={input} value={campForm.boaAccount} onChange={e => setCampForm(p => ({ ...p, boaAccount: e.target.value }))} /></div>
-                <div><label className={label}>Awash</label><input className={input} value={campForm.awashAccount} onChange={e => setCampForm(p => ({ ...p, awashAccount: e.target.value }))} /></div>
-              </div>
-              <div className={cn('pt-3 border-t', isDark ? 'border-slate-600' : 'border-green-200')}>
-                <label className={label}>Contact Phone (for item donations)</label>
-                <input className={input} placeholder="+251 9XX XXX XXX" value={campForm.requesterPhone} onChange={e => setCampForm(p => ({ ...p, requesterPhone: e.target.value }))} />
-              </div>
-            </div>
-            <div className={cn('rounded-xl p-4 space-y-3', isDark ? 'bg-amber-900/20 border border-amber-700/40' : 'bg-amber-50 border border-amber-200')}>
-              <p className={cn('text-xs font-bold', isDark ? 'text-amber-400' : 'text-amber-700')}>Support Letter & Documents</p>
-              <div><label className={label}>Support Letter *</label>
-                <ImageUpload label="" value={campForm.supportLetterUrl} onChange={v => setCampForm(p => ({ ...p, supportLetterUrl: v }))}
-                  hint="Upload the support letter" accept=".pdf,image/*" /></div>
-              <div className="grid grid-cols-2 gap-3">
-                <div><label className={label}>National ID Front *</label>
-                  <ImageUpload label="" value={campForm.nationalIdFrontUrl} onChange={v => setCampForm(p => ({ ...p, nationalIdFrontUrl: v }))}
-                    hint="Front side" accept=".pdf,image/*" /></div>
-                <div><label className={label}>National ID Back *</label>
-                  <ImageUpload label="" value={campForm.nationalIdBackUrl} onChange={v => setCampForm(p => ({ ...p, nationalIdBackUrl: v }))}
-                    hint="Back side" accept=".pdf,image/*" /></div>
-              </div>
-              <div><label className={label}>FAN Number *</label>
-                <input className={input} placeholder="Federal Admin Number" value={campForm.fanNumber} onChange={e => setCampForm(p => ({ ...p, fanNumber: e.target.value }))} /></div>
-              <div><label className={label}>Additional Notes</label>
-                <textarea className={cn(input, 'resize-none')} rows={2} value={campForm.additionalNotes} onChange={e => setCampForm(p => ({ ...p, additionalNotes: e.target.value }))} /></div>
-            </div>
-          </div>
-        )}
 
         <div className="flex gap-3 mt-5 pt-4 border-t border-gray-100 dark:border-slate-700">
           <Button onClick={handleSubmit}
-            isLoading={createRequest.isPending || createRequest.isPending}
+            isLoading={createRequest.isPending}
             disabled={!targetUserId}>
-            <Plus className="w-4 h-4 mr-1" /> Create {createType === 'requests' ? 'Request' : 'Campaign'}
+            <Plus className="w-4 h-4 mr-1" /> Create Assisted Request
           </Button>
           <Button variant="ghost" onClick={() => { resetForm(); onClose(); }}>Cancel</Button>
         </div>
@@ -376,12 +288,12 @@ export default function AdminRequestsPage() {
   const updateReq = useMutation({
     mutationFn: ({ id, status, adminNote }: any) => api.patch(`/support-requests/${id}/status`, { status, adminNote }),
     onSuccess: () => { toast.success(t('admin.updated')); qc.invalidateQueries({ queryKey: ['admin-requests'] }); },
-    onError: () => toast.error(t('admin.failed')),
+    onError: (e: any) => toast.error(e?.response?.data?.message || t('admin.failed')),
   });
   const updateCamp = useMutation({
     mutationFn: ({ id, status, adminNote }: any) => api.patch(`/campaigns/${id}/status`, { status, adminNote }),
     onSuccess: () => { toast.success(t('admin.updated')); qc.invalidateQueries({ queryKey: ['admin-campaigns'] }); },
-    onError: () => toast.error(t('admin.failed')),
+    onError: (e: any) => toast.error(e?.response?.data?.message || t('admin.failed')),
   });
   const publishReq = useMutation({
     mutationFn: (id: string) => api.patch(`/admin/requests/${id}/publish`),
@@ -459,6 +371,9 @@ export default function AdminRequestsPage() {
                 )}
                 {item.isPublished && (
                   <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-semibold">Published</span>
+                )}
+                {item.source === 'ASSISTED' && (
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 font-semibold">Assisted</span>
                 )}
               </div>
               <p className={cn('text-xs line-clamp-2 mb-2', isDark ? 'text-slate-400' : 'text-gray-600')}>{item.description}</p>
@@ -609,6 +524,7 @@ export default function AdminRequestsPage() {
                   ? `Yes${item.publishedAt ? ` — ${formatDate(item.publishedAt)}` : ''}`
                   : null
               } isDark={isDark} />
+              <DetailRow label="Source" value={item.source === 'ASSISTED' ? 'Assisted (Created by Admin)' : 'Self-Service'} isDark={isDark} />
               <DetailRow label="Submitted" value={formatDate(item.createdAt)} isDark={isDark} />
               <DetailRow label="Last Updated" value={formatDate(item.updatedAt)} isDark={isDark} />
             </div>
@@ -742,9 +658,9 @@ export default function AdminRequestsPage() {
           <p className={cn('text-sm mt-1', isDark ? 'text-slate-400' : 'text-gray-500')}>{t('admin.approvals_subtitle')}</p>
         </div>
         <div className="flex gap-3">
-          {isKebeleAdmin && (
+          {isKebeleAdmin && view === 'requests' && (
             <Button leftIcon={<Plus className="w-4 h-4" />} onClick={() => setShowCreateModal(true)}>
-              Create for User
+              Create Assisted Request
             </Button>
           )}
 

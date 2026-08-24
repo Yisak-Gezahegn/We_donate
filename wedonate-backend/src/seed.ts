@@ -16,7 +16,7 @@ async function main() {
   await prisma.user.upsert({
     where: { email: 'superadmin@wedonate.et' },
     update: { password: hashedSuperAdmin },
-    create: { id: uuidv4(), firstName: 'Super', lastName: 'Admin', email: 'superadmin@wedonate.et', password: hashedSuperAdmin, role: 'SYSTEM_ADMIN', verificationStatus: 'VERIFIED' },
+    create: { id: uuidv4(), firstName: 'System', lastName: 'Admin', email: 'superadmin@wedonate.et', password: hashedSuperAdmin, role: 'SYSTEM_ADMIN', verificationStatus: 'VERIFIED' },
   });
 
   await prisma.user.upsert({
@@ -39,15 +39,29 @@ async function main() {
 
   const donor = await prisma.user.upsert({
     where: { email: 'abebe@example.com' },
-    update: { password: hashedUser },
-    create: { id: uuidv4(), firstName: 'Abebe', lastName: 'Kebede', email: 'abebe@example.com', phone: '+251911234567', password: hashedUser, role: 'USER', verificationStatus: 'VERIFIED' },
+    update: { password: hashedUser, kebeleId: 'K-01' },
+    create: { id: uuidv4(), firstName: 'Abebe', lastName: 'Kebede', email: 'abebe@example.com', phone: '+251911234567', password: hashedUser, role: 'USER', verificationStatus: 'VERIFIED', kebeleId: 'K-01' },
   });
 
   const user2 = await prisma.user.upsert({
     where: { email: 'liya@example.com' },
-    update: { password: hashedUser },
-    create: { id: uuidv4(), firstName: 'Liya', lastName: 'Tadesse', email: 'liya@example.com', phone: '+251922345678', password: hashedUser, role: 'USER', verificationStatus: 'VERIFIED' },
+    update: { password: hashedUser, kebeleId: 'K-01' },
+    create: { id: uuidv4(), firstName: 'Liya', lastName: 'Tadesse', email: 'liya@example.com', phone: '+251922345678', password: hashedUser, role: 'USER', verificationStatus: 'VERIFIED', kebeleId: 'K-01' },
   });
+
+  const outOfScopeUser = await prisma.user.upsert({
+    where: { email: 'out-of-scope@example.com' },
+    update: { password: hashedUser, kebeleId: 'K-02' },
+    create: { id: uuidv4(), firstName: 'Other', lastName: 'User', email: 'out-of-scope@example.com', phone: '+251933456789', password: hashedUser, role: 'USER', verificationStatus: 'VERIFIED', kebeleId: 'K-02' },
+  });
+
+  const unverifiedUser = await prisma.user.upsert({
+    where: { email: 'unverified@example.com' },
+    update: { password: hashedUser, kebeleId: 'K-01' },
+    create: { id: uuidv4(), firstName: 'Unverified', lastName: 'Citizen', email: 'unverified@example.com', phone: '+251944567890', password: hashedUser, role: 'USER', verificationStatus: 'PENDING', kebeleId: 'K-01' },
+  });
+
+  const kebeleAdmin = await prisma.user.findUnique({ where: { email: 'kebeleadmin@adama.et' } });
 
   // Sample approved support requests
   await prisma.supportRequest.createMany({
@@ -56,6 +70,10 @@ async function main() {
       { id: uuidv4(), userId: donor.id, title: 'Food for My Family', description: 'My family of 5 needs food support after losing our income source. We have 3 young children.', category: 'FOOD', urgencyLevel: 5, goalAmount: 5000, raisedAmount: 1200, status: 'PUBLISHED' },
       { id: uuidv4(), userId: user2.id, title: 'Medical Treatment Support', description: 'I need financial help for my mother\'s surgery. The total cost is ETB 15,000.', category: 'MEDICINE', urgencyLevel: 5, goalAmount: 15000, raisedAmount: 4500, status: 'PUBLISHED' },
       { id: uuidv4(), userId: donor.id, title: 'School Supplies for Children', description: 'Three children need school uniforms and supplies to continue their education.', category: 'CLOTHES', urgencyLevel: 3, goalAmount: 3000, raisedAmount: 800, status: 'PUBLISHED' },
+      { 
+        id: uuidv4(), userId: unverifiedUser.id, createdById: kebeleAdmin?.id, kebeleId: 'K-01',
+        title: 'Assisted: Rebuilding Home', description: 'Beneficiary lost home in a fire and needs assistance. Request created by Kebele Admin.', category: 'OTHER', urgencyLevel: 4, goalAmount: 10000, raisedAmount: 0, status: 'PENDING_REVIEW', source: 'ASSISTED' 
+      },
     ],
   });
 

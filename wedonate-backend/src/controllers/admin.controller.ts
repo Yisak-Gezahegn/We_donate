@@ -142,8 +142,11 @@ export const toggleUserActive = async (req: AuthRequest, res: Response, next: Ne
   } catch (error) { next(error); }
 };
 
-export const getDashboardStats = async (_req: Request, res: Response, next: NextFunction) => {
+export const getDashboardStats = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
+    const isKebeleAdmin = req.user!.role === 'KEBELE_ADMIN';
+    const kebeleWhere = isKebeleAdmin ? { kebeleId: req.user!.kebeleId || 'UNASSIGNED' } : {};
+    const userWhere = isKebeleAdmin ? { userId: req.user!.userId } : {};
     const [
       totalUsers, totalDonations, totalAmountResult,
       pendingRequests, pendingCampaigns,
@@ -151,23 +154,24 @@ export const getDashboardStats = async (_req: Request, res: Response, next: Next
       pendingVerifications, publishedRequests, activeCampaigns,
       recentActivity, monthlyDonations,
     ] = await Promise.all([
-      prisma.user.count(),
+      prisma.user.count({ where: isKebeleAdmin ? { role: 'USER', ...kebeleWhere } : {} }),
       prisma.donation.count({ where: { paymentStatus: 'SUCCESS' } }),
       prisma.donation.aggregate({ _sum: { amount: true }, where: { paymentStatus: 'SUCCESS' } }),
-      prisma.supportRequest.count({ where: { status: 'PENDING_REVIEW' } }),
-      prisma.campaign.count({ where: { status: 'PENDING_REVIEW' } }),
+      prisma.supportRequest.count({ where: { status: 'PENDING_REVIEW', ...kebeleWhere } }),
+      isKebeleAdmin ? Promise.resolve(0) : prisma.campaign.count({ where: { status: 'PENDING_REVIEW' } }),
       prisma.donation.findMany({
         take: 10, where: { paymentStatus: 'SUCCESS' },
         include: { donor: { select: { firstName: true, lastName: true } } },
         orderBy: { createdAt: 'desc' },
       }),
-      prisma.campaign.count(),
-      prisma.supportRequest.count({ where: { status: 'FULFILLED' } }),
-      prisma.donation.count({ where: { paymentStatus: 'PENDING' } }),
-      prisma.supportRequest.count({ where: { isPublished: true } }),
-      prisma.campaign.count({ where: { status: 'PUBLISHED' } }),
+      isKebeleAdmin ? Promise.resolve(0) : prisma.campaign.count(),
+      prisma.supportRequest.count({ where: { status: 'FULFILLED', ...kebeleWhere } }),
+      isKebeleAdmin ? Promise.resolve(0) : prisma.donation.count({ where: { paymentStatus: 'PENDING' } }),
+      prisma.supportRequest.count({ where: { isPublished: true, ...kebeleWhere } }),
+      isKebeleAdmin ? Promise.resolve(0) : prisma.campaign.count({ where: { status: 'PUBLISHED' } }),
       prisma.auditLog.findMany({
         take: 10,
+        where: userWhere,
         include: { user: { select: { firstName: true, lastName: true, profileImage: true } } },
         orderBy: { createdAt: 'desc' },
       }),
@@ -310,6 +314,40 @@ export const createUser = async (req: AuthRequest, res: Response, next: NextFunc
       data: { id: uuidv4(), userId: req.user!.userId, action: 'CREATE_USER', resource: 'user', resourceId: user.id, details: `Created user ${firstName} ${lastName} (${email})` },
     });
     res.status(201).json({ success: true, data: user, message: 'User created successfully' });
+  } catch (error) { next(error); }
+};
+
+export const createAssistedUser = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const { firstName, lastName, phone, password } = req.body;
+    if (!firstName || !lastName || !password) return next(createError('First name, last name, and password are required', 400));
+    
+    if (req.user!.role !== 'KEBELE_ADMIN') return next(createError('Only Kebele Admins can create assisted accounts', 403));
+
+    const email = `assisted.${uuidv4().split('-')[0]}@wedonate.local`;
+    
+    const user = await prisma.user.create({
+      data: {
+        id: uuidv4(),
+        firstName, lastName, email, password, phone: phone || null,
+        role: 'USER',
+        kebeleId: req.user!.kebeleId,
+        verificationStatus: 'VERIFIED',
+        accountSource: 'ASSISTED',
+        createdByAdminId: req.user!.userId,
+      },
+      select: { id: true, firstName: true, lastName: true, phone: true, role: true, kebeleId: true, accountSource: true },
+    });
+    
+    await prisma.auditLog.create({
+      data: {
+        id: uuidv4(), userId: req.user!.userId,
+        action: 'CREATE_ASSISTED_USER', resource: 'user', resourceId: user.id,
+        details: `Created assisted user ${firstName} ${lastName}`
+      },
+    });
+    
+    res.status(201).json({ success: true, data: user, message: 'Assisted user created successfully' });
   } catch (error) { next(error); }
 };
 

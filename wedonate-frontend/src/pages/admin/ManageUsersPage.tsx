@@ -206,13 +206,16 @@ export default function ManageUsersPage() {
   const [assigningUser, setAssigningUser] = useState<string | null>(null);
   const [editingExpiry, setEditingExpiry] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showAssistedModal, setShowAssistedModal] = useState(false);
   const [viewingUser, setViewingUser] = useState<any>(null);
   const [deletingUser, setDeletingUser] = useState<any>(null);
   const [createForm, setCreateForm] = useState({ firstName: '', lastName: '', email: '', password: '', phone: '', role: 'USER' });
+  const [assistedForm, setAssistedForm] = useState({ firstName: '', lastName: '', phone: '', password: '' });
   const { user: currentUser } = useAuth();
   const qc = useQueryClient();
 
   const isSystemAdmin = currentUser?.role === 'SYSTEM_ADMIN';
+  const isKebeleAdmin = currentUser?.role === 'KEBELE_ADMIN';
   const canAssignRole = isSystemAdmin;
 
   const { data: users, isLoading } = useQuery({
@@ -243,6 +246,12 @@ export default function ManageUsersPage() {
     mutationFn: (data: any) => api.post('/admin/users', data),
     onSuccess: () => { toast.success('User created successfully'); qc.invalidateQueries({ queryKey: ['admin-users'] }); setShowCreateModal(false); setCreateForm({ firstName: '', lastName: '', email: '', password: '', phone: '', role: 'USER' }); },
     onError: (e: any) => toast.error(e?.response?.data?.message || 'Failed to create user'),
+  });
+
+  const createAssistedUser = useMutation({
+    mutationFn: (data: any) => api.post('/admin/users/assisted', data),
+    onSuccess: () => { toast.success('Assisted user created successfully'); qc.invalidateQueries({ queryKey: ['admin-users'] }); setShowAssistedModal(false); setAssistedForm({ firstName: '', lastName: '', phone: '', password: '' }); },
+    onError: (e: any) => toast.error(e?.response?.data?.message || 'Failed to create assisted user'),
   });
 
   const deleteUser = useMutation({
@@ -313,6 +322,11 @@ export default function ManageUsersPage() {
             Create User
           </Button>
         )}
+        {isKebeleAdmin && (
+          <Button leftIcon={<UserPlus className="w-4 h-4" />} onClick={() => setShowAssistedModal(true)}>
+            Create Assisted Account
+          </Button>
+        )}
       </div>
 
       {/* Filters */}
@@ -362,6 +376,39 @@ export default function ManageUsersPage() {
                   Create User
                 </Button>
                 <Button variant="ghost" onClick={() => setShowCreateModal(false)}>Cancel</Button>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Create Assisted User Modal */}
+      {showAssistedModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowAssistedModal(false)} />
+          <Card className="relative z-10 w-full max-w-lg p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className={cn('text-lg font-bold', isDark ? 'text-white' : 'text-gray-900')}>Create Assisted Account</h2>
+              <button onClick={() => setShowAssistedModal(false)} className={cn('p-1.5 rounded-lg', isDark ? 'hover:bg-slate-700 text-slate-400' : 'hover:bg-gray-100 text-gray-500')}>
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <p className={cn('text-sm mb-4', isDark ? 'text-slate-400' : 'text-gray-500')}>
+              Create an account for a community member who needs assistance. Their account will be linked to your Kebele.
+            </p>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <Input label="First Name" value={assistedForm.firstName} onChange={e => setAssistedForm(p => ({ ...p, firstName: e.target.value }))} placeholder="First name" />
+                <Input label="Last Name" value={assistedForm.lastName} onChange={e => setAssistedForm(p => ({ ...p, lastName: e.target.value }))} placeholder="Last name" />
+              </div>
+              <Input label="Phone (optional)" value={assistedForm.phone} onChange={e => setAssistedForm(p => ({ ...p, phone: e.target.value }))} placeholder="+251..." />
+              <Input label="Password" type="password" value={assistedForm.password} onChange={e => setAssistedForm(p => ({ ...p, password: e.target.value }))} placeholder="Set a password for them" />
+              <div className="flex gap-3 pt-2">
+                <Button onClick={() => createAssistedUser.mutate(assistedForm)} isLoading={createAssistedUser.isPending}
+                  disabled={!assistedForm.firstName || !assistedForm.lastName || !assistedForm.password}>
+                  Create Account
+                </Button>
+                <Button variant="ghost" onClick={() => setShowAssistedModal(false)}>Cancel</Button>
               </div>
             </div>
           </Card>

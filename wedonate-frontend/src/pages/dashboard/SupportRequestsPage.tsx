@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { Plus, X, FileText, Eye, Heart, CreditCard, ShieldCheck } from 'lucide-react';
@@ -284,8 +285,10 @@ export default function SupportRequestsPage() {
   const { isDark } = useTheme();
   const { user } = useAuth();
   const qc = useQueryClient();
+  const navigate = useNavigate();
 
   const isAdmin = user && ['KEBELE_ADMIN', 'CITY_ADMIN', 'SYSTEM_ADMIN'].includes(user.role);
+  const isVerified = (user as any)?.verificationStatus === 'VERIFIED';
 
   const { data: requests, isLoading } = useQuery({
     queryKey: ['my-requests'],
@@ -350,7 +353,14 @@ export default function SupportRequestsPage() {
             Post a request — admin will review and approve it
           </p>
         </div>
-        <Button size="sm" leftIcon={<Plus className="w-4 h-4" />} onClick={() => setShowForm(true)}>
+        <Button size="sm" leftIcon={<Plus className="w-4 h-4" />} onClick={() => {
+          if (!isVerified && !isAdmin) {
+            toast.error('Your account must be verified before you can request support.');
+            navigate('/dashboard/verification');
+            return;
+          }
+          setShowForm(true);
+        }}>
           New Request
         </Button>
       </div>
@@ -598,7 +608,14 @@ export default function SupportRequestsPage() {
           <p className={cn('text-sm mb-4', isDark ? 'text-slate-500' : 'text-gray-400')}>
             Submit a support request and the admin will review it
           </p>
-          <Button size="sm" onClick={() => setShowForm(true)}>
+          <Button size="sm" onClick={() => {
+            if (!isVerified && !isAdmin) {
+              toast.error('Your account must be verified before you can request support.');
+              navigate('/dashboard/verification');
+              return;
+            }
+            setShowForm(true);
+          }}>
             <Plus className="w-4 h-4 mr-2" /> Submit First Request
           </Button>
         </Card>

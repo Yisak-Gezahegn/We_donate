@@ -34,7 +34,10 @@ export const createRequest = async (req: AuthRequest, res: Response, next: NextF
         select: { verificationStatus: true },
       });
       if (!currentUser || currentUser.verificationStatus !== 'VERIFIED') {
-        return next(createError('Your organization must be verified by an admin before you can create support requests. Please wait for verification.', 403));
+        const msg = req.user!.role === 'USER' 
+          ? 'Your account must be verified before you can request support.'
+          : 'Your organization must be verified by an admin before you can create support requests. Please wait for verification.';
+        return next(createError(msg, 403));
       }
     }
 
@@ -192,14 +195,23 @@ export const deleteRequest = async (req: AuthRequest, res: Response, next: NextF
       data: { status: 'ARCHIVED' },
     });
 
-    await prisma.notification.create({
-      data: {
-        id: uuidv4(), userId: request.userId,
-        title: 'Request Archived',
-        message: `Your support request "${request.title}" was archived by an administrator.`,
-        type: 'ERROR',
-      },
-    });
+    const notifications = [{
+      id: uuidv4(), userId: request.userId,
+      title: 'Request Archived',
+      message: `Your support request "${request.title}" was archived by an administrator.`,
+      type: 'ERROR' as any,
+    }];
+    
+    if (request.createdById && request.createdById !== request.userId) {
+      notifications.push({
+        id: uuidv4(), userId: request.createdById,
+        title: 'Assisted Request Archived',
+        message: `The support request "${request.title}" you created on behalf of a citizen was archived by an administrator.`,
+        type: 'ERROR' as any,
+      });
+    }
+
+    await prisma.notification.createMany({ data: notifications });
 
     await prisma.auditLog.create({
       data: {
@@ -239,14 +251,23 @@ export const updateRequestStatus = async (req: AuthRequest, res: Response, next:
       where: { id: req.params.id },
       data: { status, adminNote: adminNote || null },
     });
-    await prisma.notification.create({
-      data: {
-        id: uuidv4(), userId: updatedRequest.userId,
-        title: `Request ${status}`,
-        message: `Your support request "${updatedRequest.title}" has been ${status.toLowerCase()}.${adminNote ? ` Reason: ${adminNote}` : ''}`,
-        type: status === 'PUBLISHED' ? 'SUCCESS' : status === 'REJECTED' ? 'ERROR' : 'INFO',
-      },
-    });
+    const notifications = [{
+      id: uuidv4(), userId: updatedRequest.userId,
+      title: `Request ${status}`,
+      message: `Your support request "${updatedRequest.title}" has been ${status.toLowerCase()}.${adminNote ? ` Reason: ${adminNote}` : ''}`,
+      type: (status === 'PUBLISHED' ? 'SUCCESS' : status === 'REJECTED' ? 'ERROR' : 'INFO') as any,
+    }];
+    
+    if (updatedRequest.createdById && updatedRequest.createdById !== updatedRequest.userId) {
+      notifications.push({
+        id: uuidv4(), userId: updatedRequest.createdById,
+        title: `Assisted Request ${status}`,
+        message: `The support request "${updatedRequest.title}" you created on behalf of a citizen has been ${status.toLowerCase()}.${adminNote ? ` Reason: ${adminNote}` : ''}`,
+        type: (status === 'PUBLISHED' ? 'SUCCESS' : status === 'REJECTED' ? 'ERROR' : 'INFO') as any,
+      });
+    }
+
+    await prisma.notification.createMany({ data: notifications });
     res.json({ success: true, data: updatedRequest, message: 'Status updated' });
   } catch (error) { next(error); }
 };

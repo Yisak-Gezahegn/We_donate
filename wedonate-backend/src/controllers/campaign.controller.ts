@@ -4,9 +4,9 @@ import prisma from '../lib/prisma';
 import { createError } from '../middleware/errorHandler';
 import { AuthRequest } from '../middleware/auth.middleware';
 
-const ORG_ROLES = ['NGO','ORGANIZATION','GOVERNMENTAL_ORG','KEBELE_ADMIN','WOREDA_ADMIN','CITY_ADMIN','SUPER_ADMIN'];
-const NEED_VERIFICATION_ROLES = ['NGO','ORGANIZATION','GOVERNMENTAL_ORG'];
-const ADMIN_ROLES = ['KEBELE_ADMIN','WOREDA_ADMIN','CITY_ADMIN','SUPER_ADMIN'];
+const ORG_ROLES = ['NGO', 'ORGANIZATION', 'GOVERNMENTAL_ORG', 'KEBELE_ADMIN', 'WOREDA_ADMIN', 'CITY_ADMIN', 'SUPER_ADMIN'];
+const NEED_VERIFICATION_ROLES = ['NGO', 'ORGANIZATION', 'GOVERNMENTAL_ORG'];
+const ADMIN_ROLES = ['KEBELE_ADMIN', 'WOREDA_ADMIN', 'CITY_ADMIN', 'SUPER_ADMIN'];
 
 export const createCampaign = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
@@ -14,6 +14,7 @@ export const createCampaign = async (req: AuthRequest, res: Response, next: Next
       title, description, category, goalAmount, imageUrl, deadline,
       telebirrAccount, cbeAccount, boaAccount, awashAccount,
       otherBankName, otherBankAccount,
+      requesterPhone,
       supportLetterUrl, registrationUrl, nationalIdFrontUrl, nationalIdBackUrl, fanNumber, additionalNotes,
       // Admin can create on behalf of another user
       targetUserId,
@@ -56,12 +57,13 @@ export const createCampaign = async (req: AuthRequest, res: Response, next: Next
         awashAccount: awashAccount || null,
         otherBankName: otherBankName || null,
         otherBankAccount: otherBankAccount || null,
-        supportLetterUrl:   supportLetterUrl   || null,
-        registrationUrl:    registrationUrl    || null,
+        requesterPhone: requesterPhone || null,
+        supportLetterUrl: supportLetterUrl || null,
+        registrationUrl: registrationUrl || null,
         nationalIdFrontUrl: nationalIdFrontUrl || null,
-        nationalIdBackUrl:  nationalIdBackUrl  || null,
-        fanNumber:          fanNumber          || null,
-        additionalNotes:    additionalNotes    || null,
+        nationalIdBackUrl: nationalIdBackUrl || null,
+        fanNumber: fanNumber || null,
+        additionalNotes: additionalNotes || null,
       },
     });
 
@@ -83,7 +85,7 @@ export const getActiveCampaigns = async (req: Request, res: Response, next: Next
   try {
     const { category, limit } = req.query;
     const campaigns = await prisma.campaign.findMany({
-      where: { status: { in: ['APPROVED','ACTIVE'] }, ...(category ? { category: category as string } : {}) },
+      where: { status: { in: ['APPROVED', 'ACTIVE'] }, ...(category ? { category: category as string } : {}) },
       include: {
         user: { select: { firstName: true, lastName: true, profileImage: true } },
         _count: { select: { donations: true } },
@@ -112,7 +114,7 @@ export const getCampaignById = async (req: AuthRequest, res: Response, next: Nex
     });
     if (!campaign) return next(createError('Campaign not found', 404));
 
-    const isAdmin = req.user && ['KEBELE_ADMIN','WOREDA_ADMIN','CITY_ADMIN','SUPER_ADMIN'].includes(req.user.role);
+    const isAdmin = req.user && ['KEBELE_ADMIN', 'WOREDA_ADMIN', 'CITY_ADMIN', 'SUPER_ADMIN'].includes(req.user.role);
     const isOwner = req.user && req.user.userId === campaign.userId;
 
     if (!isAdmin && !isOwner) {
@@ -196,7 +198,7 @@ export const updateCampaignStatus = async (req: AuthRequest, res: Response, next
         id: uuidv4(), userId: campaign.userId,
         title: `Campaign ${status}`,
         message: `Your campaign "${campaign.title}" has been ${status.toLowerCase()}.${adminNote ? ` Reason: ${adminNote}` : ''}`,
-        type: ['APPROVED','ACTIVE'].includes(status) ? 'SUCCESS' : status === 'REJECTED' ? 'ERROR' : 'INFO',
+        type: ['APPROVED', 'ACTIVE'].includes(status) ? 'SUCCESS' : status === 'REJECTED' ? 'ERROR' : 'INFO',
       },
     });
     res.json({ success: true, data: campaign });

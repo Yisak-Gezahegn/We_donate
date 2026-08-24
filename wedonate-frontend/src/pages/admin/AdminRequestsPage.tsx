@@ -45,6 +45,7 @@ const EMPTY_REQUEST_FORM = {
   goalAmount: '', location: '', familySize: '1',
   imageUrl: '', telebirrAccount: '', cbeAccount: '', boaAccount: '', awashAccount: '',
   otherBankName: '', otherBankAccount: '',
+  requesterPhone: '',
   supportLetterUrl: '', nationalIdFrontUrl: '', nationalIdBackUrl: '', fanNumber: '', additionalNotes: '',
 };
 
@@ -52,6 +53,7 @@ const EMPTY_CAMPAIGN_FORM = {
   title: '', description: '', category: 'INFRASTRUCTURE', goalAmount: '', deadline: '',
   imageUrl: '', telebirrAccount: '', cbeAccount: '', boaAccount: '', awashAccount: '',
   otherBankName: '', otherBankAccount: '',
+  requesterPhone: '',
   supportLetterUrl: '', nationalIdFrontUrl: '', nationalIdBackUrl: '', fanNumber: '', additionalNotes: '',
 };
 
@@ -235,6 +237,10 @@ function CreateForUserModal({ isOpen, onClose, isDark }: { isOpen: boolean; onCl
                 <div><label className={label}>BOA</label><input className={input} value={reqForm.boaAccount} onChange={e => setReqForm(p => ({ ...p, boaAccount: e.target.value }))} /></div>
                 <div><label className={label}>Awash</label><input className={input} value={reqForm.awashAccount} onChange={e => setReqForm(p => ({ ...p, awashAccount: e.target.value }))} /></div>
               </div>
+              <div className={cn('pt-3 border-t', isDark ? 'border-slate-600' : 'border-green-200')}>
+                <label className={label}>Contact Phone (for item donations)</label>
+                <input className={input} placeholder="+251 9XX XXX XXX" value={reqForm.requesterPhone} onChange={e => setReqForm(p => ({ ...p, requesterPhone: e.target.value }))} />
+              </div>
             </div>
             <div className={cn('rounded-xl p-4 space-y-3', isDark ? 'bg-amber-900/20 border border-amber-700/40' : 'bg-amber-50 border border-amber-200')}>
               <p className={cn('text-xs font-bold', isDark ? 'text-amber-400' : 'text-amber-700')}>Support Letter & Documents</p>
@@ -301,6 +307,10 @@ function CreateForUserModal({ isOpen, onClose, isDark }: { isOpen: boolean; onCl
                 <div><label className={label}>CBE</label><input className={input} value={campForm.cbeAccount} onChange={e => setCampForm(p => ({ ...p, cbeAccount: e.target.value }))} /></div>
                 <div><label className={label}>BOA</label><input className={input} value={campForm.boaAccount} onChange={e => setCampForm(p => ({ ...p, boaAccount: e.target.value }))} /></div>
                 <div><label className={label}>Awash</label><input className={input} value={campForm.awashAccount} onChange={e => setCampForm(p => ({ ...p, awashAccount: e.target.value }))} /></div>
+              </div>
+              <div className={cn('pt-3 border-t', isDark ? 'border-slate-600' : 'border-green-200')}>
+                <label className={label}>Contact Phone (for item donations)</label>
+                <input className={input} placeholder="+251 9XX XXX XXX" value={campForm.requesterPhone} onChange={e => setCampForm(p => ({ ...p, requesterPhone: e.target.value }))} />
               </div>
             </div>
             <div className={cn('rounded-xl p-4 space-y-3', isDark ? 'bg-amber-900/20 border border-amber-700/40' : 'bg-amber-50 border border-amber-200')}>
@@ -735,7 +745,7 @@ export default function AdminRequestsPage() {
             </Button>
           )}
           <div className={cn('flex gap-1 p-1 rounded-xl', isDark ? 'bg-slate-800' : 'bg-gray-100')}>
-            {(['requests','campaigns'] as ViewMode[]).map(v => (
+            {(['requests', 'campaigns'] as ViewMode[]).map(v => (
               <button key={v} onClick={() => { setView(v); setStatusFilter('ALL'); }}
                 className={cn('px-4 py-2 rounded-lg text-sm font-semibold transition-all capitalize',
                   view === v ? 'bg-green-700 text-white shadow' : (isDark ? 'text-slate-400 hover:text-white' : 'text-gray-500 hover:text-gray-800'))}>
@@ -750,7 +760,7 @@ export default function AdminRequestsPage() {
 
       {/* Status filter tabs */}
       <div className="flex gap-2 flex-wrap">
-        {(['ALL','PENDING','APPROVED','REJECTED','FULFILLED'] as StatusFilter[]).map(s => (
+        {(['ALL', 'PENDING', 'APPROVED', 'REJECTED', 'FULFILLED'] as StatusFilter[]).map(s => (
           <button key={s} onClick={() => setStatusFilter(s)}
             className={cn('px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors',
               statusFilter === s

@@ -23,21 +23,21 @@ import ImageUpload from '../components/ui/ImageUpload';
 type DonateTab = 'campaigns' | 'requests' | 'create-campaign';
 
 const CAMPAIGN_CATEGORIES = [
-  { value: '',               label: 'All Categories' },
+  { value: '', label: 'All Categories' },
   { value: 'INFRASTRUCTURE', label: '🏗️ Infrastructure' },
-  { value: 'EDUCATION',      label: '📚 Education' },
-  { value: 'HEALTH',         label: '🏥 Health & Medical' },
-  { value: 'EMERGENCY',      label: '🆘 Emergency Relief' },
-  { value: 'OTHER',          label: '🤝 Other' },
+  { value: 'EDUCATION', label: '📚 Education' },
+  { value: 'HEALTH', label: '🏥 Health & Medical' },
+  { value: 'EMERGENCY', label: '🆘 Emergency Relief' },
+  { value: 'OTHER', label: '🤝 Other' },
 ];
 
 const REQUEST_CATEGORIES = [
-  { value: '',         label: 'All' },
-  { value: 'FOOD',     label: '🍞 Food' },
+  { value: '', label: 'All' },
+  { value: 'FOOD', label: '🍞 Food' },
   { value: 'MEDICINE', label: '💊 Medicine' },
-  { value: 'CLOTHES',  label: '👕 Clothes' },
-  { value: 'MONEY',    label: '💰 Money' },
-  { value: 'OTHER',    label: '🤲 Other' },
+  { value: 'CLOTHES', label: '👕 Clothes' },
+  { value: 'MONEY', label: '💰 Money' },
+  { value: 'OTHER', label: '🤲 Other' },
 ];
 
 function ProgressBar({ raised, goal, deadline, isDark, className }: { raised: number; goal: number; deadline?: string | null; isDark?: boolean; className?: string }) {
@@ -115,7 +115,7 @@ function CampaignCard({ camp, onDonate, onDetail, isDark }: { camp: any; onDonat
         }
         <div className="absolute top-3 left-3">
           <span className={cn('text-xs font-semibold px-2.5 py-1 rounded-full', catColors[camp.category] || catColors.OTHER)}>
-            {camp.category.replace('_',' ')}
+            {camp.category.replace('_', ' ')}
           </span>
         </div>
         {isCompleted && (
@@ -540,20 +540,20 @@ function DonationModal({
   navigate: (p: string) => void;
   isDark: boolean;
 }) {
-  const [step, setStep]             = useState<1|2|3|4>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [donateType, setDonateType] = useState<'ITEM' | 'MONEY' | ''>('');
-  const [method, setMethod]         = useState('');
-  const [amount, setAmount]         = useState('');
-  const [custom, setCustom]         = useState('');
-  const [anon, setAnon]             = useState(false);
-  const [note, setNote]             = useState('');
-  const [refCode, setRefCode]       = useState('');
-  const [proofUrl, setProofUrl]     = useState('');
-  const [itemDesc, setItemDesc]     = useState('');
+  const [method, setMethod] = useState('');
+  const [amount, setAmount] = useState('');
+  const [custom, setCustom] = useState('');
+  const [anon, setAnon] = useState(false);
+  const [note, setNote] = useState('');
+  const [refCode, setRefCode] = useState('');
+  const [proofUrl, setProofUrl] = useState('');
+  const [itemDesc, setItemDesc] = useState('');
   const [itemCategory, setItemCategory] = useState('OTHER');
   const [itemImgUrl, setItemImgUrl] = useState('');
-  const [delivery, setDelivery]     = useState('BRING_TO_OFFICE');
-  const [loading, setLoading]       = useState(false);
+  const [delivery, setDelivery] = useState('BRING_TO_OFFICE');
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (step === 2 && donateType === 'ITEM') setStep(3);
@@ -565,11 +565,11 @@ function DonationModal({
     isDark ? 'bg-slate-700 border-slate-600 text-white placeholder-slate-400' : 'bg-white border-gray-300 text-gray-900');
 
   const PAYMENT_METHODS = [
-    { id: 'TELEBIRR',   icon: Smartphone, label: 'TeleBirr',       desc: 'Transfer to TeleBirr account',     account: targetData?.telebirrAccount },
-    { id: 'CBE',        icon: Building2,  label: 'CBE',            desc: 'Commercial Bank of Ethiopia',      account: targetData?.cbeAccount },
-    { id: 'BOA',        icon: Building2,  label: 'BOA',            desc: 'Bank of Abyssinia',                account: targetData?.boaAccount },
-    { id: 'AWASH',      icon: Building2,  label: 'Awash Bank',     desc: 'Awash International Bank',         account: targetData?.awashAccount },
-    { id: 'OTHER_BANK', icon: Building2,  label: targetData?.otherBankName || 'Other Bank', desc: 'Any other bank transfer', account: targetData?.otherBankAccount },
+    { id: 'TELEBIRR', icon: Smartphone, label: 'TeleBirr', desc: 'Transfer to TeleBirr account', account: targetData?.telebirrAccount },
+    { id: 'CBE', icon: Building2, label: 'CBE', desc: 'Commercial Bank of Ethiopia', account: targetData?.cbeAccount },
+    { id: 'BOA', icon: Building2, label: 'BOA', desc: 'Bank of Abyssinia', account: targetData?.boaAccount },
+    { id: 'AWASH', icon: Building2, label: 'Awash Bank', desc: 'Awash International Bank', account: targetData?.awashAccount },
+    { id: 'OTHER_BANK', icon: Building2, label: targetData?.otherBankName || 'Other Bank', desc: 'Any other bank transfer', account: targetData?.otherBankAccount },
   ].filter(m => m.account);
 
   const stepLabels = donateType === 'MONEY'
@@ -645,10 +645,10 @@ function DonationModal({
           {stepLabels.map((s, i) => (
             <div key={i} className="flex items-center gap-2 shrink-0">
               <div className={cn('w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold',
-                step > i+1 ? 'bg-green-500 text-white' : step === i+1 ? 'bg-green-700 text-white' : (isDark ? 'bg-slate-600 text-slate-400' : 'bg-gray-200 text-gray-500'))}>
-                {step > i+1 ? '✓' : i+1}
+                step > i + 1 ? 'bg-green-500 text-white' : step === i + 1 ? 'bg-green-700 text-white' : (isDark ? 'bg-slate-600 text-slate-400' : 'bg-gray-200 text-gray-500'))}>
+                {step > i + 1 ? '✓' : i + 1}
               </div>
-              <span className={step === i+1 ? 'text-green-500 font-semibold' : (isDark ? 'text-slate-500' : 'text-gray-400')}>{s}</span>
+              <span className={step === i + 1 ? 'text-green-500 font-semibold' : (isDark ? 'text-slate-500' : 'text-gray-400')}>{s}</span>
               {i < stepLabels.length - 1 && <ChevronRight className="w-3 h-3 opacity-30" />}
             </div>
           ))}
@@ -757,10 +757,10 @@ function DonationModal({
                 <p className={cn('text-xs font-bold mb-2', isDark ? 'text-amber-400' : 'text-amber-700')}>
                   📋 Transfer directly then upload proof below
                 </p>
-                {method === 'TELEBIRR'   && <AccountRow label="TeleBirr" value={targetData.telebirrAccount} isDark={isDark} />}
-                {method === 'CBE'        && <AccountRow label="CBE Account" value={targetData.cbeAccount} isDark={isDark} />}
-                {method === 'BOA'        && <AccountRow label="BOA Account" value={targetData.boaAccount} isDark={isDark} />}
-                {method === 'AWASH'      && <AccountRow label="Awash Account" value={targetData.awashAccount} isDark={isDark} />}
+                {method === 'TELEBIRR' && <AccountRow label="TeleBirr" value={targetData.telebirrAccount} isDark={isDark} />}
+                {method === 'CBE' && <AccountRow label="CBE Account" value={targetData.cbeAccount} isDark={isDark} />}
+                {method === 'BOA' && <AccountRow label="BOA Account" value={targetData.boaAccount} isDark={isDark} />}
+                {method === 'AWASH' && <AccountRow label="Awash Account" value={targetData.awashAccount} isDark={isDark} />}
                 {method === 'OTHER_BANK' && (
                   <>
                     {targetData.otherBankName && <AccountRow label="Bank Name" value={targetData.otherBankName} isDark={isDark} />}
@@ -843,6 +843,26 @@ function DonationModal({
                 ← Back
               </button>
 
+              {/* Requester Contact Info */}
+              {targetData?.requesterPhone && (
+                <div className={cn('p-4 rounded-2xl border space-y-2',
+                  isDark ? 'bg-blue-900/30 border-blue-700' : 'bg-blue-50 border-blue-200')}>
+                  <p className={cn('text-xs font-bold mb-2 flex items-center gap-2', isDark ? 'text-blue-400' : 'text-blue-700')}>
+                    📞 Contact Information
+                  </p>
+                  <div className={cn('text-sm', isDark ? 'text-blue-300' : 'text-blue-900')}>
+                    <span className="font-medium">Requester's Phone:</span>{' '}
+                    <a href={`tel:${targetData.requesterPhone}`}
+                      className={cn('font-semibold hover:underline', isDark ? 'text-blue-200' : 'text-blue-700')}>
+                      {targetData.requesterPhone}
+                    </a>
+                  </div>
+                  <p className={cn('text-xs', isDark ? 'text-blue-400' : 'text-blue-600')}>
+                    You can call this number to coordinate item delivery or pickup
+                  </p>
+                </div>
+              )}
+
               <div>
                 <label className={cn('block text-sm font-semibold mb-1.5', isDark ? 'text-slate-300' : 'text-gray-700')}>
                   Item Category *
@@ -882,9 +902,9 @@ function DonationModal({
                   Delivery Method *
                 </label>
                 {[
-                  { v: 'BRING_TO_OFFICE',    l: 'I will bring to WeDonate office' },
+                  { v: 'BRING_TO_OFFICE', l: 'I will bring to WeDonate office' },
                   { v: 'DELIVER_TO_ADDRESS', l: 'I will deliver to beneficiary address' },
-                  { v: 'COORDINATE',         l: 'Please coordinate with me' },
+                  { v: 'COORDINATE', l: 'Please coordinate with me' },
                 ].map(d => (
                   <label key={d.v} className="flex items-center gap-3 cursor-pointer mb-2">
                     <div onClick={() => setDelivery(d.v)}
@@ -957,6 +977,9 @@ function CreateCampaignForm({ isDark, onSuccess }: { isDark: boolean; onSuccess:
   const [otherBankName, setOtherBankName] = useState('');
   const [otherBankAccount, setOtherBankAccount] = useState('');
 
+  // Contact for item donations
+  const [requesterPhone, setRequesterPhone] = useState('');
+
   // Admin-only documents
   const [supportLetterUrl, setSupportLetterUrl] = useState('');
   const [registrationUrl, setRegistrationUrl] = useState('');
@@ -965,7 +988,7 @@ function CreateCampaignForm({ isDark, onSuccess }: { isDark: boolean; onSuccess:
   const [fanNumber, setFanNumber] = useState('');
   const [additionalNotes, setAdditionalNotes] = useState('');
 
-  const isAdmin = user && ['KEBELE_ADMIN','WOREDA_ADMIN','CITY_ADMIN','SUPER_ADMIN'].includes(user.role);
+  const isAdmin = user && ['KEBELE_ADMIN', 'WOREDA_ADMIN', 'CITY_ADMIN', 'SUPER_ADMIN'].includes(user.role);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -984,6 +1007,7 @@ function CreateCampaignForm({ isDark, onSuccess }: { isDark: boolean; onSuccess:
         ...form,
         telebirrAccount, cbeAccount, boaAccount, awashAccount,
         otherBankName, otherBankAccount,
+        requesterPhone,
         supportLetterUrl, registrationUrl,
         nationalIdFrontUrl, nationalIdBackUrl, fanNumber,
         additionalNotes,
@@ -1098,6 +1122,20 @@ function CreateCampaignForm({ isDark, onSuccess }: { isDark: boolean; onSuccess:
                 value={otherBankAccount} onChange={e => setOtherBankAccount(e.target.value)} />
             </div>
           </div>
+
+          <div className={cn('mt-4 pt-4 border-t', isDark ? 'border-slate-600' : 'border-green-200')}>
+            <p className={cn('text-sm font-bold mb-2', isDark ? 'text-blue-400' : 'text-blue-700')}>
+              📞 Contact for Item Donations
+            </p>
+            <p className={cn('text-xs mb-3', isDark ? 'text-slate-400' : 'text-gray-500')}>
+              If people want to donate items (food, clothes, etc.) instead of money, they can call you to coordinate delivery.
+            </p>
+            <div>
+              <label className={label}>Your Phone Number</label>
+              <input className={input} placeholder="+251 9XX XXX XXX"
+                value={requesterPhone} onChange={e => setRequesterPhone(e.target.value)} />
+            </div>
+          </div>
         </div>
 
         {/* Admin-only documents */}
@@ -1169,14 +1207,14 @@ export default function DonatePage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  const canCreateCampaign = user && ['NGO','ORGANIZATION','GOVERNMENTAL_ORG','KEBELE_ADMIN','WOREDA_ADMIN','CITY_ADMIN','SUPER_ADMIN'].includes(user.role);
+  const canCreateCampaign = user && ['NGO', 'ORGANIZATION', 'GOVERNMENTAL_ORG', 'KEBELE_ADMIN', 'WOREDA_ADMIN', 'CITY_ADMIN', 'SUPER_ADMIN'].includes(user.role);
 
-  const [tab, setTab]             = useState<DonateTab>('campaigns');
-  const [campCat, setCampCat]     = useState('');
-  const [reqCat, setReqCat]       = useState('');
-  const [search, setSearch]       = useState('');
-  const [donateTarget, setDonateTarget] = useState<{ id: string; title: string; type: 'campaign'|'request'; data: any } | null>(null);
-  const [detailTarget, setDetailTarget] = useState<{ data: any; type: 'campaign'|'request' } | null>(null);
+  const [tab, setTab] = useState<DonateTab>('campaigns');
+  const [campCat, setCampCat] = useState('');
+  const [reqCat, setReqCat] = useState('');
+  const [search, setSearch] = useState('');
+  const [donateTarget, setDonateTarget] = useState<{ id: string; title: string; type: 'campaign' | 'request'; data: any } | null>(null);
+  const [detailTarget, setDetailTarget] = useState<{ data: any; type: 'campaign' | 'request' } | null>(null);
 
   const requireAuth = (callback: () => void) => {
     if (!isAuthenticated) {
@@ -1208,8 +1246,8 @@ export default function DonatePage() {
   );
 
   const TABS = [
-    { id: 'campaigns',        label: '🏗️ Campaigns',       count: campaigns?.length },
-    { id: 'requests',         label: '🤲 Direct Support',  count: requests?.length },
+    { id: 'campaigns', label: '🏗️ Campaigns', count: campaigns?.length },
+    { id: 'requests', label: '🤲 Direct Support', count: requests?.length },
     ...(canCreateCampaign ? [{ id: 'create-campaign', label: '+ Create Campaign', count: null }] : []),
   ];
 

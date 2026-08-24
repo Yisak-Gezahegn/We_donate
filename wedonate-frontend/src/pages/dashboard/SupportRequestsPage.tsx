@@ -15,11 +15,11 @@ import Badge, { statusVariant } from '../../components/ui/Badge';
 import ImageUpload from '../../components/ui/ImageUpload';
 
 const CATEGORIES = [
-  { value: 'FOOD',     label: '🍞 Food' },
+  { value: 'FOOD', label: '🍞 Food' },
   { value: 'MEDICINE', label: '💊 Medicine' },
-  { value: 'CLOTHES',  label: '👕 Clothing' },
-  { value: 'MONEY',    label: '💰 Financial Aid' },
-  { value: 'OTHER',    label: '🤲 Other' },
+  { value: 'CLOTHES', label: '👕 Clothing' },
+  { value: 'MONEY', label: '💰 Financial Aid' },
+  { value: 'OTHER', label: '🤲 Other' },
 ];
 
 const URGENCY_LABELS: Record<number, string> = {
@@ -65,6 +65,8 @@ function RequestDetailModal({ requestId, onClose, isDark }: { requestId: string 
     { label: 'Awash Bank', value: req?.awashAccount },
     { label: req?.otherBankName || 'Other Bank', value: req?.otherBankAccount },
   ].filter(a => a.value);
+
+  const hasRequesterPhone = req?.requesterPhone;
 
   const docs = [
     { label: 'Support Letter', url: req?.supportLetterUrl },
@@ -172,6 +174,21 @@ function RequestDetailModal({ requestId, onClose, isDark }: { requestId: string 
                   ) : (
                     <p className={cn('text-xs', isDark ? 'text-slate-500' : 'text-gray-400')}>No payment accounts provided.</p>
                   )}
+
+                  {/* Phone for item donations */}
+                  {hasRequesterPhone && (
+                    <div className={cn('mt-3 p-3 rounded-lg border', isDark ? 'bg-blue-900/30 border-blue-700' : 'bg-blue-50 border-blue-200')}>
+                      <p className={cn('text-xs font-semibold mb-1', isDark ? 'text-blue-400' : 'text-blue-700')}>
+                        📞 For Item Donations
+                      </p>
+                      <p className={cn('text-xs', isDark ? 'text-blue-300' : 'text-blue-900')}>
+                        Contact: <a href={`tel:${req.requesterPhone}`} className="font-semibold hover:underline">{req.requesterPhone}</a>
+                      </p>
+                      <p className={cn('text-xs mt-1', isDark ? 'text-blue-400' : 'text-blue-600')}>
+                        Call this number to coordinate item delivery or pickup
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Documents */}
@@ -268,7 +285,7 @@ export default function SupportRequestsPage() {
   const { user } = useAuth();
   const qc = useQueryClient();
 
-  const isAdmin = user && ['KEBELE_ADMIN','WOREDA_ADMIN','CITY_ADMIN','SUPER_ADMIN'].includes(user.role);
+  const isAdmin = user && ['KEBELE_ADMIN', 'WOREDA_ADMIN', 'CITY_ADMIN', 'SUPER_ADMIN'].includes(user.role);
 
   const { data: requests, isLoading } = useQuery({
     queryKey: ['my-requests'],
@@ -414,7 +431,7 @@ export default function SupportRequestsPage() {
                 <div>
                   <label className={lbl}>Family Size</label>
                   <select {...register('familySize')} className={sel}>
-                    {[1,2,3,4,5,6,7,8,9,10].map(n => (
+                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
                       <option key={n} value={n}>
                         {n} {n === 1 ? 'person' : 'people'}
                       </option>
@@ -473,6 +490,17 @@ export default function SupportRequestsPage() {
                       {...register('otherBankName')} />
                     <Input label="Other Bank Account" placeholder="Account number"
                       {...register('otherBankAccount')} />
+                  </div>
+
+                  <div className={cn('mt-4 pt-4 border-t', isDark ? 'border-slate-600' : 'border-green-200')}>
+                    <p className={cn('text-sm font-bold mb-2', isDark ? 'text-blue-400' : 'text-blue-700')}>
+                      📞 Contact for Item Donations
+                    </p>
+                    <p className={cn('text-xs mb-3', isDark ? 'text-slate-400' : 'text-gray-500')}>
+                      If people want to donate items (food, clothes, etc.) instead of money, they can call you to coordinate delivery.
+                    </p>
+                    <Input label="Your Phone Number" placeholder="+251 9XX XXX XXX"
+                      {...register('requesterPhone')} />
                   </div>
                 </div>
 

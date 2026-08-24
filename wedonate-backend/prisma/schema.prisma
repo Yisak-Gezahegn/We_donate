@@ -127,6 +127,9 @@ model SupportRequest {
   otherBankName    String?
   otherBankAccount String?
 
+  // Contact for item donations
+  requesterPhone   String?   // phone number for donors to contact when donating items
+
   // Admin-only information
   supportLetterUrl   String?   // official support letter image
   nationalIdFrontUrl String?   // national ID front side image
@@ -168,6 +171,9 @@ model Campaign {
   awashAccount     String?
   otherBankName    String?
   otherBankAccount String?
+
+  // Contact for item donations
+  requesterPhone   String?   // phone number for donors to contact when donating items
 
   // Admin-only information
   supportLetterUrl   String?

@@ -4,8 +4,8 @@ import prisma from '../lib/prisma';
 import { createError } from '../middleware/errorHandler';
 import { AuthRequest } from '../middleware/auth.middleware';
 
-const ADMIN_ROLES = ['KEBELE_ADMIN','WOREDA_ADMIN','CITY_ADMIN','SUPER_ADMIN'];
-const NEED_VERIFICATION_ROLES = ['NGO','ORGANIZATION','GOVERNMENTAL_ORG'];
+const ADMIN_ROLES = ['KEBELE_ADMIN', 'WOREDA_ADMIN', 'CITY_ADMIN', 'SUPER_ADMIN'];
+const NEED_VERIFICATION_ROLES = ['NGO', 'ORGANIZATION', 'GOVERNMENTAL_ORG'];
 
 export const createRequest = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
@@ -15,6 +15,7 @@ export const createRequest = async (req: AuthRequest, res: Response, next: NextF
       // Payment accounts
       telebirrAccount, cbeAccount, boaAccount, awashAccount,
       otherBankName, otherBankAccount,
+      requesterPhone,
       // Admin-only docs
       supportLetterUrl, nationalIdFrontUrl, nationalIdBackUrl, fanNumber, additionalNotes,
       // Admin can create on behalf of another user
@@ -48,21 +49,22 @@ export const createRequest = async (req: AuthRequest, res: Response, next: NextF
         userId: effectiveUserId,
         title, description, category,
         urgencyLevel: urgencyLevel ? parseInt(urgencyLevel) : 1,
-        goalAmount:   goalAmount  ? parseFloat(goalAmount)  : null,
-        familySize:   familySize  ? parseInt(familySize)    : 1,
-        imageUrl:     imageUrl    || null,
-        location:     location    || null,
-        telebirrAccount:  telebirrAccount  || null,
-        cbeAccount:       cbeAccount       || null,
-        boaAccount:       boaAccount       || null,
-        awashAccount:     awashAccount     || null,
-        otherBankName:    otherBankName    || null,
+        goalAmount: goalAmount ? parseFloat(goalAmount) : null,
+        familySize: familySize ? parseInt(familySize) : 1,
+        imageUrl: imageUrl || null,
+        location: location || null,
+        telebirrAccount: telebirrAccount || null,
+        cbeAccount: cbeAccount || null,
+        boaAccount: boaAccount || null,
+        awashAccount: awashAccount || null,
+        otherBankName: otherBankName || null,
         otherBankAccount: otherBankAccount || null,
-        supportLetterUrl:   supportLetterUrl   || null,
+        requesterPhone: requesterPhone || null,
+        supportLetterUrl: supportLetterUrl || null,
         nationalIdFrontUrl: nationalIdFrontUrl || null,
-        nationalIdBackUrl:  nationalIdBackUrl  || null,
-        fanNumber:          fanNumber          || null,
-        additionalNotes:    additionalNotes    || null,
+        nationalIdBackUrl: nationalIdBackUrl || null,
+        fanNumber: fanNumber || null,
+        additionalNotes: additionalNotes || null,
       },
     });
 

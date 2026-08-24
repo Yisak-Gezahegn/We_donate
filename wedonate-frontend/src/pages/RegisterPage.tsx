@@ -272,7 +272,7 @@ export default function RegisterPage() {
                       <label className={label}>Office Address *</label>
                       <div className="relative">
                         <MapPin className={cn('absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4', isDark ? 'text-slate-500' : 'text-gray-400')} />
-                        <input className={cn(input, 'pl-10')} placeholder="Sub-city, Woreda, Kebele"
+                        <input className={cn(input, 'pl-10')} placeholder="Sub-city, Kebele"
                           value={officeAddress} onChange={e => setOfficeAddress(e.target.value)} />
                       </div>
                     </div>

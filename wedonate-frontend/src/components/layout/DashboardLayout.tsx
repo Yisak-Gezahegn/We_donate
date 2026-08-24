@@ -17,7 +17,7 @@ import api from '../../lib/api';
 const ADMIN_ROLES = ['KEBELE_ADMIN', 'CITY_ADMIN', 'SYSTEM_ADMIN'];
 
 interface SidebarProps {
-  links: { to: string; icon: React.ElementType; label: string }[];
+  links: any[];
   user: { firstName: string; lastName: string; role: string; profileImage?: string } | null;
   location: { pathname: string };
   onClose: () => void;
@@ -49,8 +49,11 @@ function SidebarContent({ links, user, location, onClose, onLogout, logoutLabel,
         )}
       </div>
 
-      {user && !collapsed && (
-        <div className={cn('px-6 py-4 border-b', isDark ? 'bg-slate-700/50 border-slate-700' : 'bg-gradient-to-r from-green-50 to-emerald-50 border-gray-100')}>
+      {user && (
+        <div className={cn('py-4 border-b transition-all duration-300',
+          isDark ? 'bg-slate-700/50 border-slate-700' : 'bg-gradient-to-r from-green-50 to-emerald-50 border-gray-100',
+          collapsed ? 'px-3 flex justify-center' : 'px-6'
+        )}>
           <div className="flex items-center gap-3">
             {(user as any)?.profileImage ? (
               <img src={(user as any).profileImage} alt="" className="w-10 h-10 rounded-full object-cover shrink-0" />
@@ -59,52 +62,51 @@ function SidebarContent({ links, user, location, onClose, onLogout, logoutLabel,
                 {user.firstName?.[0] ?? '?'}{user.lastName?.[0] ?? ''}
               </div>
             )}
-            <div className="overflow-hidden">
+            <div className={cn('overflow-hidden transition-all duration-300 ease-in-out',
+              collapsed ? 'w-0 opacity-0 ml-0' : 'w-32 opacity-100'
+            )}>
               <p className={cn('text-sm font-semibold truncate', isDark ? 'text-white' : 'text-gray-800')}>
                 {user.firstName} {user.lastName}
               </p>
-              <p className="text-xs text-green-500 font-medium capitalize">
+              <p className="text-xs text-green-500 font-medium capitalize truncate">
                 {user.role?.toLowerCase().replace(/_/g, ' ')}
               </p>
             </div>
           </div>
         </div>
       )}
-      {user && collapsed && (
-        <div className={cn('px-3 py-4 border-b flex justify-center', isDark ? 'bg-slate-700/50 border-slate-700' : 'bg-gradient-to-r from-green-50 to-emerald-50 border-gray-100')}>
-          {(user as any)?.profileImage ? (
-            <img src={(user as any).profileImage} alt="" className="w-10 h-10 rounded-full object-cover" />
-          ) : (
-            <div className="w-10 h-10 rounded-full bg-green-700 flex items-center justify-center text-white font-bold text-sm">
-              {user.firstName?.[0] ?? '?'}{user.lastName?.[0] ?? ''}
-            </div>
-          )}
-        </div>
-      )}
 
-      <nav className={cn('flex-1 py-4 space-y-1 overflow-y-auto', collapsed ? 'px-2' : 'px-3')}>
-        {links.map(({ to, icon: Icon, label }) => {
-          const active = location.pathname === to;
-          return (
-            <Link key={to} to={to} onClick={onClose}
-              title={collapsed ? label : undefined}
-              className={cn(
-                'flex items-center gap-3 rounded-xl text-sm font-medium transition-all',
-                collapsed ? 'justify-center px-3 py-3' : 'px-4 py-3',
-                active
-                  ? 'bg-green-700 text-white shadow-md'
-                  : (isDark ? 'text-slate-300 hover:bg-slate-700 hover:text-green-400' : 'text-gray-600 hover:bg-green-50 hover:text-green-700'),
+      <nav className={cn('flex-1 py-4 space-y-4 overflow-y-auto', collapsed ? 'px-2' : 'px-3')}>
+        {links.map((section: any, idx: number) => (
+          <div key={idx} className="space-y-1">
+            {!collapsed && section.title && (
+              <p className={cn('px-4 text-[10px] font-extrabold uppercase tracking-wider mb-2',
+                isDark ? 'text-slate-500' : 'text-gray-400'
               )}>
-              <Icon className="w-4 h-4 shrink-0" />
-              {!collapsed && (
-                <>
-                  <span className="flex-1">{label}</span>
-                  {active && <ChevronRight className="w-3 h-3 opacity-70" />}
-                </>
-              )}
-            </Link>
-          );
-        })}
+                {section.title}
+              </p>
+            )}
+            {section.links.map(({ to, icon: Icon, label }: any) => {
+              const active = location.pathname === to || (to !== '/admin' && to !== '/dashboard' && location.pathname.startsWith(to));
+              return (
+                <Link key={to} to={to} onClick={onClose}
+                  title={collapsed ? label : undefined}
+                  className={cn(
+                    'flex items-center gap-3 rounded-xl text-sm font-medium transition-all duration-200',
+                    collapsed ? 'justify-center p-3' : 'px-4 py-2.5',
+                    active
+                      ? 'bg-green-700 text-white shadow-md'
+                      : (isDark ? 'text-slate-300 hover:bg-slate-700/50 hover:text-green-400' : 'text-gray-600 hover:bg-green-50 hover:text-green-700'),
+                  )}>
+                  <Icon className="w-5 h-5 shrink-0" />
+                  <div className={cn("flex items-center justify-between overflow-hidden transition-all duration-300 ease-in-out", collapsed ? "w-0 opacity-0" : "w-40 opacity-100 ml-1")}>
+                    <span className="whitespace-nowrap flex-1">{label}</span>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        ))}
       </nav>
 
       <div className={cn('px-3 py-4 border-t', isDark ? 'border-slate-700' : 'border-gray-100')}>
@@ -243,58 +245,152 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const isAdmin = user && ADMIN_ROLES.includes(user.role);
 
-  const ORG_ROLES = ['ORGANIZATION','CITY_ADMIN','SYSTEM_ADMIN'];
-  const canCreateCampaign = user && ORG_ROLES.includes(user.role);
-
-  const donorLinks = [
-    { to: '/dashboard',               icon: LayoutDashboard, label: t('nav.dashboard') },
-    { to: '/dashboard/donate',        icon: Heart,           label: t('nav.donate') },
-    { to: '/dashboard/requests',      icon: ClipboardList,   label: t('dashboard.my_requests') },
-    ...(canCreateCampaign ? [{ to: '/dashboard/campaigns', icon: Target, label: t('dashboard.my_campaigns') }] : []),
-    { to: '/dashboard/donations',     icon: FileText,        label: t('dashboard.my_donations') },
-    { to: '/dashboard/notifications', icon: Bell,            label: t('dashboard.notifications') },
-    { to: '/dashboard/profile',       icon: User,            label: t('nav.profile') },
+  const userSections = [
+    {
+      title: t('nav.dashboard'),
+      links: [
+        { to: '/dashboard',               icon: LayoutDashboard, label: t('nav.dashboard') },
+        { to: '/dashboard/notifications', icon: Bell,            label: t('dashboard.notifications') },
+      ]
+    },
+    {
+      title: 'Activity',
+      links: [
+        { to: '/dashboard/donate',        icon: Heart,           label: t('nav.donate') },
+        { to: '/dashboard/donations',     icon: FileText,        label: t('dashboard.my_donations') },
+        { to: '/dashboard/requests',      icon: ClipboardList,   label: t('dashboard.my_requests') },
+      ]
+    },
+    {
+      title: 'Account',
+      links: [
+        { to: '/dashboard/profile',       icon: User,            label: t('nav.profile') },
+      ]
+    }
   ];
 
-  const beneficiaryLinks = donorLinks;
-
-  const adminLinks = [
-    { to: '/admin',                icon: BarChart2,     label: t('admin.overview') },
-    { to: '/admin/users',          icon: Users,         label: t('admin.manage_users') },
-    { to: '/admin/verification',   icon: BadgeCheck,    label: t('admin.verification') },
-    { to: '/admin/donations',      icon: Heart,         label: t('admin.donations') },
-    { to: '/admin/reconciliation', icon: Receipt,       label: t('admin.reconciliation') },
-    { to: '/admin/requests',       icon: ClipboardList, label: t('admin.approvals') },
-    { to: '/admin/inspections',    icon: Search,        label: t('admin.inspections') },
-    { to: '/admin/reports',        icon: FileBarChart,  label: t('admin.reports') },
-    { to: '/admin/news',           icon: Newspaper,     label: t('admin.news') },
-    { to: '/admin/faqs',           icon: HelpCircle,    label: t('admin.faqs') },
-    { to: '/admin/events',         icon: Calendar,      label: t('admin.events') },
-    { to: '/admin/messages',       icon: Mail,          label: t('admin.messages') },
-    { to: '/admin/gallery',        icon: Image,         label: t('admin.gallery') },
-    { to: '/admin/testimonials',   icon: Quote,         label: t('admin.testimonials') },
-    { to: '/admin/hero-images',    icon: Images,        label: t('admin.hero_images') },
-    { to: '/admin/audit-logs',     icon: FileText,      label: t('admin.audit_logs') },
-    { to: '/admin/settings',       icon: Settings,      label: t('admin.settings') },
+  const orgSections = [
+    {
+      title: t('nav.dashboard'),
+      links: [
+        { to: '/dashboard',               icon: LayoutDashboard, label: t('nav.dashboard') },
+        { to: '/dashboard/notifications', icon: Bell,            label: t('dashboard.notifications') },
+      ]
+    },
+    {
+      title: 'Operations',
+      links: [
+        { to: '/dashboard/campaigns',     icon: Target,          label: 'My Campaigns' },
+      ]
+    },
+    {
+      title: 'Activity',
+      links: [
+        { to: '/dashboard/donate',        icon: Heart,           label: t('nav.donate') },
+        { to: '/dashboard/donations',     icon: FileText,        label: t('dashboard.my_donations') },
+      ]
+    },
+    {
+      title: 'Account',
+      links: [
+        { to: '/dashboard/profile',       icon: User,            label: t('nav.profile') },
+      ]
+    }
   ];
 
-  const kebeleAdminLinks = [
-    { to: '/admin',                icon: BarChart2,     label: t('admin.overview') },
-    { to: '/admin/users',          icon: Users,         label: t('admin.manage_users') },
-    { to: '/admin/donations',      icon: Heart,         label: t('admin.donations') },
-    { to: '/admin/requests',       icon: ClipboardList, label: 'Support & Campaigns' },
-    { to: '/dashboard/donate',     icon: Heart,         label: t('nav.donate') },
-    { to: '/dashboard/requests',   icon: ClipboardList, label: t('dashboard.my_requests') },
-    { to: '/dashboard/campaigns',  icon: Target,        label: t('dashboard.my_campaigns') },
-    { to: '/dashboard/donations',  icon: FileText,      label: t('dashboard.my_donations') },
-    { to: '/dashboard/notifications', icon: Bell,       label: t('dashboard.notifications') },
-    { to: '/dashboard/profile',    icon: User,           label: t('nav.profile') },
+  const kebeleAdminSections = [
+    {
+      title: 'Overview',
+      links: [
+        { to: '/admin', icon: LayoutDashboard, label: 'Kebele Dashboard' },
+      ]
+    },
+    {
+      title: 'Operations',
+      links: [
+        { to: '/admin/requests', icon: ClipboardList, label: 'Support Requests' },
+        { to: '/admin/users', icon: Users, label: 'Local Individuals' },
+      ]
+    },
+    {
+      title: 'Account',
+      links: [
+        { to: '/dashboard/profile',       icon: User,            label: t('nav.profile') },
+      ]
+    }
   ];
 
-  const links = user?.role === 'KEBELE_ADMIN' ? kebeleAdminLinks
-    : isAdmin ? adminLinks
-    : user?.role === 'BENEFICIARY' ? beneficiaryLinks
-    : donorLinks;
+  const cityAdminSections = [
+    {
+      title: 'Overview',
+      links: [
+        { to: '/admin', icon: LayoutDashboard, label: 'City Dashboard' },
+        { to: '/admin/reports', icon: FileBarChart, label: 'Operational Reports' },
+      ]
+    },
+    {
+      title: 'Management',
+      links: [
+        { to: '/admin/verification', icon: BadgeCheck, label: 'Organizations' },
+        { to: '/admin/requests', icon: Target, label: 'Campaign Approvals' },
+        { to: '/admin/donations', icon: Heart, label: 'Donation Management' },
+        { to: '/admin/users', icon: Users, label: 'Kebele Admins' },
+      ]
+    },
+    {
+      title: 'Content',
+      links: [
+        { to: '/admin/news', icon: Newspaper, label: 'News & Updates' },
+        { to: '/admin/events', icon: Calendar, label: 'Events' },
+      ]
+    },
+    {
+      title: 'Account',
+      links: [
+        { to: '/dashboard/profile',       icon: User,            label: t('nav.profile') },
+      ]
+    }
+  ];
+
+  const systemAdminSections = [
+    {
+      title: 'System Health',
+      links: [
+        { to: '/admin', icon: BarChart2, label: 'System Overview' },
+        { to: '/admin/audit-logs', icon: FileText, label: 'Audit & Security' },
+      ]
+    },
+    {
+      title: 'Administration',
+      links: [
+        { to: '/admin/users', icon: Users, label: 'Admin Accounts' },
+        { to: '/admin/settings', icon: Settings, label: 'Configuration' },
+        { to: '/admin/inspections', icon: Search, label: 'System Inspections' },
+      ]
+    },
+    {
+      title: 'Platform Content',
+      links: [
+        { to: '/admin/faqs', icon: HelpCircle, label: 'FAQs' },
+        { to: '/admin/gallery', icon: Image, label: 'Gallery' },
+        { to: '/admin/testimonials', icon: Quote, label: 'Testimonials' },
+        { to: '/admin/hero-images', icon: Images, label: 'Hero Images' },
+        { to: '/admin/messages', icon: Mail, label: 'Contact Messages' },
+      ]
+    },
+    {
+      title: 'Account',
+      links: [
+        { to: '/dashboard/profile',       icon: User,            label: t('nav.profile') },
+      ]
+    }
+  ];
+
+  const links = user?.role === 'SYSTEM_ADMIN' ? systemAdminSections
+    : user?.role === 'CITY_ADMIN' ? cityAdminSections
+    : user?.role === 'KEBELE_ADMIN' ? kebeleAdminSections
+    : user?.role === 'ORGANIZATION' ? orgSections
+    : userSections;
 
   const handleLogout = () => { logout(); navigate('/'); };
 
@@ -330,64 +426,70 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
       )}
 
-      <div className={cn('flex-1 flex flex-col min-h-screen transition-all duration-300', sidebarExpanded ? 'lg:ml-64' : 'lg:ml-20')}>
+      <div className={cn('flex-1 flex flex-col min-h-screen transition-all duration-300 ease-in-out', sidebarExpanded ? 'lg:ml-64' : 'lg:ml-20')}>
         <header className={cn(
-          'sticky top-0 z-30 px-4 lg:px-8 py-4 flex items-center justify-between border-b shadow-sm',
+          'sticky top-0 z-30 px-4 lg:px-6 h-16 flex items-center justify-between border-b shadow-sm transition-colors duration-300',
           isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-100',
         )}>
-          <button onClick={() => setSidebarOpen(true)}
-            className={cn('lg:hidden p-2 rounded-xl transition-colors',
-              isDark ? 'hover:bg-slate-700 text-slate-300' : 'hover:bg-gray-100 text-gray-700')}>
-            <Menu className="w-5 h-5" />
-          </button>
-          <button onClick={() => setSidebarExpanded(!sidebarExpanded)}
-            className={cn('hidden lg:block p-2 rounded-xl transition-colors',
-              isDark ? 'hover:bg-slate-700 text-slate-300' : 'hover:bg-gray-100 text-gray-700')}>
-            <Menu className="w-5 h-5" />
-          </button>
-          <div className="flex-1 lg:flex-none">
-            <p className={cn('text-sm font-semibold hidden lg:block', isDark ? 'text-slate-400' : 'text-gray-500')}>
+          {/* LEFT SECTION */}
+          <div className="flex items-center gap-2 sm:gap-4">
+            <button onClick={() => setSidebarOpen(true)}
+              className={cn('lg:hidden p-2 -ml-2 rounded-xl transition-colors',
+                isDark ? 'hover:bg-slate-700 text-slate-300' : 'hover:bg-gray-100 text-gray-700')}>
+              <Menu className="w-5 h-5" />
+            </button>
+            <button onClick={() => setSidebarExpanded(!sidebarExpanded)}
+              className={cn('hidden lg:block p-2 -ml-2 rounded-xl transition-colors',
+                isDark ? 'hover:bg-slate-700 text-slate-300' : 'hover:bg-gray-100 text-gray-700')}>
+              <Menu className="w-5 h-5" />
+            </button>
+            <div className="h-6 w-px bg-gray-200 dark:bg-slate-700 hidden sm:block mx-1" />
+            <p className={cn('text-sm font-semibold hidden sm:block', isDark ? 'text-slate-300' : 'text-gray-600')}>
               {t('dashboard.welcome')},{' '}
               <span className={isDark ? 'text-white' : 'text-gray-900'}>{user?.firstName}</span>
             </p>
           </div>
-          <button onClick={toggleTheme}
-            className={cn('p-2 rounded-xl transition-colors',
-              isDark ? 'hover:bg-slate-700 text-yellow-400' : 'hover:bg-gray-100 text-gray-600')}>
-            {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-          </button>
 
-          <div className="relative">
-            <button onClick={() => setLangOpen(!langOpen)}
-              className={cn('flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-colors',
-                isDark ? 'hover:bg-slate-700 text-slate-300' : 'hover:bg-gray-100 text-gray-600')}>
-              <Globe className="w-4 h-4" />
-              <span className="hidden sm:inline">{currentLang.flag} {currentLang.label}</span>
-              <span className="sm:hidden">{currentLang.flag}</span>
-              <ChevronDown className={cn('w-3 h-3 transition-transform', langOpen && 'rotate-180')} />
+          {/* RIGHT SECTION */}
+          <div className="flex items-center gap-1 sm:gap-2">
+            <button onClick={toggleTheme}
+              className={cn('p-2 rounded-xl transition-colors',
+                isDark ? 'hover:bg-slate-700 text-yellow-400' : 'hover:bg-gray-100 text-gray-600')}>
+              {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </button>
-            {langOpen && (
-              <div className={cn(
-                'absolute right-0 top-full mt-2 rounded-2xl shadow-2xl border py-2 min-w-[170px] z-50',
-                isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-100',
-              )}>
-                {LANGUAGES.map(lang => (
-                  <button key={lang.code}
-                    onClick={() => { i18n.changeLanguage(lang.code); setLangOpen(false); }}
-                    className={cn(
-                      'w-full text-left px-4 py-2.5 text-sm flex items-center gap-2 transition-colors',
-                      i18n.language === lang.code
-                        ? 'text-green-600 font-semibold bg-green-50 dark:bg-green-900/30'
-                        : (isDark ? 'text-slate-200 hover:bg-slate-700' : 'text-gray-700 hover:bg-green-50'),
-                    )}>
-                    <span>{lang.flag}</span> {lang.label}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
 
-          <NotificationDropdown isDark={isDark} />
+            <div className="relative">
+              <button onClick={() => setLangOpen(!langOpen)}
+                className={cn('flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-colors',
+                  isDark ? 'hover:bg-slate-700 text-slate-300' : 'hover:bg-gray-100 text-gray-600')}>
+                <Globe className="w-4 h-4" />
+                <span className="hidden sm:inline">{currentLang.flag} {currentLang.label}</span>
+                <span className="sm:hidden">{currentLang.flag}</span>
+                <ChevronDown className={cn('w-3 h-3 transition-transform', langOpen && 'rotate-180')} />
+              </button>
+              {langOpen && (
+                <div className={cn(
+                  'absolute right-0 top-full mt-2 rounded-2xl shadow-2xl border py-2 min-w-[170px] z-50',
+                  isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-100',
+                )}>
+                  {LANGUAGES.map(lang => (
+                    <button key={lang.code}
+                      onClick={() => { i18n.changeLanguage(lang.code); setLangOpen(false); }}
+                      className={cn(
+                        'w-full text-left px-4 py-2.5 text-sm flex items-center gap-2 transition-colors',
+                        i18n.language === lang.code
+                          ? 'text-green-600 font-semibold bg-green-50 dark:bg-green-900/30'
+                          : (isDark ? 'text-slate-200 hover:bg-slate-700' : 'text-gray-700 hover:bg-green-50'),
+                      )}>
+                      <span>{lang.flag}</span> {lang.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <NotificationDropdown isDark={isDark} />
+          </div>
         </header>
 
         <main className="flex-1 p-4 lg:p-8">

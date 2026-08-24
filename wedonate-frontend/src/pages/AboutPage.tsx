@@ -124,7 +124,7 @@ export default function AboutPage() {
                 reaches those who truly need it.
               </p>
               <p className={cn(body, 'mb-8')}>
-                We work directly with Kebele, Woreda, and City-level administrators to verify requests,
+                We work directly with Kebele and City-level administrators to verify requests,
                 manage distributions, and report outcomes with full accountability.
               </p>
               <Link to="/register">

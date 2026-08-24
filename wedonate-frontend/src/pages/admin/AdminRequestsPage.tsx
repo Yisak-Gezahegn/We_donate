@@ -350,9 +350,11 @@ function CreateForUserModal({ isOpen, onClose, isDark }: { isOpen: boolean; onCl
 export default function AdminRequestsPage() {
   const { t } = useTranslation();
   const qc = useQueryClient();
+  const location = useLocation();
   const { isDark } = useTheme();
   const { user: currentUser } = useAuth();
-  const [view, setView] = useState<ViewMode>('requests');
+  const isCampaignsPage = location.pathname.includes('/admin/campaigns');
+  const [view, setView] = useState<ViewMode>(isCampaignsPage ? 'campaigns' : 'requests');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -360,6 +362,7 @@ export default function AdminRequestsPage() {
   const [deletingItem, setDeletingItem] = useState<{ item: any; type: ViewMode } | null>(null);
 
   const isKebeleAdmin = currentUser?.role === 'KEBELE_ADMIN';
+  const isHighAdmin = currentUser?.role === 'CITY_ADMIN' || currentUser?.role === 'SYSTEM_ADMIN';
 
   const { data: requests, isLoading: loadingReqs } = useQuery({
     queryKey: ['admin-requests'],
@@ -744,17 +747,7 @@ export default function AdminRequestsPage() {
               Create for User
             </Button>
           )}
-          <div className={cn('flex gap-1 p-1 rounded-xl', isDark ? 'bg-slate-800' : 'bg-gray-100')}>
-            {(['requests', 'campaigns'] as ViewMode[]).map(v => (
-              <button key={v} onClick={() => { setView(v); setStatusFilter('ALL'); }}
-                className={cn('px-4 py-2 rounded-lg text-sm font-semibold transition-all capitalize',
-                  view === v ? 'bg-green-700 text-white shadow' : (isDark ? 'text-slate-400 hover:text-white' : 'text-gray-500 hover:text-gray-800'))}>
-                {v} ({v === 'requests'
-                  ? requests?.filter((r: any) => r.status === 'PENDING').length ?? 0
-                  : campaigns?.filter((c: any) => c.status === 'PENDING').length ?? 0})
-              </button>
-            ))}
-          </div>
+
         </div>
       </div>
 

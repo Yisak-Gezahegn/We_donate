@@ -42,7 +42,10 @@ import AdminEventsPage from './pages/admin/AdminEventsPage';
 import AdminSettingsPage from './pages/admin/AdminSettingsPage';
 import AdminMessagesPage from './pages/admin/AdminMessagesPage';
 
-const ADMIN_ROLES = ['KEBELE_ADMIN', 'CITY_ADMIN', 'SYSTEM_ADMIN'];
+const ALL_ADMINS = ['KEBELE_ADMIN', 'CITY_ADMIN', 'SYSTEM_ADMIN'];
+const CITY_AND_SYSTEM = ['CITY_ADMIN', 'SYSTEM_ADMIN'];
+const SYSTEM_ONLY = ['SYSTEM_ADMIN'];
+const ORG_AND_ADMINS = ['ORGANIZATION', 'KEBELE_ADMIN', 'CITY_ADMIN', 'SYSTEM_ADMIN'];
 
 function ProtectedRoute({ children, roles }: { children: React.ReactNode; roles?: string[] }) {
   const { isAuthenticated, user, isLoading } = useAuth();
@@ -104,9 +107,10 @@ function PublicDonateRoute({ children }: { children: React.ReactNode }) {
 const DR = (children: React.ReactNode) => (
   <ProtectedRoute><DashboardLayout>{children}</DashboardLayout></ProtectedRoute>
 );
-const AR = (children: React.ReactNode) => (
-  <ProtectedRoute roles={ADMIN_ROLES}><DashboardLayout>{children}</DashboardLayout></ProtectedRoute>
-);
+
+function withLayout(children: React.ReactNode, roles?: string[]) {
+  return <ProtectedRoute roles={roles}><DashboardLayout>{children}</DashboardLayout></ProtectedRoute>;
+}
 
 export default function App() {
   return (
@@ -130,27 +134,28 @@ export default function App() {
       <Route path="/dashboard/profile"          element={DR(<ProfilePage />)} />
 
       {/* Admin Panel */}
-      <Route path="/admin"                element={AR(<AdminDashboard />)} />
-      <Route path="/admin/users"          element={AR(<ManageUsersPage />)} />
-      <Route path="/admin/verification"   element={AR(<VerificationPage />)} />
-      <Route path="/admin/donations"      element={AR(<AdminDonationsPage />)} />
-      <Route path="/admin/reconciliation" element={AR(<PaymentReconciliationPage />)} />
-      <Route path="/admin/requests"       element={AR(<AdminRequestsPage />)} />
-      <Route path="/admin/inspections"    element={AR(<InspectionsPage />)} />
-      <Route path="/admin/reports"        element={AR(<ReportsPage />)} />
-      <Route path="/admin/news"           element={AR(<AdminNewsPage />)} />
-      <Route path="/admin/faqs"           element={AR(<AdminFaqsPage />)} />
-      <Route path="/admin/events"         element={AR(<AdminEventsPage />)} />
-      <Route path="/admin/messages"       element={AR(<AdminMessagesPage />)} />
-      <Route path="/admin/gallery"        element={AR(<AdminGalleryPage />)} />
-      <Route path="/admin/testimonials"   element={AR(<AdminTestimonialsPage />)} />
-      <Route path="/admin/hero-images"    element={AR(<AdminHeroImagesPage />)} />
-      <Route path="/admin/audit-logs"     element={
-        <ProtectedRoute roles={['SYSTEM_ADMIN','CITY_ADMIN']}>
-          <DashboardLayout><AuditLogsPage /></DashboardLayout>
-        </ProtectedRoute>
-      } />
-      <Route path="/admin/settings"       element={AR(<AdminSettingsPage />)} />
+      <Route path="/admin"                element={withLayout(<AdminDashboard />, ALL_ADMINS)} />
+      <Route path="/admin/users"          element={withLayout(<ManageUsersPage />, ALL_ADMINS)} />
+      <Route path="/admin/requests"       element={withLayout(<AdminRequestsPage />, ALL_ADMINS)} />
+      <Route path="/admin/campaigns"      element={withLayout(<AdminRequestsPage />, CITY_AND_SYSTEM)} />
+      <Route path="/admin/inspections"    element={withLayout(<InspectionsPage />, ALL_ADMINS)} />
+      
+      {/* City & System Admins */}
+      <Route path="/admin/verification"   element={withLayout(<VerificationPage />, CITY_AND_SYSTEM)} />
+      <Route path="/admin/donations"      element={withLayout(<AdminDonationsPage />, CITY_AND_SYSTEM)} />
+      <Route path="/admin/reports"        element={withLayout(<ReportsPage />, CITY_AND_SYSTEM)} />
+      <Route path="/admin/news"           element={withLayout(<AdminNewsPage />, CITY_AND_SYSTEM)} />
+      <Route path="/admin/events"         element={withLayout(<AdminEventsPage />, CITY_AND_SYSTEM)} />
+
+      {/* System Admin Only */}
+      <Route path="/admin/reconciliation" element={withLayout(<PaymentReconciliationPage />, SYSTEM_ONLY)} />
+      <Route path="/admin/audit-logs"     element={withLayout(<AuditLogsPage />, SYSTEM_ONLY)} />
+      <Route path="/admin/settings"       element={withLayout(<AdminSettingsPage />, SYSTEM_ONLY)} />
+      <Route path="/admin/faqs"           element={withLayout(<AdminFaqsPage />, SYSTEM_ONLY)} />
+      <Route path="/admin/messages"       element={withLayout(<AdminMessagesPage />, SYSTEM_ONLY)} />
+      <Route path="/admin/gallery"        element={withLayout(<AdminGalleryPage />, SYSTEM_ONLY)} />
+      <Route path="/admin/testimonials"   element={withLayout(<AdminTestimonialsPage />, SYSTEM_ONLY)} />
+      <Route path="/admin/hero-images"    element={withLayout(<AdminHeroImagesPage />, SYSTEM_ONLY)} />
 
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />

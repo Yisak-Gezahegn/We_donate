@@ -51,16 +51,16 @@ export default function AdminDashboard() {
   ] : [];
 
   const managementCards = [
-    {
+    ...(user?.role === 'SYSTEM_ADMIN' || user?.role === 'CITY_ADMIN' || user?.role === 'KEBELE_ADMIN' ? [{
       title: 'Manage Users',
-      description: 'View, create, and manage all platform users and their roles',
+      description: 'View, create, and manage platform users and their roles',
       icon: Users,
       color: 'from-blue-500 to-blue-600',
       link: '/admin/users',
       badge: stats?.totalUsers,
       badgeLabel: 'total',
-    },
-    {
+    }] : []),
+    ...(user?.role === 'SYSTEM_ADMIN' || user?.role === 'CITY_ADMIN' ? [{
       title: 'Verify Organizations',
       description: 'Review pending registrations, approve or reject organizations',
       icon: Building2,
@@ -69,8 +69,8 @@ export default function AdminDashboard() {
       badge: stats?.pendingVerifications,
       badgeLabel: 'pending',
       urgent: (stats?.pendingVerifications ?? 0) > 0,
-    },
-    {
+    }] : []),
+    ...(user?.role === 'CITY_ADMIN' || user?.role === 'SYSTEM_ADMIN' ? [{
       title: 'Manage Donations',
       description: 'Verify payments, reject invalid donations, export reports',
       icon: Heart,
@@ -78,17 +78,27 @@ export default function AdminDashboard() {
       link: '/admin/donations',
       badge: stats?.totalDonations,
       badgeLabel: 'total',
-    },
-    {
+    }] : []),
+    ...(user?.role === 'KEBELE_ADMIN' || user?.role === 'SYSTEM_ADMIN' ? [{
       title: 'Approve Requests',
-      description: 'Review and approve support requests and campaigns',
+      description: 'Review and approve support requests',
       icon: ClipboardList,
       color: 'from-purple-500 to-indigo-600',
       link: '/admin/requests',
-      badge: (stats?.pendingRequests ?? 0) + (stats?.pendingCampaigns ?? 0),
+      badge: stats?.pendingRequests,
       badgeLabel: 'pending',
-      urgent: ((stats?.pendingRequests ?? 0) + (stats?.pendingCampaigns ?? 0)) > 0,
-    },
+      urgent: (stats?.pendingRequests ?? 0) > 0,
+    }] : []),
+    ...(user?.role === 'CITY_ADMIN' || user?.role === 'SYSTEM_ADMIN' ? [{
+      title: 'Approve Campaigns',
+      description: 'Review and approve campaigns',
+      icon: BarChart3,
+      color: 'from-purple-500 to-indigo-600',
+      link: '/admin/campaigns',
+      badge: stats?.pendingCampaigns,
+      badgeLabel: 'pending',
+      urgent: (stats?.pendingCampaigns ?? 0) > 0,
+    }] : []),
   ];
 
   const monthlyData = (stats?.monthlyDonations as any[]) || [];
@@ -139,8 +149,8 @@ export default function AdminDashboard() {
             {stats?.pendingVerifications > 0 && (stats?.pendingRequests > 0 || stats?.pendingCampaigns > 0) && <span> · </span>}
             {(stats?.pendingRequests ?? 0) + (stats?.pendingCampaigns ?? 0) > 0 && <span>{(stats?.pendingRequests ?? 0) + (stats?.pendingCampaigns ?? 0)} request{(stats?.pendingRequests ?? 0) + (stats?.pendingCampaigns ?? 0) > 1 ? 's' : ''} pending review</span>}
           </div>
-          <Link to="/admin/requests">
-            <span className="text-xs font-bold px-3 py-1.5 rounded-lg bg-amber-500 text-white hover:bg-amber-600 transition-colors cursor-pointer">
+          <Link to={user?.role === 'CITY_ADMIN' ? '/admin/campaigns' : '/admin/requests'}>
+            <span className="text-xs font-bold px-3 py-1.5 rounded-lg bg-amber-500 text-white hover:bg-amber-600 transition-colors cursor-pointer inline-block mt-2 sm:mt-0">
               Review Now
             </span>
           </Link>

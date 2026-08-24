@@ -66,6 +66,8 @@ app.get('/api/health', (_req, res) => res.json({ status: 'ok', message: 'We Dona
 
 app.use(errorHandler);
 
-app.listen(PORT, () => console.log(`🚀 WeDonate API → http://localhost:${PORT}`));
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(PORT, () => console.log(`🚀 WeDonate API → http://localhost:${PORT}`));
+}
 
 export default app;

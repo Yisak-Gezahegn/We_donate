@@ -9,6 +9,8 @@ async function main() {
 
   const hashedSuperAdmin = await bcrypt.hash('superadmin123', 12);
   const hashedCityAdmin = await bcrypt.hash('cityadmin123', 12);
+  const hashedKebeleAdmin = await bcrypt.hash('kebeleadmin123', 12);
+  const hashedOrganization = await bcrypt.hash('organization123', 12);
   const hashedUser = await bcrypt.hash('user123', 12);
 
   await prisma.user.upsert({
@@ -21,6 +23,18 @@ async function main() {
     where: { email: 'cityadmin@adama.et' },
     update: { password: hashedCityAdmin },
     create: { id: uuidv4(), firstName: 'City', lastName: 'Administrator', email: 'cityadmin@adama.et', password: hashedCityAdmin, role: 'CITY_ADMIN', verificationStatus: 'VERIFIED' },
+  });
+
+  await prisma.user.upsert({
+    where: { email: 'kebeleadmin@adama.et' },
+    update: { password: hashedKebeleAdmin },
+    create: { id: uuidv4(), firstName: 'Kebele', lastName: 'Administrator', email: 'kebeleadmin@adama.et', password: hashedKebeleAdmin, role: 'KEBELE_ADMIN', kebeleId: 'K-01', verificationStatus: 'VERIFIED' },
+  });
+
+  await prisma.user.upsert({
+    where: { email: 'org@example.com' },
+    update: { password: hashedOrganization },
+    create: { id: uuidv4(), firstName: 'Org', lastName: 'Representative', email: 'org@example.com', password: hashedOrganization, role: 'ORGANIZATION', orgName: 'Adama Charity', orgType: 'NGO', verificationStatus: 'VERIFIED' },
   });
 
   const donor = await prisma.user.upsert({
@@ -58,8 +72,10 @@ async function main() {
   console.log('✅ Seed complete!');
   console.log('📋 Accounts:');
   console.log('  System Admin : superadmin@wedonate.et / superadmin123');
-  console.log('  City Admin  : cityadmin@adama.et    / cityadmin123');
-  console.log('  User        : abebe@example.com     / user123');
+  console.log('  City Admin   : cityadmin@adama.et     / cityadmin123');
+  console.log('  Kebele Admin : kebeleadmin@adama.et   / kebeleadmin123');
+  console.log('  Organization : org@example.com        / organization123');
+  console.log('  User         : abebe@example.com      / user123');
 }
 
 main().catch(console.error).finally(() => prisma.$disconnect());

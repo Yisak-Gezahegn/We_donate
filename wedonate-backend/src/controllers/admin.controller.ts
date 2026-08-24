@@ -17,7 +17,7 @@ export const getAllUsers = async (req: Request, res: Response, next: NextFunctio
           ],
         } : {}),
       },
-      select: { id: true, firstName: true, lastName: true, email: true, phone: true, role: true, isVerified: true, isActive: true, profileImage: true, registrationExpiry: true, licenseExpiry: true, createdAt: true, orgStatus: true, orgType: true, orgName: true, licenseNumber: true, registrationDocUrl: true, representativeName: true, officeAddress: true, rejectionReason: true },
+      select: { id: true, firstName: true, lastName: true, email: true, phone: true, role: true, isActive: true, profileImage: true, registrationExpiry: true, licenseExpiry: true, createdAt: true, verificationStatus: true, orgType: true, orgName: true, licenseNumber: true, registrationDocUrl: true, representativeName: true, officeAddress: true, rejectionReason: true, kebeleId: true },
       orderBy: { createdAt: 'desc' },
     });
     res.json({ success: true, data: users });
@@ -35,53 +35,33 @@ export const deleteUser = async (req: AuthRequest, res: Response, next: NextFunc
     const target = await prisma.user.findUnique({ where: { id }, select: { id: true, role: true, firstName: true, lastName: true } });
     if (!target) return next(createError('User not found', 404));
 
-    // Only a SUPER_ADMIN may delete another SUPER_ADMIN or CITY_ADMIN
-    if (['SUPER_ADMIN', 'CITY_ADMIN'].includes(target.role) && req.user!.role !== 'SUPER_ADMIN') {
-      return next(createError('Only a Super Admin can delete admin accounts', 403));
+    // Only a SYSTEM_ADMIN may delete another SYSTEM_ADMIN or CITY_ADMIN
+    if (['SYSTEM_ADMIN', 'CITY_ADMIN'].includes(target.role) && req.user!.role !== 'SYSTEM_ADMIN') {
+      return next(createError('Only a System Admin can deactivate admin accounts', 403));
     }
 
-    await prisma.$transaction([
-      // Donations made by the user
-      prisma.donation.deleteMany({ where: { donorId: id } }),
-      // Inspection reports authored by the user
-      prisma.inspectionReport.deleteMany({ where: { inspectorId: id } }),
-      // Updates on the user's campaigns
-      prisma.campaignUpdate.deleteMany({ where: { campaign: { userId: id } } }),
-      // Donations from other donors on the user's requests/campaigns
-      prisma.donation.deleteMany({
-        where: { OR: [{ supportRequest: { userId: id } }, { campaign: { userId: id } }] },
-      }),
-      // Inspections on the user's requests/campaigns
-      prisma.inspectionReport.deleteMany({
-        where: { OR: [{ supportRequest: { userId: id } }, { campaign: { userId: id } }] },
-      }),
-      // User's own content
-      prisma.supportRequest.deleteMany({ where: { userId: id } }),
-      prisma.campaign.deleteMany({ where: { userId: id } }),
-      // Messages and notifications involving the user
-      prisma.message.deleteMany({ where: { OR: [{ senderId: id }, { recipientId: id }] } }),
-      prisma.notification.deleteMany({ where: { userId: id } }),
-      // Keep audit history but detach it from the deleted user
-      prisma.auditLog.updateMany({ where: { userId: id }, data: { userId: null } }),
-      prisma.user.delete({ where: { id } }),
-    ]);
+    // Soft delete (archive) instead of hard delete to preserve financial and audit history
+    await prisma.user.update({
+      where: { id },
+      data: { isActive: false },
+    });
 
     await prisma.auditLog.create({
       data: {
         id: uuidv4(), userId: req.user!.userId,
-        action: 'DELETE_USER', resource: 'user', resourceId: id,
-        details: `Deleted user ${target.firstName} ${target.lastName} (${target.role})`,
+        action: 'ARCHIVE_USER', resource: 'user', resourceId: id,
+        details: `Archived user ${target.firstName} ${target.lastName} (${target.role})`,
       },
     });
 
-    res.json({ success: true, message: 'User and all related data deleted' });
+    res.json({ success: true, message: 'User archived successfully' });
   } catch (error) { next(error); }
 };
 
 export const assignRole = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { role } = req.body;
-    const validRoles = ['USER', 'NGO', 'ORGANIZATION', 'GOVERNMENTAL_ORG', 'KEBELE_ADMIN', 'WOREDA_ADMIN', 'CITY_ADMIN', 'SUPER_ADMIN'];
+    const validRoles = ['USER', 'ORGANIZATION', 'KEBELE_ADMIN', 'CITY_ADMIN', 'SYSTEM_ADMIN'];
     if (!validRoles.includes(role)) return next(createError('Invalid role', 400));
 
     const user = await prisma.user.update({
@@ -158,8 +138,8 @@ export const getDashboardStats = async (_req: Request, res: Response, next: Next
       prisma.user.count(),
       prisma.donation.count({ where: { paymentStatus: 'SUCCESS' } }),
       prisma.donation.aggregate({ _sum: { amount: true }, where: { paymentStatus: 'SUCCESS' } }),
-      prisma.supportRequest.count({ where: { status: 'PENDING' } }),
-      prisma.campaign.count({ where: { status: 'PENDING' } }),
+      prisma.supportRequest.count({ where: { status: 'PENDING_REVIEW' } }),
+      prisma.campaign.count({ where: { status: 'PENDING_REVIEW' } }),
       prisma.donation.findMany({
         take: 10, where: { paymentStatus: 'SUCCESS' },
         include: { donor: { select: { firstName: true, lastName: true } } },
@@ -169,7 +149,7 @@ export const getDashboardStats = async (_req: Request, res: Response, next: Next
       prisma.supportRequest.count({ where: { status: 'FULFILLED' } }),
       prisma.donation.count({ where: { paymentStatus: 'PENDING' } }),
       prisma.supportRequest.count({ where: { isPublished: true } }),
-      prisma.campaign.count({ where: { status: 'ACTIVE' } }),
+      prisma.campaign.count({ where: { status: 'PUBLISHED' } }),
       prisma.auditLog.findMany({
         take: 10,
         include: { user: { select: { firstName: true, lastName: true, profileImage: true } } },
@@ -233,19 +213,7 @@ export const getAuditLogs = async (req: Request, res: Response, next: NextFuncti
   } catch (error) { next(error); }
 };
 
-export const clearAuditLogs = async (req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
-    const result = await prisma.auditLog.deleteMany({});
-    await prisma.auditLog.create({
-      data: {
-        id: uuidv4(), userId: req.user!.userId,
-        action: 'CLEAR_AUDIT_LOGS', resource: 'audit_log',
-        details: `Cleared all audit logs (${result.count} entries removed)`,
-      },
-    });
-    res.json({ success: true, message: `All audit logs cleared (${result.count} entries removed)` });
-  } catch (error) { next(error); }
-};
+
 
 export const updateDocumentExpiry = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
@@ -256,7 +224,7 @@ export const updateDocumentExpiry = async (req: AuthRequest, res: Response, next
         registrationExpiry: registrationExpiry ? new Date(registrationExpiry) : null,
         licenseExpiry: licenseExpiry ? new Date(licenseExpiry) : null,
       },
-      select: { id: true, firstName: true, lastName: true, email: true, role: true, isVerified: true, registrationExpiry: true, licenseExpiry: true },
+      select: { id: true, firstName: true, lastName: true, email: true, role: true, verificationStatus: true, registrationExpiry: true, licenseExpiry: true },
     });
     res.json({ success: true, data: user, message: 'Document expiry updated' });
   } catch (error) { next(error); }
@@ -266,20 +234,19 @@ export const toggleVerification = async (req: AuthRequest, res: Response, next: 
   try {
     const targetUser = await prisma.user.findUnique({
       where: { id: req.params.id },
-      select: { id: true, isVerified: true, firstName: true, lastName: true, role: true },
+      select: { id: true, verificationStatus: true, firstName: true, lastName: true, role: true },
     });
     if (!targetUser) return next(createError('User not found', 404));
 
-    const ORG_ROLES = ['NGO', 'ORGANIZATION', 'GOVERNMENTAL_ORG'];
-    if (!ORG_ROLES.includes(targetUser.role)) {
+    if (targetUser.role !== 'ORGANIZATION') {
       return next(createError('Only organizations can be verified', 400));
     }
 
-    const newVerifiedState = !targetUser.isVerified;
+    const newVerifiedState = targetUser.verificationStatus !== 'VERIFIED';
     const user = await prisma.user.update({
       where: { id: req.params.id },
-      data: { isVerified: newVerifiedState },
-      select: { id: true, firstName: true, lastName: true, email: true, role: true, isVerified: true },
+      data: { verificationStatus: newVerifiedState ? 'VERIFIED' : 'UNVERIFIED' },
+      select: { id: true, firstName: true, lastName: true, email: true, role: true, verificationStatus: true },
     });
 
     await prisma.auditLog.create({
@@ -452,7 +419,7 @@ export const publishCampaign = async (req: AuthRequest, res: Response, next: Nex
   try {
     const campaign = await prisma.campaign.update({
       where: { id: req.params.id },
-      data: { isPublished: true, publishedAt: new Date(), status: 'ACTIVE' },
+      data: { isPublished: true, publishedAt: new Date(), status: 'PUBLISHED' },
     });
     await prisma.auditLog.create({
       data: { id: uuidv4(), userId: req.user!.userId, action: 'PUBLISH_CAMPAIGN', resource: 'campaign', resourceId: req.params.id, details: `Published campaign: ${campaign.title}` },
@@ -464,10 +431,10 @@ export const publishCampaign = async (req: AuthRequest, res: Response, next: Nex
 export const getPendingOrganizations = async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const orgs = await prisma.user.findMany({
-      where: { orgStatus: 'PENDING' },
+      where: { verificationStatus: 'PENDING' },
       select: {
         id: true, firstName: true, lastName: true, email: true, phone: true,
-        role: true, orgStatus: true, orgType: true, orgName: true,
+        role: true, verificationStatus: true, orgType: true, orgName: true,
         licenseNumber: true, registrationDocUrl: true, representativeName: true,
         officeAddress: true, registrationExpiry: true, licenseExpiry: true, createdAt: true,
       },
@@ -481,15 +448,15 @@ export const approveOrganization = async (req: AuthRequest, res: Response, next:
   try {
     const targetUser = await prisma.user.findUnique({
       where: { id: req.params.id },
-      select: { id: true, orgStatus: true, firstName: true, lastName: true, role: true },
+      select: { id: true, verificationStatus: true, firstName: true, lastName: true, role: true },
     });
     if (!targetUser) return next(createError('User not found', 404));
-    if (targetUser.orgStatus !== 'PENDING') return next(createError('Organization is not pending', 400));
+    if (targetUser.verificationStatus !== 'PENDING') return next(createError('Organization is not pending', 400));
 
     const user = await prisma.user.update({
       where: { id: req.params.id },
-      data: { orgStatus: 'APPROVED', isVerified: true },
-      select: { id: true, firstName: true, lastName: true, email: true, role: true, orgStatus: true, isVerified: true },
+      data: { verificationStatus: 'VERIFIED' },
+      select: { id: true, firstName: true, lastName: true, email: true, role: true, verificationStatus: true },
     });
 
     await prisma.auditLog.create({
@@ -518,15 +485,15 @@ export const rejectOrganization = async (req: AuthRequest, res: Response, next: 
     const { reason } = req.body;
     const targetUser = await prisma.user.findUnique({
       where: { id: req.params.id },
-      select: { id: true, orgStatus: true, firstName: true, lastName: true },
+      select: { id: true, verificationStatus: true, firstName: true, lastName: true },
     });
     if (!targetUser) return next(createError('User not found', 404));
-    if (targetUser.orgStatus !== 'PENDING') return next(createError('Organization is not pending', 400));
+    if (targetUser.verificationStatus !== 'PENDING') return next(createError('Organization is not pending', 400));
 
     const user = await prisma.user.update({
       where: { id: req.params.id },
-      data: { orgStatus: 'REJECTED', rejectionReason: reason || null },
-      select: { id: true, firstName: true, lastName: true, email: true, role: true, orgStatus: true, rejectionReason: true },
+      data: { verificationStatus: 'REJECTED', rejectionReason: reason || null },
+      select: { id: true, firstName: true, lastName: true, email: true, role: true, verificationStatus: true, rejectionReason: true },
     });
 
     await prisma.auditLog.create({

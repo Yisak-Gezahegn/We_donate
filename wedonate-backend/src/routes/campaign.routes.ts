@@ -6,7 +6,7 @@ import {
 import { authenticate, authorize } from '../middleware/auth.middleware';
 
 const router = Router();
-const ADMIN = ['KEBELE_ADMIN','WOREDA_ADMIN','CITY_ADMIN','SUPER_ADMIN'];
+const ADMIN = ['CITY_ADMIN', 'SYSTEM_ADMIN'];
 
 router.get('/',               getActiveCampaigns);
 router.post('/',              authenticate, createCampaign);

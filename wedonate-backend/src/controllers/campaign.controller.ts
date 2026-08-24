@@ -4,9 +4,9 @@ import prisma from '../lib/prisma';
 import { createError } from '../middleware/errorHandler';
 import { AuthRequest } from '../middleware/auth.middleware';
 
-const ORG_ROLES = ['NGO', 'ORGANIZATION', 'GOVERNMENTAL_ORG', 'KEBELE_ADMIN', 'WOREDA_ADMIN', 'CITY_ADMIN', 'SUPER_ADMIN'];
-const NEED_VERIFICATION_ROLES = ['NGO', 'ORGANIZATION', 'GOVERNMENTAL_ORG'];
-const ADMIN_ROLES = ['KEBELE_ADMIN', 'WOREDA_ADMIN', 'CITY_ADMIN', 'SUPER_ADMIN'];
+const ORG_ROLES = ['ORGANIZATION','CITY_ADMIN','SYSTEM_ADMIN'];
+const NEED_VERIFICATION_ROLES = ['ORGANIZATION'];
+const ADMIN_ROLES = ['CITY_ADMIN','SYSTEM_ADMIN'];
 
 export const createCampaign = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
@@ -32,9 +32,9 @@ export const createCampaign = async (req: AuthRequest, res: Response, next: Next
     if (!isAdmin && NEED_VERIFICATION_ROLES.includes(req.user!.role)) {
       const currentUser = await prisma.user.findUnique({
         where: { id: req.user!.userId },
-        select: { orgStatus: true },
+        select: { verificationStatus: true },
       });
-      if (!currentUser || currentUser.orgStatus !== 'APPROVED') {
+      if (!currentUser || currentUser.verificationStatus !== 'VERIFIED') {
         return next(createError('Your organization must be verified by an admin before you can create campaigns. Please wait for verification.', 403));
       }
     }
@@ -85,7 +85,7 @@ export const getActiveCampaigns = async (req: Request, res: Response, next: Next
   try {
     const { category, limit } = req.query;
     const campaigns = await prisma.campaign.findMany({
-      where: { status: { in: ['APPROVED', 'ACTIVE'] }, ...(category ? { category: category as string } : {}) },
+      where: { status: 'PUBLISHED', ...(category ? { category: category as string } : {}) },
       include: {
         user: { select: { firstName: true, lastName: true, profileImage: true } },
         _count: { select: { donations: true } },
@@ -114,7 +114,7 @@ export const getCampaignById = async (req: AuthRequest, res: Response, next: Nex
     });
     if (!campaign) return next(createError('Campaign not found', 404));
 
-    const isAdmin = req.user && ['KEBELE_ADMIN', 'WOREDA_ADMIN', 'CITY_ADMIN', 'SUPER_ADMIN'].includes(req.user.role);
+    const isAdmin = req.user && ['CITY_ADMIN','SYSTEM_ADMIN'].includes(req.user.role);
     const isOwner = req.user && req.user.userId === campaign.userId;
 
     if (!isAdmin && !isOwner) {
@@ -145,7 +145,7 @@ export const getAllCampaigns = async (_req: Request, res: Response, next: NextFu
   } catch (error) { next(error); }
 };
 
-// Admin — permanently delete a campaign and its related records
+// Admin — safely archive a campaign
 export const deleteCampaign = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
@@ -155,31 +155,30 @@ export const deleteCampaign = async (req: AuthRequest, res: Response, next: Next
     });
     if (!campaign) return next(createError('Campaign not found', 404));
 
-    await prisma.$transaction([
-      prisma.donation.deleteMany({ where: { campaignId: id } }),
-      prisma.campaignUpdate.deleteMany({ where: { campaignId: id } }),
-      prisma.inspectionReport.deleteMany({ where: { campaignId: id } }),
-      prisma.campaign.delete({ where: { id } }),
-      prisma.notification.create({
-        data: {
-          id: uuidv4(), userId: campaign.userId,
-          title: 'Campaign Removed',
-          message: `Your campaign "${campaign.title}" was removed by an administrator.`,
-          type: 'ERROR',
-        },
-      }),
-    ]);
+    await prisma.campaign.update({
+      where: { id },
+      data: { status: 'ARCHIVED' },
+    });
+
+    await prisma.notification.create({
+      data: {
+        id: uuidv4(), userId: campaign.userId,
+        title: 'Campaign Archived',
+        message: `Your campaign "${campaign.title}" was archived by an administrator.`,
+        type: 'ERROR',
+      },
+    });
 
     await prisma.auditLog.create({
       data: {
         id: uuidv4(), userId: req.user!.userId,
-        action: 'DELETE_CAMPAIGN',
+        action: 'ARCHIVE_CAMPAIGN',
         resource: 'campaign', resourceId: id,
-        details: `Deleted campaign "${campaign.title}" of user ${campaign.userId}`,
+        details: `Archived campaign "${campaign.title}" of user ${campaign.userId}`,
       },
     });
 
-    res.json({ success: true, message: 'Campaign deleted' });
+    res.json({ success: true, message: 'Campaign archived successfully' });
   } catch (error) { next(error); }
 };
 
@@ -189,19 +188,30 @@ export const updateCampaignStatus = async (req: AuthRequest, res: Response, next
     if (status === 'REJECTED' && (!adminNote || !adminNote.trim())) {
       return next(createError('Rejection reason is required', 400));
     }
-    const campaign = await prisma.campaign.update({
+    const campaign = await prisma.campaign.findUnique({
+      where: { id: req.params.id },
+    });
+    if (!campaign) return next(createError('Campaign not found', 404));
+
+    // Anti-self-approval rule
+    if (['PUBLISHED', 'COMPLETED', 'REJECTED'].includes(status) && campaign.userId === req.user!.userId) {
+      return next(createError('Conflict of Interest: You cannot approve or reject a campaign you created', 403));
+    }
+
+    const updatedCampaign = await prisma.campaign.update({
       where: { id: req.params.id },
       data: { status, adminNote: adminNote || null },
     });
+    
     await prisma.notification.create({
       data: {
-        id: uuidv4(), userId: campaign.userId,
+        id: uuidv4(), userId: updatedCampaign.userId,
         title: `Campaign ${status}`,
-        message: `Your campaign "${campaign.title}" has been ${status.toLowerCase()}.${adminNote ? ` Reason: ${adminNote}` : ''}`,
-        type: ['APPROVED', 'ACTIVE'].includes(status) ? 'SUCCESS' : status === 'REJECTED' ? 'ERROR' : 'INFO',
+        message: `Your campaign "${updatedCampaign.title}" has been ${status.toLowerCase()}.${adminNote ? ` Reason: ${adminNote}` : ''}`,
+        type: ['PUBLISHED','COMPLETED'].includes(status) ? 'SUCCESS' : status === 'REJECTED' ? 'ERROR' : 'INFO',
       },
     });
-    res.json({ success: true, data: campaign });
+    res.json({ success: true, data: updatedCampaign });
   } catch (error) { next(error); }
 };
 

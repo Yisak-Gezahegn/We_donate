@@ -4,8 +4,8 @@ import prisma from '../lib/prisma';
 import { createError } from '../middleware/errorHandler';
 import { AuthRequest } from '../middleware/auth.middleware';
 
-const ADMIN_ROLES = ['KEBELE_ADMIN', 'WOREDA_ADMIN', 'CITY_ADMIN', 'SUPER_ADMIN'];
-const NEED_VERIFICATION_ROLES = ['NGO', 'ORGANIZATION', 'GOVERNMENTAL_ORG'];
+const ADMIN_ROLES = ['KEBELE_ADMIN', 'CITY_ADMIN', 'SYSTEM_ADMIN'];
+const NEED_VERIFICATION_ROLES = ['ORGANIZATION', 'USER'];
 
 export const createRequest = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
@@ -31,16 +31,21 @@ export const createRequest = async (req: AuthRequest, res: Response, next: NextF
     if (!isAdmin && NEED_VERIFICATION_ROLES.includes(req.user!.role)) {
       const currentUser = await prisma.user.findUnique({
         where: { id: req.user!.userId },
-        select: { orgStatus: true },
+        select: { verificationStatus: true },
       });
-      if (!currentUser || currentUser.orgStatus !== 'APPROVED') {
+      if (!currentUser || currentUser.verificationStatus !== 'VERIFIED') {
         return next(createError('Your organization must be verified by an admin before you can create support requests. Please wait for verification.', 403));
       }
     }
 
+    let kebeleId: string | null = null;
     if (isAdmin && targetUserId) {
-      const targetUser = await prisma.user.findUnique({ where: { id: targetUserId }, select: { id: true } });
+      const targetUser = await prisma.user.findUnique({ where: { id: targetUserId }, select: { id: true, kebeleId: true } });
       if (!targetUser) return next(createError('Target user not found', 404));
+      kebeleId = targetUser.kebeleId;
+    } else {
+      const currentUser = await prisma.user.findUnique({ where: { id: req.user!.userId }, select: { kebeleId: true } });
+      kebeleId = currentUser?.kebeleId || null;
     }
 
     const request = await prisma.supportRequest.create({
@@ -62,9 +67,12 @@ export const createRequest = async (req: AuthRequest, res: Response, next: NextF
         requesterPhone: requesterPhone || null,
         supportLetterUrl: supportLetterUrl || null,
         nationalIdFrontUrl: nationalIdFrontUrl || null,
-        nationalIdBackUrl: nationalIdBackUrl || null,
-        fanNumber: fanNumber || null,
-        additionalNotes: additionalNotes || null,
+        nationalIdBackUrl:  nationalIdBackUrl  || null,
+        fanNumber:          fanNumber          || null,
+        additionalNotes:    additionalNotes    || null,
+        kebeleId: kebeleId || 'UNASSIGNED',
+        source: (isAdmin && targetUserId) ? 'ASSISTED' : 'SELF_SERVICE',
+        createdById: (isAdmin && targetUserId) ? req.user!.userId : null,
       },
     });
 
@@ -87,7 +95,7 @@ export const getApprovedRequests = async (req: Request, res: Response, next: Nex
   try {
     const { category, limit } = req.query;
     const requests = await prisma.supportRequest.findMany({
-      where: { status: 'APPROVED', ...(category ? { category: category as any } : {}) },
+      where: { status: 'PUBLISHED', ...(category ? { category: category as any } : {}) },
       include: {
         user: { select: { firstName: true, lastName: true, profileImage: true } },
         _count: { select: { donations: true } },
@@ -103,9 +111,14 @@ export const getApprovedRequests = async (req: Request, res: Response, next: Nex
 };
 
 // Admin — full details including support letter
-export const getAllRequests = async (_req: Request, res: Response, next: NextFunction) => {
+export const getAllRequests = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
+    let where: any = {};
+    if (req.user!.role === 'KEBELE_ADMIN') {
+      where.kebeleId = req.user!.kebeleId || 'UNASSIGNED'; // strict kebele scoping
+    }
     const requests = await prisma.supportRequest.findMany({
+      where,
       include: {
         user: { select: { firstName: true, lastName: true, email: true, phone: true, profileImage: true } },
         _count: { select: { donations: true } },
@@ -136,11 +149,16 @@ export const getRequestById = async (req: AuthRequest, res: Response, next: Next
     const isAdmin = req.user && ADMIN_ROLES.includes(req.user.role);
     const isOwner = req.user && req.user.userId === request.userId;
 
-    // Strip admin-only fields for non-admin, non-owner
     if (!isAdmin && !isOwner) {
       const { supportLetterUrl, nationalIdFrontUrl, nationalIdBackUrl, fanNumber, additionalNotes, ...publicData } = request;
       return res.json({ success: true, data: publicData });
     }
+    
+    // Kebele scope check for admins
+    if (isAdmin && req.user!.role === 'KEBELE_ADMIN' && request.kebeleId !== req.user!.kebeleId) {
+      return next(createError('Unauthorized to view this Kebele\'s request details', 403));
+    }
+
     res.json({ success: true, data: request });
   } catch (error) { next(error); }
 };
@@ -155,40 +173,44 @@ export const getMyRequests = async (req: AuthRequest, res: Response, next: NextF
   } catch (error) { next(error); }
 };
 
-// Admin — permanently delete a support request and its related records
+// Admin — safely archive a support request
 export const deleteRequest = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const request = await prisma.supportRequest.findUnique({
       where: { id },
-      select: { userId: true, title: true },
+      select: { userId: true, title: true, kebeleId: true },
     });
     if (!request) return next(createError('Request not found', 404));
 
-    await prisma.$transaction([
-      prisma.donation.deleteMany({ where: { supportRequestId: id } }),
-      prisma.inspectionReport.deleteMany({ where: { supportRequestId: id } }),
-      prisma.supportRequest.delete({ where: { id } }),
-      prisma.notification.create({
-        data: {
-          id: uuidv4(), userId: request.userId,
-          title: 'Request Removed',
-          message: `Your support request "${request.title}" was removed by an administrator.`,
-          type: 'ERROR',
-        },
-      }),
-    ]);
+    if (req.user!.role === 'KEBELE_ADMIN' && request.kebeleId !== req.user!.kebeleId) {
+      return next(createError('Unauthorized to archive this Kebele\'s request', 403));
+    }
+
+    await prisma.supportRequest.update({
+      where: { id },
+      data: { status: 'ARCHIVED' },
+    });
+
+    await prisma.notification.create({
+      data: {
+        id: uuidv4(), userId: request.userId,
+        title: 'Request Archived',
+        message: `Your support request "${request.title}" was archived by an administrator.`,
+        type: 'ERROR',
+      },
+    });
 
     await prisma.auditLog.create({
       data: {
         id: uuidv4(), userId: req.user!.userId,
-        action: 'DELETE_SUPPORT_REQUEST',
+        action: 'ARCHIVE_SUPPORT_REQUEST',
         resource: 'support_request', resourceId: id,
-        details: `Deleted support request "${request.title}" of user ${request.userId}`,
+        details: `Archived support request "${request.title}" of user ${request.userId}`,
       },
     });
 
-    res.json({ success: true, message: 'Support request deleted' });
+    res.json({ success: true, message: 'Support request archived successfully' });
   } catch (error) { next(error); }
 };
 
@@ -198,18 +220,33 @@ export const updateRequestStatus = async (req: AuthRequest, res: Response, next:
     if (status === 'REJECTED' && (!adminNote || !adminNote.trim())) {
       return next(createError('Rejection reason is required', 400));
     }
-    const request = await prisma.supportRequest.update({
+    
+    const request = await prisma.supportRequest.findUnique({
+      where: { id: req.params.id },
+    });
+    if (!request) return next(createError('Request not found', 404));
+
+    if (req.user!.role === 'KEBELE_ADMIN' && request.kebeleId !== req.user!.kebeleId) {
+      return next(createError('Unauthorized to modify this Kebele\'s request', 403));
+    }
+
+    // Anti-self-approval rule
+    if (['PUBLISHED', 'FULFILLED', 'REJECTED'].includes(status) && (request.createdById === req.user!.userId || request.userId === req.user!.userId)) {
+      return next(createError('Conflict of Interest: You cannot approve or reject a request you created', 403));
+    }
+
+    const updatedRequest = await prisma.supportRequest.update({
       where: { id: req.params.id },
       data: { status, adminNote: adminNote || null },
     });
     await prisma.notification.create({
       data: {
-        id: uuidv4(), userId: request.userId,
+        id: uuidv4(), userId: updatedRequest.userId,
         title: `Request ${status}`,
-        message: `Your support request "${request.title}" has been ${status.toLowerCase()}.${adminNote ? ` Reason: ${adminNote}` : ''}`,
-        type: status === 'APPROVED' ? 'SUCCESS' : status === 'REJECTED' ? 'ERROR' : 'INFO',
+        message: `Your support request "${updatedRequest.title}" has been ${status.toLowerCase()}.${adminNote ? ` Reason: ${adminNote}` : ''}`,
+        type: status === 'PUBLISHED' ? 'SUCCESS' : status === 'REJECTED' ? 'ERROR' : 'INFO',
       },
     });
-    res.json({ success: true, data: request, message: 'Status updated' });
+    res.json({ success: true, data: updatedRequest, message: 'Status updated' });
   } catch (error) { next(error); }
 };

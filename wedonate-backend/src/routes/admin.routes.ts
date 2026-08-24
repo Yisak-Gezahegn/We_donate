@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import {
   getAllUsers, assignRole, toggleUserActive, getDashboardStats, getAuditLogs,
-  clearAuditLogs, toggleVerification, updateDocumentExpiry, createUser, deleteUser,
+  toggleVerification, updateDocumentExpiry, createUser, deleteUser,
   getAllDonationsAdmin, getPendingDonations, verifyDonation, rejectDonation,
   publishRequest, fulfillRequest, publishCampaign,
   getPendingOrganizations, approveOrganization, rejectOrganization,
@@ -10,36 +10,37 @@ import { getInspectionReports, createInspectionReport, resolveInspection, delete
 import { authenticate, authorize } from '../middleware/auth.middleware';
 
 const router = Router();
-const ADMIN = ['KEBELE_ADMIN','WOREDA_ADMIN','CITY_ADMIN','SUPER_ADMIN'];
+const ALL_ADMINS = ['KEBELE_ADMIN', 'CITY_ADMIN', 'SYSTEM_ADMIN'];
+const CITY_AND_SYSTEM = ['CITY_ADMIN', 'SYSTEM_ADMIN'];
+const SYSTEM_ONLY = ['SYSTEM_ADMIN'];
 
-router.get('/users',               authenticate, authorize(...ADMIN), getAllUsers);
-router.post('/users',              authenticate, authorize(...ADMIN), createUser);
-router.delete('/users/:id',        authenticate, authorize(...ADMIN), deleteUser);
-router.patch('/users/:id/role',    authenticate, authorize('SUPER_ADMIN', 'CITY_ADMIN'), assignRole);
-router.patch('/users/:id/toggle-active', authenticate, authorize(...ADMIN), toggleUserActive);
-router.patch('/users/:id/toggle-verification', authenticate, authorize(...ADMIN), toggleVerification);
-router.patch('/users/:id/document-expiry', authenticate, authorize(...ADMIN), updateDocumentExpiry);
+router.get('/users',               authenticate, authorize(...ALL_ADMINS), getAllUsers);
+router.post('/users',              authenticate, authorize(...SYSTEM_ONLY), createUser);
+router.delete('/users/:id',        authenticate, authorize(...SYSTEM_ONLY), deleteUser);
+router.patch('/users/:id/role',    authenticate, authorize(...SYSTEM_ONLY), assignRole);
+router.patch('/users/:id/toggle-active', authenticate, authorize(...CITY_AND_SYSTEM), toggleUserActive);
+router.patch('/users/:id/toggle-verification', authenticate, authorize(...CITY_AND_SYSTEM), toggleVerification);
+router.patch('/users/:id/document-expiry', authenticate, authorize(...CITY_AND_SYSTEM), updateDocumentExpiry);
 
-router.get('/organizations/pending', authenticate, authorize(...ADMIN), getPendingOrganizations);
-router.patch('/organizations/:id/approve', authenticate, authorize(...ADMIN), approveOrganization);
-router.patch('/organizations/:id/reject', authenticate, authorize(...ADMIN), rejectOrganization);
+router.get('/organizations/pending', authenticate, authorize(...CITY_AND_SYSTEM), getPendingOrganizations);
+router.patch('/organizations/:id/approve', authenticate, authorize(...CITY_AND_SYSTEM), approveOrganization);
+router.patch('/organizations/:id/reject', authenticate, authorize(...CITY_AND_SYSTEM), rejectOrganization);
 
-router.get('/dashboard',           authenticate, authorize(...ADMIN), getDashboardStats);
-router.get('/audit-logs',          authenticate, authorize('SUPER_ADMIN','CITY_ADMIN'), getAuditLogs);
-router.delete('/audit-logs',       authenticate, authorize('SUPER_ADMIN','CITY_ADMIN'), clearAuditLogs);
+router.get('/dashboard',           authenticate, authorize(...ALL_ADMINS), getDashboardStats);
+router.get('/audit-logs',          authenticate, authorize(...SYSTEM_ONLY), getAuditLogs);
 
-router.get('/donations',           authenticate, authorize(...ADMIN), getAllDonationsAdmin);
-router.get('/donations/pending',   authenticate, authorize(...ADMIN), getPendingDonations);
-router.patch('/donations/:id/verify', authenticate, authorize(...ADMIN), verifyDonation);
-router.patch('/donations/:id/reject', authenticate, authorize(...ADMIN), rejectDonation);
+router.get('/donations',           authenticate, authorize(...CITY_AND_SYSTEM), getAllDonationsAdmin);
+router.get('/donations/pending',   authenticate, authorize(...CITY_AND_SYSTEM), getPendingDonations);
+router.patch('/donations/:id/verify', authenticate, authorize(...CITY_AND_SYSTEM), verifyDonation);
+router.patch('/donations/:id/reject', authenticate, authorize(...CITY_AND_SYSTEM), rejectDonation);
 
-router.patch('/requests/:id/publish', authenticate, authorize(...ADMIN), publishRequest);
-router.patch('/requests/:id/fulfill', authenticate, authorize(...ADMIN), fulfillRequest);
-router.patch('/campaigns/:id/publish', authenticate, authorize(...ADMIN), publishCampaign);
+router.patch('/requests/:id/publish', authenticate, authorize(...ALL_ADMINS), publishRequest);
+router.patch('/requests/:id/fulfill', authenticate, authorize(...ALL_ADMINS), fulfillRequest);
+router.patch('/campaigns/:id/publish', authenticate, authorize(...CITY_AND_SYSTEM), publishCampaign);
 
-router.get('/inspections',             authenticate, authorize(...ADMIN), getInspectionReports);
-router.post('/inspections',            authenticate, authorize(...ADMIN), createInspectionReport);
-router.patch('/inspections/:id/resolve', authenticate, authorize(...ADMIN), resolveInspection);
-router.delete('/inspections/:id',      authenticate, authorize(...ADMIN), deleteInspection);
+router.get('/inspections',             authenticate, authorize(...ALL_ADMINS), getInspectionReports);
+router.post('/inspections',            authenticate, authorize(...ALL_ADMINS), createInspectionReport);
+router.patch('/inspections/:id/resolve', authenticate, authorize(...ALL_ADMINS), resolveInspection);
+router.delete('/inspections/:id',      authenticate, authorize(...SYSTEM_ONLY), deleteInspection);
 
 export default router;

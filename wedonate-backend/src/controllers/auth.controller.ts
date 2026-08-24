@@ -6,8 +6,8 @@ import prisma from '../lib/prisma';
 import { createError } from '../middleware/errorHandler';
 import { AuthRequest } from '../middleware/auth.middleware';
 
-const generateToken = (userId: string, email: string, role: string) =>
-  jwt.sign({ userId, email, role }, process.env.JWT_SECRET!, {
+const generateToken = (userId: string, email: string, role: string, kebeleId?: string | null) =>
+  jwt.sign({ userId, email, role, kebeleId }, process.env.JWT_SECRET!, {
     expiresIn: process.env.JWT_EXPIRES_IN || '7d',
   } as jwt.SignOptions);
 
@@ -38,8 +38,8 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
       data: {
         id: uuidv4(), firstName, lastName, email,
         password: hashedPassword, phone: phone || null,
-        role: isOrg ? (orgType === 'GOVERNMENTAL' ? 'GOVERNMENTAL_ORG' : 'NGO') : 'USER',
-        orgStatus: isOrg ? 'PENDING' : 'NONE',
+        role: isOrg ? 'ORGANIZATION' : 'USER',
+        verificationStatus: isOrg ? 'PENDING' : 'UNVERIFIED',
         orgType: isOrg ? orgType : null,
         orgName: isOrg ? orgName : null,
         licenseNumber: isOrg ? licenseNumber : null,
@@ -47,10 +47,10 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
         representativeName: isOrg ? representativeName : null,
         officeAddress: isOrg ? officeAddress : null,
       },
-      select: { id: true, firstName: true, lastName: true, email: true, role: true, orgStatus: true, createdAt: true },
+      select: { id: true, firstName: true, lastName: true, email: true, role: true, verificationStatus: true, createdAt: true, kebeleId: true },
     });
 
-    const token = generateToken(user.id, user.email, user.role);
+    const token = generateToken(user.id, user.email, user.role, user.kebeleId);
 
     res.status(201).json({
       success: true,
@@ -73,7 +73,7 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) return next(createError('Invalid credentials', 401));
 
-    const token = generateToken(user.id, user.email, user.role);
+    const token = generateToken(user.id, user.email, user.role, user.kebeleId);
 
     await prisma.auditLog.create({
       data: { id: uuidv4(), userId: user.id, action: 'LOGIN', resource: 'auth', ipAddress: req.ip },
@@ -83,7 +83,7 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
       success: true,
       message: 'Login successful',
       data: {
-        user: { id: user.id, firstName: user.firstName, lastName: user.lastName, email: user.email, role: user.role, profileImage: user.profileImage, orgStatus: user.orgStatus, isVerified: user.isVerified },
+        user: { id: user.id, firstName: user.firstName, lastName: user.lastName, email: user.email, role: user.role, profileImage: user.profileImage, verificationStatus: user.verificationStatus, kebeleId: user.kebeleId },
         token,
       },
     });
@@ -94,7 +94,7 @@ export const getMe = async (req: AuthRequest, res: Response, next: NextFunction)
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.user!.userId },
-      select: { id: true, firstName: true, lastName: true, email: true, phone: true, role: true, profileImage: true, isVerified: true, orgStatus: true, orgType: true, orgName: true, rejectionReason: true, createdAt: true, registrationExpiry: true, licenseExpiry: true },
+      select: { id: true, firstName: true, lastName: true, email: true, phone: true, role: true, profileImage: true, verificationStatus: true, kebeleId: true, orgType: true, orgName: true, rejectionReason: true, createdAt: true, registrationExpiry: true, licenseExpiry: true },
     });
     if (!user) return next(createError('User not found', 404));
     res.json({ success: true, data: user });
@@ -103,7 +103,7 @@ export const getMe = async (req: AuthRequest, res: Response, next: NextFunction)
 
 export const refreshToken = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const token = generateToken(req.user!.userId, req.user!.email, req.user!.role);
+    const token = generateToken(req.user!.userId, req.user!.email, req.user!.role, req.user!.kebeleId);
     res.json({ success: true, data: { token } });
   } catch (error) { next(error); }
 };

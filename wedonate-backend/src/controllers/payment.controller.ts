@@ -26,8 +26,8 @@ export const initializePayment = async (req: AuthRequest, res: Response, next: N
         where: { id: supportRequestId },
         select: { status: true, goalAmount: true, raisedAmount: true },
       });
-      if (!req_ || req_.status !== 'APPROVED')
-        return next(createError('Support request not found or not approved', 404));
+      if (!req_ || req_.status !== 'PUBLISHED')
+        return next(createError('Support request not found or not published', 404));
       if (req_.goalAmount && req_.raisedAmount >= req_.goalAmount)
         return next(createError('The fundraising goal for this request has been reached', 400));
     }
@@ -36,8 +36,8 @@ export const initializePayment = async (req: AuthRequest, res: Response, next: N
         where: { id: campaignId },
         select: { status: true, goalAmount: true, raisedAmount: true },
       });
-      if (!camp || !['APPROVED','ACTIVE'].includes(camp.status))
-        return next(createError('Campaign not found or not active', 404));
+      if (!camp || camp.status !== 'PUBLISHED')
+        return next(createError('Campaign not found or not published', 404));
       if (camp.raisedAmount >= camp.goalAmount)
         return next(createError('The fundraising goal for this campaign has been reached', 400));
     }

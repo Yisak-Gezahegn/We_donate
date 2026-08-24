@@ -4,7 +4,7 @@ import prisma from '../lib/prisma';
 import { createError } from '../middleware/errorHandler';
 import { AuthRequest } from '../middleware/auth.middleware';
 
-const ADMIN_ROLES = ['KEBELE_ADMIN','WOREDA_ADMIN','CITY_ADMIN','SUPER_ADMIN'];
+const ADMIN_ROLES = ['CITY_ADMIN','SYSTEM_ADMIN'];
 
 export const getMessages = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {

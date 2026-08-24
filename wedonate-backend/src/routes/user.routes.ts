@@ -25,4 +25,19 @@ router.post('/profile/image', authenticate, async (req: AuthRequest, res: Respon
   } catch (error) { next(error); }
 });
 
+router.post('/verify-request', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const user = await prisma.user.findUnique({ where: { id: req.user!.userId } });
+    if (!user) { res.status(404).json({ success: false, message: 'User not found' }); return; }
+    if (user.verificationStatus === 'VERIFIED') { res.status(400).json({ success: false, message: 'Already verified' }); return; }
+    
+    await prisma.user.update({
+      where: { id: req.user!.userId },
+      data: { verificationStatus: 'PENDING' }
+    });
+
+    res.json({ success: true, message: 'Verification requested' });
+  } catch (error) { next(error); }
+});
+
 export default router;

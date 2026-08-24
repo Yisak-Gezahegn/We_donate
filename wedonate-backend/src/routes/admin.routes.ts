@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import {
   getAllUsers, assignRole, toggleUserActive, getDashboardStats, getAuditLogs,
-  toggleVerification, updateDocumentExpiry, createUser, deleteUser,
+  toggleVerification, updateDocumentExpiry, createUser, createAssistedUser, deleteUser,
   getAllDonationsAdmin, getPendingDonations, verifyDonation, rejectDonation,
   publishRequest, fulfillRequest, publishCampaign,
   getPendingOrganizations, approveOrganization, rejectOrganization,
@@ -16,6 +16,7 @@ const SYSTEM_ONLY = ['SYSTEM_ADMIN'];
 
 router.get('/users',               authenticate, authorize(...ALL_ADMINS), getAllUsers);
 router.post('/users',              authenticate, authorize(...SYSTEM_ONLY), createUser);
+router.post('/users/assisted',     authenticate, authorize('KEBELE_ADMIN'), createAssistedUser);
 router.delete('/users/:id',        authenticate, authorize(...SYSTEM_ONLY), deleteUser);
 router.patch('/users/:id/role',    authenticate, authorize(...SYSTEM_ONLY), assignRole);
 router.patch('/users/:id/toggle-active', authenticate, authorize(...CITY_AND_SYSTEM), toggleUserActive);

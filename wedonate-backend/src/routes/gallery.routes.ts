@@ -3,7 +3,7 @@ import { getGallery, addPhoto, deletePhoto } from '../controllers/gallery.contro
 import { authenticate, authorize } from '../middleware/auth.middleware';
 
 const router = Router();
-const ADMIN = ['KEBELE_ADMIN','WOREDA_ADMIN','CITY_ADMIN','SUPER_ADMIN'];
+const ADMIN = ['CITY_ADMIN','SYSTEM_ADMIN'];
 
 router.get('/',       getGallery);
 router.post('/',      authenticate, authorize(...ADMIN), addPhoto);

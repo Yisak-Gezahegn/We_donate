@@ -6,7 +6,7 @@ import { AuthRequest } from '../middleware/auth.middleware';
 
 export const getAllNews = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const isAdmin = (req as AuthRequest).user && ['KEBELE_ADMIN','WOREDA_ADMIN','CITY_ADMIN','SUPER_ADMIN'].includes((req as AuthRequest).user!.role);
+    const isAdmin = (req as AuthRequest).user && ['CITY_ADMIN','SYSTEM_ADMIN'].includes((req as AuthRequest).user!.role);
     const news = await prisma.news.findMany({
       where: isAdmin ? {} : { isPublished: true },
       orderBy: { createdAt: 'desc' },

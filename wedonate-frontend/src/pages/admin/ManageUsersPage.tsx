@@ -252,8 +252,7 @@ export default function ManageUsersPage() {
   });
 
   const canDeleteUser = (u: any) =>
-    u.id !== currentUser?.id &&
-    (isSystemAdmin || !['SYSTEM_ADMIN', 'CITY_ADMIN'].includes(u.role));
+    isSystemAdmin && u.id !== currentUser?.id;
 
   const roleColors: Record<string, string> = {
     SYSTEM_ADMIN: 'danger', CITY_ADMIN: 'danger',
@@ -278,17 +277,17 @@ export default function ManageUsersPage() {
               </div>
               <div className="flex-1 min-w-0">
                 <h2 className={cn('text-lg font-bold', isDark ? 'text-white' : 'text-gray-900')}>
-                  Delete User
+                  Archive User
                 </h2>
                 <p className={cn('text-sm mt-2', isDark ? 'text-slate-400' : 'text-gray-500')}>
-                  Are you sure you want to permanently delete{' '}
+                  Are you sure you want to archive{' '}
                   <span className={cn('font-semibold', isDark ? 'text-white' : 'text-gray-800')}>
                     {deletingUser.firstName} {deletingUser.lastName}
                   </span>{' '}
                   ({deletingUser.email})?
                 </p>
                 <p className={cn('text-xs mt-3 px-3 py-2 rounded-lg', isDark ? 'bg-red-900/20 text-red-300 border border-red-700/40' : 'bg-red-50 text-red-700 border border-red-200')}>
-                  This will also permanently remove all of their support requests, campaigns, donations, messages and notifications. This action cannot be undone.
+                  This user will be deactivated and unable to log in, but their historical records (donations, campaigns) will be preserved for auditing.
                 </p>
               </div>
             </div>
@@ -297,7 +296,7 @@ export default function ManageUsersPage() {
               <Button variant="danger" leftIcon={<Trash2 className="w-4 h-4" />}
                 isLoading={deleteUser.isPending}
                 onClick={() => deleteUser.mutate(deletingUser.id)}>
-                Delete Permanently
+                Archive User
               </Button>
             </div>
           </Card>
@@ -309,9 +308,11 @@ export default function ManageUsersPage() {
           <h1 className={cn('text-2xl font-extrabold', isDark ? 'text-white' : 'text-gray-900')}>{t('admin.manage_users_title')}</h1>
           <p className={cn('text-sm mt-1', isDark ? 'text-slate-400' : 'text-gray-500')}>{users?.length ?? 0} {t('admin.total_users_suffix')}</p>
         </div>
-        <Button leftIcon={<UserPlus className="w-4 h-4" />} onClick={() => setShowCreateModal(true)}>
-          Create User
-        </Button>
+        {isSystemAdmin && (
+          <Button leftIcon={<UserPlus className="w-4 h-4" />} onClick={() => setShowCreateModal(true)}>
+            Create User
+          </Button>
+        )}
       </div>
 
       {/* Filters */}
@@ -433,7 +434,7 @@ export default function ManageUsersPage() {
                             isDark ? 'text-blue-400 hover:text-blue-300 bg-blue-900/30 hover:bg-blue-900/50' : 'text-blue-700 hover:text-blue-800 bg-blue-50 hover:bg-blue-100')}>
                           <Eye className="w-3.5 h-3.5" /> View Info
                         </button>
-                        {['ORGANIZATION'].includes(u.role) && (
+                        {['ORGANIZATION'].includes(u.role) && ['CITY_ADMIN', 'SYSTEM_ADMIN'].includes(currentUser?.role || '') && (
                           <button onClick={() => toggleVerification.mutate(u.id)}
                             className={cn('flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors',
                               u.verificationStatus === 'VERIFIED'
@@ -453,7 +454,7 @@ export default function ManageUsersPage() {
                           <button onClick={() => setDeletingUser(u)}
                             className={cn('flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors',
                               isDark ? 'text-red-400 hover:text-red-300 bg-red-900/30 hover:bg-red-900/50' : 'text-red-700 hover:text-red-800 bg-red-50 hover:bg-red-100')}>
-                            <Trash2 className="w-3.5 h-3.5" /> Delete
+                            <Trash2 className="w-3.5 h-3.5" /> Archive
                           </button>
                         )}
                       </div>

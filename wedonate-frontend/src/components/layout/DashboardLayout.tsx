@@ -13,6 +13,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { cn, timeAgo } from '../../lib/utils';
 import api from '../../lib/api';
+import ErrorBoundary from '../ErrorBoundary';
 
 const ADMIN_ROLES = ['KEBELE_ADMIN', 'CITY_ADMIN', 'SYSTEM_ADMIN'];
 
@@ -76,11 +77,12 @@ function SidebarContent({ links, user, location, onClose, onLogout, logoutLabel,
         </div>
       )}
 
-      <nav className={cn('flex-1 py-4 space-y-4 overflow-y-auto', collapsed ? 'px-2' : 'px-3')}>
+      <nav className={cn('flex-1 py-4 space-y-4 overflow-y-auto overflow-x-hidden', collapsed ? 'px-2' : 'px-3')}>
         {links.map((section: any, idx: number) => (
           <div key={idx} className="space-y-1">
-            {!collapsed && section.title && (
-              <p className={cn('px-4 text-[10px] font-extrabold uppercase tracking-wider mb-2',
+            {section.title && (
+              <p className={cn('px-4 text-[10px] font-extrabold uppercase tracking-wider transition-all duration-300 whitespace-nowrap',
+                collapsed ? 'opacity-0 h-0 mb-0 overflow-hidden' : 'opacity-100 h-4 mb-2',
                 isDark ? 'text-slate-500' : 'text-gray-400'
               )}>
                 {section.title}
@@ -92,15 +94,19 @@ function SidebarContent({ links, user, location, onClose, onLogout, logoutLabel,
                 <Link key={to} to={to} onClick={onClose}
                   title={collapsed ? label : undefined}
                   className={cn(
-                    'flex items-center gap-3 rounded-xl text-sm font-medium transition-all duration-200',
-                    collapsed ? 'justify-center p-3' : 'px-4 py-2.5',
+                    'flex items-center rounded-xl text-sm font-medium transition-colors overflow-hidden',
+                    collapsed ? 'justify-center py-3' : 'px-3 py-2.5',
                     active
                       ? 'bg-green-700 text-white shadow-md'
                       : (isDark ? 'text-slate-300 hover:bg-slate-700/50 hover:text-green-400' : 'text-gray-600 hover:bg-green-50 hover:text-green-700'),
                   )}>
-                  <Icon className="w-5 h-5 shrink-0" />
-                  <div className={cn("flex items-center justify-between overflow-hidden transition-all duration-300 ease-in-out", collapsed ? "w-0 opacity-0" : "w-40 opacity-100 ml-1")}>
-                    <span className="whitespace-nowrap flex-1">{label}</span>
+                  <div className={cn('flex items-center justify-center shrink-0 transition-all duration-300', collapsed ? 'w-10' : 'w-8')}>
+                    <Icon className="w-5 h-5" />
+                  </div>
+                  <div className={cn("flex items-center overflow-hidden transition-all duration-300 whitespace-nowrap",
+                    collapsed ? "w-0 opacity-0" : "w-40 opacity-100"
+                  )}>
+                    <span className="flex-1 ml-1">{label}</span>
                   </div>
                 </Link>
               );
@@ -112,11 +118,17 @@ function SidebarContent({ links, user, location, onClose, onLogout, logoutLabel,
       <div className={cn('px-3 py-4 border-t', isDark ? 'border-slate-700' : 'border-gray-100')}>
         <button onClick={onLogout}
           title={collapsed ? logoutLabel : undefined}
-          className={cn('w-full flex items-center gap-3 rounded-xl text-sm font-medium text-red-500 transition-colors',
-            collapsed ? 'justify-center px-3 py-3' : 'px-4 py-3',
+          className={cn('w-full flex items-center rounded-xl text-sm font-medium text-red-500 transition-colors overflow-hidden',
+            collapsed ? 'justify-center py-3' : 'px-3 py-3',
             isDark ? 'hover:bg-red-900/30' : 'hover:bg-red-50')}>
-          <LogOut className="w-4 h-4" />
-          {!collapsed && logoutLabel}
+          <div className={cn('flex items-center justify-center shrink-0 transition-all duration-300', collapsed ? 'w-10' : 'w-8')}>
+            <LogOut className="w-4 h-4" />
+          </div>
+          <div className={cn("flex items-center overflow-hidden transition-all duration-300 whitespace-nowrap",
+            collapsed ? "w-0 opacity-0" : "w-40 opacity-100"
+          )}>
+            <span className="flex-1 ml-1 text-left">{logoutLabel}</span>
+          </div>
         </button>
       </div>
     </div>
@@ -235,6 +247,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
   const [langOpen, setLangOpen] = useState(false);
+  const langRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (langOpen && langRef.current && !langRef.current.contains(e.target as Node)) {
+        setLangOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [langOpen]);
 
   const LANGUAGES = [
     { code: 'en', label: 'English', flag: '🇬🇧' },
@@ -242,6 +265,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { code: 'or', label: 'Afaan Oromo', flag: '🇪🇹' },
   ];
   const currentLang = LANGUAGES.find(l => l.code === i18n.language) || LANGUAGES[0];
+
+  useEffect(() => {
+    setLangOpen(false);
+  }, [location.pathname]);
 
   const isAdmin = user && ADMIN_ROLES.includes(user.role);
 
@@ -458,7 +485,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </button>
 
-            <div className="relative">
+            <div className="relative" ref={langRef}>
               <button onClick={() => setLangOpen(!langOpen)}
                 className={cn('flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-colors',
                   isDark ? 'hover:bg-slate-700 text-slate-300' : 'hover:bg-gray-100 text-gray-600')}>
@@ -503,8 +530,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </div>
             </div>
           )}
-          {children}
-        </main>
+            <ErrorBoundary>
+              {children}
+            </ErrorBoundary>
+          </main>
       </div>
     </div>
   );

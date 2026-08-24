@@ -4,11 +4,27 @@ import prisma from '../lib/prisma';
 import { createError } from '../middleware/errorHandler';
 import { AuthRequest } from '../middleware/auth.middleware';
 
-export const getAllUsers = async (req: Request, res: Response, next: NextFunction) => {  try {
+export const getAllUsers = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
     const { role, search } = req.query;
+    let baseWhere: any = {};
+    
+    // Enforce role-based scoping
+    if (req.user!.role === 'KEBELE_ADMIN') {
+      baseWhere.role = 'USER';
+      baseWhere.kebeleId = req.user!.kebeleId;
+    } else if (req.user!.role === 'CITY_ADMIN') {
+      baseWhere.role = { in: ['KEBELE_ADMIN', 'USER', 'ORGANIZATION'] };
+    } else if (req.user!.role === 'SYSTEM_ADMIN') {
+      // SYSTEM_ADMIN sees everyone by default unless filtered
+    } else {
+      return next(createError('Unauthorized to view users', 403));
+    }
+
     const users = await prisma.user.findMany({
       where: {
-        ...(role ? { role: role as any } : {}),
+        ...baseWhere,
+        ...(role && (!baseWhere.role || req.user!.role === 'SYSTEM_ADMIN') ? { role: role as any } : {}),
         ...(search ? {
           OR: [
             { firstName: { contains: search as string, mode: 'insensitive' } },

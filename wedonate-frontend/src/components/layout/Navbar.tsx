@@ -6,6 +6,7 @@ import {
   User, LogOut, LayoutDashboard, Sun, Moon, Bell,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
+import { useRef } from 'react';
 import api from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -35,7 +36,34 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', fn);
   }, []);
 
-  useEffect(() => { setMobileOpen(false); }, [location.pathname]);
+  useEffect(() => { setMobileOpen(false); setLangOpen(false); setUserOpen(false); }, [location.pathname]);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (langOpen || userOpen) {
+        // If clicking outside, we should close. Wait, we need refs.
+        // I will implement refs to properly track clicks.
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [langOpen, userOpen]);
+
+  const langRef = useRef<HTMLDivElement>(null);
+  const userRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (langOpen && langRef.current && !langRef.current.contains(e.target as Node)) {
+        setLangOpen(false);
+      }
+      if (userOpen && userRef.current && !userRef.current.contains(e.target as Node)) {
+        setUserOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [langOpen, userOpen]);
 
   const handleLogout = () => { logout(); navigate('/'); setUserOpen(false); };
   const currentLang  = LANGUAGES.find(l => l.code === i18n.language) ?? LANGUAGES[0];
@@ -130,7 +158,7 @@ export default function Navbar() {
             </button>
 
             {/* Language selector */}
-            <div className="relative">
+            <div className="relative" ref={langRef}>
               <button
                 onClick={() => { setLangOpen(!langOpen); setUserOpen(false); }}
                 className={cn('flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all', txtBase, hoverBg)}>
@@ -173,7 +201,7 @@ export default function Navbar() {
                     </span>
                   )}
                 </Link>
-                <div className="relative">
+                <div className="relative" ref={userRef}>
                 <button
                   onClick={() => { setUserOpen(!userOpen); setLangOpen(false); }}
                   className={cn(
@@ -219,7 +247,6 @@ export default function Navbar() {
                     </div>
                     {[
                       { to: '/dashboard', icon: LayoutDashboard, label: t('nav.dashboard') },
-                      ...(isAdmin ? [{ to: '/admin', icon: User, label: 'Admin Panel' }] : []),
                     ].map(({ to, icon: Icon, label }) => (
                       <Link key={to} to={to} onClick={() => setUserOpen(false)}
                         className={cn('flex items-center gap-2 px-4 py-2.5 text-sm transition-colors',

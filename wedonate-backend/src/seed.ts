@@ -91,16 +91,16 @@ async function main() {
   await prisma.supportRequest.createMany({
     skipDuplicates: true,
     data: [
-      { id: uuidv4(), userId: donor.id, title: 'Food for My Family', description: 'My family of 5 needs food support after losing our income source. We have 3 young children.', category: 'FOOD', urgencyLevel: 5, goalAmount: 5000, raisedAmount: 1200, status: 'PUBLISHED' },
-      { id: uuidv4(), userId: user2.id, title: 'Medical Treatment Support', description: 'I need financial help for my mother\'s surgery. The total cost is ETB 15,000.', category: 'MEDICINE', urgencyLevel: 5, goalAmount: 15000, raisedAmount: 4500, status: 'PUBLISHED' },
-      { id: uuidv4(), userId: donor.id, title: 'School Supplies for Children', description: 'Three children need school uniforms and supplies to continue their education.', category: 'CLOTHES', urgencyLevel: 3, goalAmount: 3000, raisedAmount: 800, status: 'PUBLISHED' },
+      { id: uuidv4(), userId: donor.id, title: 'Food for My Family', description: 'My family of 5 needs food support after losing our income source. We have 3 young children.', category: 'FOOD', urgencyLevel: 5, goalAmount: 5000, raisedAmount: 1200, status: 'PUBLISHED', telebirrAccount: '0911234567', cbeAccount: '1000123456789' },
+      { id: uuidv4(), userId: user2.id, title: 'Medical Treatment Support', description: 'I need financial help for my mother\'s surgery. The total cost is ETB 15,000.', category: 'MEDICINE', urgencyLevel: 5, goalAmount: 15000, raisedAmount: 4500, status: 'PUBLISHED', telebirrAccount: '0922345678', boaAccount: '200012345' },
+      { id: uuidv4(), userId: donor.id, title: 'School Supplies for Children', description: 'Three children need school uniforms and supplies to continue their education.', category: 'CLOTHES', urgencyLevel: 3, goalAmount: 3000, raisedAmount: 800, status: 'PUBLISHED', telebirrAccount: '0911234567' },
       { 
         id: uuidv4(), userId: unverifiedUser.id, createdById: kebeleAdmin?.id, kebeleId: 'K-01',
-        title: 'Assisted: Rebuilding Home', description: 'Beneficiary lost home in a fire and needs assistance. Request created by Kebele Admin.', category: 'OTHER', urgencyLevel: 4, goalAmount: 10000, raisedAmount: 0, status: 'PENDING_CITY_APPROVAL', source: 'ASSISTED' 
+        title: 'Assisted: Rebuilding Home', description: 'Beneficiary lost home in a fire and needs assistance. Request created by Kebele Admin.', category: 'OTHER', urgencyLevel: 4, goalAmount: 10000, raisedAmount: 0, status: 'PENDING_CITY_APPROVAL', source: 'ASSISTED', awashAccount: '3000123456' 
       },
       { 
         id: uuidv4(), userId: user2.id, kebeleId: 'K-01',
-        title: 'Need medical wheelchair', description: 'Normal user requesting a wheelchair for grandmother.', category: 'MEDICINE', urgencyLevel: 3, goalAmount: 8000, raisedAmount: 0, status: 'PENDING_REVIEW', source: 'SELF_SERVICE' 
+        title: 'Need medical wheelchair', description: 'Normal user requesting a wheelchair for grandmother.', category: 'MEDICINE', urgencyLevel: 3, goalAmount: 8000, raisedAmount: 0, status: 'PENDING_REVIEW', source: 'SELF_SERVICE', cbeAccount: '1000987654321' 
       },
     ],
   });
@@ -109,9 +109,9 @@ async function main() {
   await prisma.campaign.createMany({
     skipDuplicates: true,
     data: [
-      { id: uuidv4(), userId: donor.id, title: 'Build a Community Library', description: 'Help us build a library for Adama\'s children. We need books, furniture and renovation support.', category: 'INFRASTRUCTURE', goalAmount: 150000, raisedAmount: 42000, status: 'PUBLISHED', deadline: new Date('2026-12-31') },
-      { id: uuidv4(), userId: user2.id, title: 'Emergency Flood Relief Fund', description: 'Families affected by recent flooding need immediate food, clothing and shelter support.', category: 'EMERGENCY', goalAmount: 200000, raisedAmount: 87500, status: 'PUBLISHED', deadline: new Date('2026-09-30') },
-      { id: uuidv4(), userId: donor.id, title: 'School Renovation Project', description: 'Renovating 3 classrooms in Adama Primary School to improve learning conditions.', category: 'EDUCATION', goalAmount: 80000, raisedAmount: 25000, status: 'PUBLISHED', deadline: new Date('2026-11-30') },
+      { id: uuidv4(), userId: donor.id, title: 'Build a Community Library', description: 'Help us build a library for Adama\'s children. We need books, furniture and renovation support.', category: 'INFRASTRUCTURE', goalAmount: 150000, raisedAmount: 42000, status: 'PUBLISHED', deadline: new Date('2026-12-31'), cbeAccount: '1000123456789' },
+      { id: uuidv4(), userId: user2.id, title: 'Emergency Flood Relief Fund', description: 'Families affected by recent flooding need immediate food, clothing and shelter support.', category: 'EMERGENCY', goalAmount: 200000, raisedAmount: 87500, status: 'PUBLISHED', deadline: new Date('2026-09-30'), telebirrAccount: '0922345678', boaAccount: '200012345' },
+      { id: uuidv4(), userId: donor.id, title: 'School Renovation Project', description: 'Renovating 3 classrooms in Adama Primary School to improve learning conditions.', category: 'EDUCATION', goalAmount: 80000, raisedAmount: 25000, status: 'PUBLISHED', deadline: new Date('2026-11-30'), cbeAccount: '1000987654321' },
     ],
   });
 

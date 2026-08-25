@@ -14,10 +14,7 @@ coverage/
 *.sqlite
 *.sqlite3
 *.db
+# Development artifacts
 screenshot/
-
-# Development Notes / Documentation
-FRESH_CLONE_SETUP_AND_RUN_GUIDE.md
-IMPLEMENTATION_GAP_ANALYSIS.md
-SYSTEM_ROLES_WORKFLOW_AND_APPROVAL_AUDIT.md
-WE_DONATE_TARGET_OPERATING_MODEL.md
+screenshots/
+query

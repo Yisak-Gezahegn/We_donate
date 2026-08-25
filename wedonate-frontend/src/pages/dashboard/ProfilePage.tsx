@@ -22,7 +22,7 @@ export default function ProfilePage() {
   const [preview, setPreview] = useState<string>(user?.profileImage || '');
 
   const { register, handleSubmit, formState: { errors } } = useForm({
-    defaultValues: {
+    values: {
       firstName: user?.firstName || '',
       lastName:  user?.lastName  || '',
       phone:     user?.phone || '',

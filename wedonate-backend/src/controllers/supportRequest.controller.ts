@@ -20,13 +20,20 @@ export const createRequest = async (req: AuthRequest, res: Response, next: NextF
       supportLetterUrl, additionalNotes,
       // Admin can create on behalf of another user
       targetUserId,
+      isAssisted,
+      beneficiaryName, beneficiaryIdType, beneficiaryIdNum,
+      beneficiaryFrontIdUrl, beneficiaryBackIdUrl, beneficiaryFanNumber, beneficiaryPhone,
     } = req.body;
 
     if (!title || !description || !category)
       return next(createError('Title, description and category are required', 400));
 
+    if (req.user!.role === 'ORGANIZATION') {
+      return next(createError('Organizations cannot create individual support requests. Please create a campaign instead.', 403));
+    }
+
     const isAdmin = ADMIN_ROLES.includes(req.user!.role);
-    const effectiveUserId = (isAdmin && targetUserId) ? targetUserId : req.user!.userId;
+    const effectiveUserId = isAssisted ? null : (isAdmin && targetUserId) ? targetUserId : req.user!.userId;
 
     if (!isAdmin && NEED_VERIFICATION_ROLES.includes(req.user!.role)) {
       const currentUser = await prisma.user.findUnique({
@@ -42,7 +49,10 @@ export const createRequest = async (req: AuthRequest, res: Response, next: NextF
     }
 
     let kebeleId: string | null = null;
-    if (isAdmin && targetUserId) {
+    if (isAssisted) {
+      if (req.user!.role !== 'KEBELE_ADMIN') return next(createError('Only Kebele Admins can create assisted requests', 403));
+      kebeleId = req.user!.kebeleId || 'UNASSIGNED';
+    } else if (isAdmin && targetUserId) {
       const targetUser = await prisma.user.findUnique({ where: { id: targetUserId }, select: { id: true, kebeleId: true } });
       if (!targetUser) return next(createError('Target user not found', 404));
       kebeleId = targetUser.kebeleId;
@@ -71,18 +81,25 @@ export const createRequest = async (req: AuthRequest, res: Response, next: NextF
         supportLetterUrl: supportLetterUrl || null,
         additionalNotes:    additionalNotes    || null,
         kebeleId: kebeleId || 'UNASSIGNED',
-        source: (isAdmin && targetUserId) ? 'ASSISTED' : 'SELF_SERVICE',
-        createdById: (isAdmin && targetUserId) ? req.user!.userId : null,
-        status: (isAdmin && targetUserId) ? 'PENDING_CITY_APPROVAL' : 'PENDING_REVIEW',
+        source: isAssisted ? 'ASSISTED' : (isAdmin && targetUserId) ? 'ASSISTED' : 'SELF_SERVICE',
+        createdById: isAssisted ? req.user!.userId : (isAdmin && targetUserId) ? req.user!.userId : null,
+        status: isAssisted ? 'PENDING_CITY_APPROVAL' : (isAdmin && targetUserId) ? 'PENDING_CITY_APPROVAL' : 'PENDING_REVIEW',
+        beneficiaryName: beneficiaryName || null,
+        beneficiaryIdType: beneficiaryIdType || null,
+        beneficiaryIdNum: beneficiaryIdNum || null,
+        beneficiaryFrontIdUrl: beneficiaryFrontIdUrl || null,
+        beneficiaryBackIdUrl: beneficiaryBackIdUrl || null,
+        beneficiaryFanNumber: beneficiaryFanNumber || null,
+        beneficiaryPhone: beneficiaryPhone || null,
       },
     });
 
-    if (isAdmin && targetUserId) {
+    if (isAssisted || (isAdmin && targetUserId)) {
       await prisma.auditLog.create({
         data: {
           id: uuidv4(), userId: req.user!.userId, action: 'CREATE_SUPPORT_REQUEST',
           resource: 'support_request', resourceId: request.id,
-          details: `Created support request "${title}" on behalf of user ${targetUserId}`,
+          details: `Created support request "${title}" on behalf of ${isAssisted ? 'beneficiary ' + beneficiaryName : 'user ' + targetUserId}`,
         },
       });
       // Notify City Admins of a new Assisted request pending review
@@ -220,12 +237,15 @@ export const deleteRequest = async (req: AuthRequest, res: Response, next: NextF
       data: { status: 'ARCHIVED' },
     });
 
-    const notifications = [{
-      id: uuidv4(), userId: request.userId,
-      title: 'Request Archived',
-      message: `Your support request "${request.title}" was archived by an administrator.`,
-      type: 'ERROR' as any,
-    }];
+    const notifications = [];
+    if (request.userId) {
+      notifications.push({
+        id: uuidv4(), userId: request.userId,
+        title: 'Request Archived',
+        message: `Your support request "${request.title}" was archived by an administrator.`,
+        type: 'ERROR' as any,
+      });
+    }
     
     if (request.createdById && request.createdById !== request.userId) {
       notifications.push({
@@ -236,7 +256,9 @@ export const deleteRequest = async (req: AuthRequest, res: Response, next: NextF
       });
     }
 
-    await prisma.notification.createMany({ data: notifications });
+    if (notifications.length > 0) {
+      await prisma.notification.createMany({ data: notifications });
+    }
 
     await prisma.auditLog.create({
       data: {
@@ -270,8 +292,8 @@ export const updateRequestStatus = async (req: AuthRequest, res: Response, next:
       if (request.kebeleId !== req.user!.kebeleId) {
         return next(createError('Unauthorized to modify this Kebele\'s request', 403));
       }
-      if (!['APPROVED', 'REJECTED', 'CHANGES_REQUESTED'].includes(status)) {
-        return next(createError('Kebele Admin can only approve, reject or request changes', 403));
+      if (!['APPROVED', 'PUBLISHED', 'REJECTED', 'CHANGES_REQUESTED'].includes(status)) {
+        return next(createError('Kebele Admin can only approve, publish, reject or request changes', 403));
       }
       if (request.source === 'ASSISTED') {
         return next(createError('Assisted requests must be approved by City Admin', 403));
@@ -292,49 +314,56 @@ export const updateRequestStatus = async (req: AuthRequest, res: Response, next:
       }
     }
 
+    let finalStatus = status;
+
     const updatedRequest = await prisma.supportRequest.update({
       where: { id: req.params.id },
       data: { 
-        status, 
+        status: finalStatus, 
         adminNote: adminNote || null,
-        ...(status === 'PUBLISHED' ? { isPublished: true, publishedAt: new Date() } : {})
+        ...(finalStatus === 'PUBLISHED' ? { isPublished: true, publishedAt: new Date() } : {})
       },
     });
 
-    const notifications = [{
-      id: uuidv4(), userId: updatedRequest.userId,
-      title: `Request ${status}`,
-      message: `Your support request "${updatedRequest.title}" has been ${status.toLowerCase()}.${adminNote ? ` Reason: ${adminNote}` : ''}`,
-      type: (status === 'PUBLISHED' ? 'SUCCESS' : status === 'REJECTED' ? 'ERROR' : 'INFO') as any,
-    }];
+    const notifications = [];
+    if (updatedRequest.userId) {
+      notifications.push({
+        id: uuidv4(), userId: updatedRequest.userId,
+        title: `Request ${finalStatus}`,
+        message: `Your support request "${updatedRequest.title}" has been ${finalStatus.replace(/_/g, ' ').toLowerCase()}.${adminNote ? ` Reason: ${adminNote}` : ''}`,
+        type: (finalStatus === 'PUBLISHED' ? 'SUCCESS' : finalStatus === 'REJECTED' ? 'ERROR' : 'INFO') as any,
+      });
+    }
     
     if (updatedRequest.createdById && updatedRequest.createdById !== updatedRequest.userId) {
-        let assistedMsg = `The support request "${updatedRequest.title}" you created on behalf of a citizen has been ${status.toLowerCase()}.`;
+        let assistedMsg = `The support request "${updatedRequest.title}" you created on behalf of a citizen has been ${finalStatus.replace(/_/g, ' ').toLowerCase()}.`;
         if (role === 'CITY_ADMIN') {
-          if (status === 'APPROVED') assistedMsg = `Assisted request "${updatedRequest.title}" was approved by City Administration.`;
-          else if (status === 'REJECTED') assistedMsg = `Assisted request "${updatedRequest.title}" was rejected.`;
-          else if (status === 'CHANGES_REQUESTED') assistedMsg = `City Administration requested changes to the assisted request "${updatedRequest.title}".`;
+          if (finalStatus === 'APPROVED') assistedMsg = `Assisted request "${updatedRequest.title}" was approved by City Administration.`;
+          else if (finalStatus === 'REJECTED') assistedMsg = `Assisted request "${updatedRequest.title}" was rejected.`;
+          else if (finalStatus === 'CHANGES_REQUESTED') assistedMsg = `City Administration requested changes to the assisted request "${updatedRequest.title}".`;
         }
         
         notifications.push({
           id: uuidv4(), userId: updatedRequest.createdById,
-          title: `Assisted Request ${status}`,
+          title: `Assisted Request ${finalStatus}`,
           message: `${assistedMsg}${adminNote ? ` Reason: ${adminNote}` : ''}`,
-        type: (status === 'PUBLISHED' ? 'SUCCESS' : status === 'REJECTED' ? 'ERROR' : 'INFO') as any,
+        type: (finalStatus === 'PUBLISHED' ? 'SUCCESS' : finalStatus === 'REJECTED' ? 'ERROR' : 'INFO') as any,
       });
     }
 
-    await prisma.notification.createMany({ data: notifications });
+    if (notifications.length > 0) {
+      await prisma.notification.createMany({ data: notifications });
+    }
     
     await prisma.auditLog.create({
       data: {
         id: uuidv4(), userId: req.user!.userId,
         action: 'UPDATE_REQUEST_STATUS',
         resource: 'support_request', resourceId: req.params.id,
-        details: `Changed request status to ${status}. Note: ${adminNote || 'None'}`
+        details: `Changed request status to ${finalStatus}. Note: ${adminNote || 'None'}`
       }
     });
 
-    res.json({ success: true, data: updatedRequest, message: `Status updated to ${status}` });
+    res.json({ success: true, data: updatedRequest, message: `Status updated to ${finalStatus}` });
   } catch (error) { next(error); }
 };

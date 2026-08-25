@@ -27,6 +27,17 @@ export const markAsRead = async (req: AuthRequest, res: Response, next: NextFunc
   }
 };
 
+export const deleteNotification = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    await prisma.notification.deleteMany({
+      where: { id: req.params.id, userId: req.user!.userId },
+    });
+    res.json({ success: true, message: 'Notification deleted' });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const markAllRead = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     await prisma.notification.updateMany({

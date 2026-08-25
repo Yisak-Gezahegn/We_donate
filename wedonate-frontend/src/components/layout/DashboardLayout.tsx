@@ -6,7 +6,7 @@ import {
   LayoutDashboard, FileText, Bell, User,
   LogOut, Menu, X, Users, BarChart2, ClipboardList, ChevronRight, Heart, Target, Image, Quote, Images,
   Sun, Moon, Globe, ChevronDown, BadgeCheck, Receipt, Search, FileBarChart, Newspaper,
-  HelpCircle, Calendar, Mail, Settings, CheckCheck, Trash2, AlertTriangle, ShieldCheck,
+  HelpCircle, Calendar, Mail, Settings, CheckCheck, Trash2, AlertTriangle, ShieldCheck, MapPin,
 } from 'lucide-react';
 import i18n from '../../i18n';
 import { useAuth } from '../../context/AuthContext';
@@ -148,17 +148,50 @@ function NotificationDropdown({ isDark }: { isDark: boolean }) {
 
   const markAllRead = useMutation({
     mutationFn: () => api.patch('/notifications/read-all'),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
+    onMutate: async () => {
+      await qc.cancelQueries({ queryKey: ['notifications'] });
+      const previous = qc.getQueryData(['notifications']);
+      qc.setQueryData(['notifications'], (old: any) => old?.map((n: any) => ({ ...n, isRead: true })) ?? []);
+      return { previous };
+    },
+    onError: (_err, _var, context) => qc.setQueryData(['notifications'], context?.previous),
+    onSettled: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
   });
 
   const clearAll = useMutation({
     mutationFn: () => api.delete('/notifications/clear-all'),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
+    onMutate: async () => {
+      await qc.cancelQueries({ queryKey: ['notifications'] });
+      const previous = qc.getQueryData(['notifications']);
+      qc.setQueryData(['notifications'], () => []);
+      return { previous };
+    },
+    onError: (_err, _var, context) => qc.setQueryData(['notifications'], context?.previous),
+    onSettled: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
   });
 
   const markRead = useMutation({
     mutationFn: (id: string) => api.patch(`/notifications/${id}/read`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
+    onMutate: async (id: string) => {
+      await qc.cancelQueries({ queryKey: ['notifications'] });
+      const previous = qc.getQueryData(['notifications']);
+      qc.setQueryData(['notifications'], (old: any) => old?.map((n: any) => n.id === id ? { ...n, isRead: true } : n) ?? []);
+      return { previous };
+    },
+    onError: (_err, _var, context) => qc.setQueryData(['notifications'], context?.previous),
+    onSettled: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
+  });
+
+  const deleteOne = useMutation({
+    mutationFn: (id: string) => api.delete(`/notifications/${id}`),
+    onMutate: async (id: string) => {
+      await qc.cancelQueries({ queryKey: ['notifications'] });
+      const previous = qc.getQueryData(['notifications']);
+      qc.setQueryData(['notifications'], (old: any) => old?.filter((n: any) => n.id !== id) ?? []);
+      return { previous };
+    },
+    onError: (_err, _var, context) => qc.setQueryData(['notifications'], context?.previous),
+    onSettled: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
   });
 
   const unreadCount = notifications?.filter((n: any) => !n.isRead).length || 0;
@@ -226,6 +259,13 @@ function NotificationDropdown({ isDark }: { isDark: boolean }) {
                       <p className={cn('text-[10px] mt-0.5 truncate', isDark ? 'text-slate-400' : 'text-gray-500')}>{n.message}</p>
                       <p className={cn('text-[10px] mt-1', isDark ? 'text-slate-600' : 'text-gray-400')}>{timeAgo(n.createdAt)}</p>
                     </div>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); deleteOne.mutate(n.id); }}
+                      className={cn('p-1 rounded hover:bg-red-100 hover:text-red-600 transition-colors shrink-0',
+                        isDark ? 'text-slate-500 hover:bg-red-900/30 hover:text-red-400' : 'text-gray-400')}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
                   </div>
                 </div>
               ))
@@ -357,7 +397,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       title: 'Overview',
       links: [
         { to: '/admin', icon: LayoutDashboard, label: 'City Dashboard' },
-        { to: '/admin/reports', icon: FileBarChart, label: 'Operational Reports' },
+        { to: '/admin/support', icon: FileBarChart, label: 'Operational Support' },
       ]
     },
     {
@@ -367,6 +407,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         { to: '/admin/requests', icon: Target, label: 'Campaign Approvals' },
         { to: '/admin/donations', icon: Heart, label: 'Donation Management' },
         { to: '/admin/users', icon: Users, label: 'Kebele Admins' },
+        { to: '/admin/kebeles', icon: MapPin, label: 'Manage Kebeles' },
       ]
     },
     {
@@ -396,6 +437,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       title: 'Administration',
       links: [
         { to: '/admin/users', icon: Users, label: 'Admin Accounts' },
+        { to: '/admin/kebeles', icon: MapPin, label: 'Manage Kebeles' },
         { to: '/admin/settings', icon: Settings, label: 'Configuration' },
         { to: '/admin/inspections', icon: Search, label: 'System Inspections' },
       ]

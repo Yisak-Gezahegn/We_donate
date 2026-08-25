@@ -27,6 +27,11 @@ export default function NotificationsPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
   });
 
+  const deleteOne = useMutation({
+    mutationFn: (id: string) => api.delete(`/notifications/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
+  });
+
   const clearAll = useMutation({
     mutationFn: () => api.delete('/notifications/clear-all'),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
@@ -100,7 +105,16 @@ export default function NotificationsPage() {
                 <p className={cn('text-xs mt-0.5', isDark ? 'text-slate-400' : 'text-gray-500')}>{n.message}</p>
                 <p className={cn('text-xs mt-1', isDark ? 'text-slate-500' : 'text-gray-400')}>{timeAgo(n.createdAt)}</p>
               </div>
-              {!n.isRead && <div className="w-2.5 h-2.5 bg-green-500 rounded-full shrink-0 mt-1.5" />}
+              <div className="flex items-center gap-2 shrink-0">
+                {!n.isRead && <div className="w-2.5 h-2.5 bg-green-500 rounded-full" />}
+                <button 
+                  onClick={(e) => { e.stopPropagation(); deleteOne.mutate(n.id); }}
+                  className={cn('p-1.5 rounded hover:bg-red-100 hover:text-red-600 transition-colors',
+                    isDark ? 'text-slate-500 hover:bg-red-900/30 hover:text-red-400' : 'text-gray-400')}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           ))}
         </div>

@@ -1,136 +1,95 @@
-# WeDonate — Adama Community Support & Charity Management System
+# WeDonate — Community Support & Charity Management System
 
 > Official platform of Adama City Administration, Oromia, Ethiopia
 
----
+## Overview
+
+WeDonate is a full-stack, enterprise-grade community support and charity management system. Built with a modern technology stack, it facilitates transparent donation flows, rigorous verification of beneficiaries, and efficient management of organizational campaigns.
+
+The platform is designed for the Adama City Administration, bridging the gap between donors, non-profit organizations, Kebele (local) administrations, and citizens in need.
+
+## Core Features
+
+- **Multi-Role Architecture:** Granular access control for `USER`, `ORGANIZATION`, `KEBELE_ADMIN`, `CITY_ADMIN`, and `SYSTEM_ADMIN`.
+- **Intelligent AI Assistant:** Integrated RAG (Retrieval-Augmented Generation) chatbot powered by Google Gemini, capable of answering role-specific queries using embedded operational knowledge (`pgvector`).
+- **Campaign & Request Management:** End-to-end lifecycle management (draft, pending review, approved, published) for both organizational campaigns and individual support requests.
+- **Assisted Requests:** Kebele Admins can seamlessly create support requests on behalf of individuals without digital access, subject to City Admin approval.
+- **Secure Donations:** Integrated with the Chapa payment gateway alongside traditional bank transfer tracking (CBE, BOA, Awash, TeleBirr) and physical item donations.
+- **Multilingual Support:** Full i18n support for English, Amharic (አማርኛ), and Afaan Oromoo.
+- **Theme Support:** Polished UI with seamless dark and light modes.
+
+## Tech Stack
+
+| Layer | Technologies |
+|-------|--------------|
+| **Frontend** | React 19, TypeScript, Tailwind CSS v4, Vite 8, Framer Motion, TanStack Query, React Hook Form |
+| **Backend** | Node.js, Express, Prisma ORM, JWT Authentication |
+| **Database** | PostgreSQL 18 with `pgvector` extension |
+| **AI / RAG** | Google Generative AI (Gemini), Custom Vector Embeddings |
 
 ## Project Structure
 
 ```
 We_donate/
-├── wedonate-frontend/     React 19 + TypeScript + Tailwind CSS v4
-├── wedonate-backend/      Node.js + Express + Prisma + PostgreSQL
-├── assets/                Original Adama city photos and logo
-├── docs/                  SRS document and project specification
-├── start-backend.bat      Quick-start backend
-├── start-frontend.bat     Quick-start frontend
-├── setup-database.bat     Database migration + seed
-└── README.md
+├── wedonate-frontend/     # React SPA frontend
+├── wedonate-backend/      # Express API & Prisma database schema
+├── docs/                  # System documentation & AI knowledge base
+├── assets/                # Static brand assets
+└── README.md              # Project documentation
 ```
 
----
-
-## Quick Start
+## Setup Instructions
 
 ### Prerequisites
 - Node.js 18+
-- PostgreSQL 18 (running as service)
+- PostgreSQL 18+ (running as a service, with `pgvector` extension installed)
 
-### 1. Database Setup
+### 1. Database Configuration
+Update `wedonate-backend/.env`:
+```env
+DATABASE_URL="postgresql://postgres:password@localhost:5432/wedonate_db"
+AI_API_KEY="your-google-gemini-api-key"
+```
+
+Initialize the database:
 ```bash
-# Double-click setup-database.bat
-# OR manually:
 cd wedonate-backend
 npx prisma migrate dev --name init
 npm run db:seed
 ```
 
-### 2. Start Backend
+*(Note: The seed script populates default test accounts for all roles).*
+
+### 2. Knowledge Base Ingestion (AI Chatbot)
+To enable the WeDonate AI Assistant, ingest the documentation into the vector database:
 ```bash
-# Double-click start-backend.bat
-# OR:
+cd wedonate-backend
+npx tsx src/ingest.ts
+```
+
+### 3. Start Backend Server
+```bash
 cd wedonate-backend
 npm run dev
-# → http://localhost:5000
+# Server runs on http://localhost:5000
 ```
 
-### 3. Start Frontend
+### 4. Start Frontend Application
 ```bash
-# Double-click start-frontend.bat
-# OR:
 cd wedonate-frontend
+npm install
 npm run dev
-# → http://localhost:5173
+# Application runs on http://localhost:5173
 ```
 
----
+## Security & Architecture
 
-## Login Credentials
+WeDonate enforces strict data isolation and role-based access control (RBAC).
+- Chatbot sessions are securely persisted and isolated by the authenticated user's ID.
+- Cross-Kebele data visibility is strictly prohibited for Kebele Admins.
+- All file uploads (National IDs, Support Letters) are processed securely and require authorization to view.
+- Audit logs track all critical state transitions (e.g., campaign approvals, user verifications).
 
-| Role        | Email                      | Password       |
-|-------------|----------------------------|----------------|
-| Super Admin | superadmin@wedonate.et     | superadmin123  |
-| City Admin  | cityadmin@adama.et         | cityadmin123   |
-| User        | abebe@example.com          | user123        |
+## License
 
----
-
-## Features
-
-### For All Users
-- Register with one account — no role selection needed
-- Profile picture upload
-- Post support requests (food, medicine, clothes, money, other)
-- Full request form: payment accounts (TeleBirr, CBE, BOA, Awash), support letter, national ID
-- Donate to any approved request; multiple payment methods
-- View campaigns and donate
-
-### Payment Methods Available
-- **Chapa** — online checkout (ETB)
-- **TeleBirr** — mobile money transfer
-- **CBE** — Commercial Bank of Ethiopia
-- **BOA** — Bank of Abyssinia
-- **Awash Bank** — Awash International Bank
-- **Other Bank** — any other bank
-- **Item Donation** — donate physical items with photo + delivery method
-
-### For Organizations (NGO, ORGANIZATION, GOVERNMENTAL_ORG)
-- All user features
-- Create fundraising campaigns with goal, deadline, cover photo
-- Campaign needs admin approval before going live
-
-### For Admins
-- Approve/reject support requests and campaigns
-- View full details: support letters, national ID, payment accounts
-- Manage gallery photos shown on About page
-- Assign roles to users
-- View audit logs and donation reports
-
-### Languages
-- English 🇬🇧
-- Amharic (አማርኛ) 🇪🇹
-- Afaan Oromo 🇪🇹
-
-### Dark/Light Mode
-Toggle in the navbar — remembers your preference.
-
----
-
-## Database Credentials
-Update `wedonate-backend/.env`:
-```
-DATABASE_URL="postgresql://postgres:wedonate2026@localhost:5432/wedonate_db"
-```
-
-## Chapa Payment Keys
-Get from https://dashboard.chapa.co and update `.env`:
-```
-CHAPA_SECRET_KEY=CHASECK_TEST-...
-CHAPA_PUBLIC_KEY=CHAPUBK_TEST-...
-```
-
----
-
-## Tech Stack
-
-| Layer     | Technology |
-|-----------|-----------|
-| Frontend  | React 19, TypeScript 6, Tailwind CSS v4, Vite 8 |
-| State     | TanStack Query v5, React Hook Form + Zod |
-| Animation | Framer Motion, Lucide Icons |
-| i18n      | i18next (EN/AM/OR) |
-| Backend   | Node.js, Express 4, Prisma ORM |
-| Database  | PostgreSQL 18 |
-| Auth      | JWT + bcrypt |
-| Payments  | Chapa gateway + direct bank transfers |
-| Upload    | Multer (images stored in uploads/) |
+This project is proprietary and intended for the Adama City Administration.

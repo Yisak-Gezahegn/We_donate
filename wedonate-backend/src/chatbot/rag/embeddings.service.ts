@@ -29,7 +29,7 @@ export class AIProvider {
       return result.embedding.values;
     } catch (err) {
       console.warn("⚠️ Embedding failed. Falling back to mock 768-d vector. Error:", err);
-      return Array(768).fill(0).map(() => Math.random() * 2 - 1);
+      return Array(3072).fill(0).map(() => Math.random() * 2 - 1);
     }
   }
 

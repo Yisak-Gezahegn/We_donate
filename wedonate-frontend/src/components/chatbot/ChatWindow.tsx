@@ -4,7 +4,7 @@ import ChatHeader from './ChatHeader';
 import ChatInput from './ChatInput';
 import MessageBubble from './MessageBubble';
 import ChatTypingIndicator from './ChatTypingIndicator';
-import { sendMessage, type ChatMessage } from '../../services/chatbot.api';
+import { sendMessage, getChatHistory, clearChatHistory, type ChatMessage } from '../../services/chatbot.api';
 import { useAuth } from '../../context/AuthContext';
 import { cn } from '../../lib/utils';
 import { useTheme } from '../../context/ThemeContext';
@@ -24,7 +24,41 @@ export default function ChatWindow({ isOpen, onClose }: Props) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const windowRef = useRef<HTMLDivElement>(null);
 
-  const initChat = () => {
+  const initChat = async () => {
+    setSessionId(crypto.randomUUID());
+    
+    if (user?.id) {
+      try {
+        const history = await getChatHistory();
+        if (history && history.length > 0) {
+          // Add default init message at start if not present, though usually we can just show history
+          setMessages(history.map((msg: ChatMessage) => ({
+            ...msg,
+            timestamp: new Date(msg.timestamp)
+          })));
+          return;
+        }
+      } catch (error) {
+        console.error("Failed to load chat history", error);
+      }
+    }
+    
+    setMessages([{
+      id: 'init',
+      text: 'Hi! I am the WeDonate AI Assistant. How can I help you today?',
+      isUser: false,
+      timestamp: new Date()
+    }]);
+  };
+
+  const handleClearChat = async () => {
+    if (user?.id) {
+      try {
+        await clearChatHistory();
+      } catch (error) {
+        console.error("Failed to clear chat history", error);
+      }
+    }
     setSessionId(crypto.randomUUID());
     setMessages([{
       id: 'init',
@@ -34,12 +68,12 @@ export default function ChatWindow({ isOpen, onClose }: Props) {
     }]);
   };
 
-  // Initialize on mount
+  // Reset chat and close window when user changes (login/logout)
   useEffect(() => {
-    if (messages.length === 0) {
-      initChat();
-    }
-  }, []);
+    initChat();
+    onClose();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -112,7 +146,7 @@ export default function ChatWindow({ isOpen, onClose }: Props) {
             isDark ? 'bg-slate-800 border border-slate-700' : 'bg-white border border-gray-200'
           )}
         >
-          <ChatHeader onClose={onClose} onReset={initChat} />
+          <ChatHeader onClose={onClose} onReset={handleClearChat} />
           
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
             {messages.map(msg => (

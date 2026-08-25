@@ -140,6 +140,7 @@ model User {
   campaigns       Campaign[]
   notifications   Notification[]
   auditLogs       AuditLog[]
+  chatMessages    ChatMessage[]
   sentMessages    Message[]     @relation("SentMessages")
   receivedMessages Message[]    @relation("ReceivedMessages")
   inspections     InspectionReport[]
@@ -149,11 +150,11 @@ model User {
 
 model SupportRequest {
   id           String        @id @default(uuid())
-  userId       String
+  userId       String?
   createdById  String?       // For ASSISTED requests (the Kebele Admin)
   kebeleId     String?       // Geographic scope
   source       RequestSource @default(SELF_SERVICE)
-  user         User          @relation(fields: [userId], references: [id])
+  user         User?         @relation(fields: [userId], references: [id])
   title        String
   description  String
   category     DonationType
@@ -180,6 +181,15 @@ model SupportRequest {
   // Admin-only information
   supportLetterUrl   String?   // official support letter image
   additionalNotes    String?   // extra info for admin
+
+  // Beneficiary Snapshot (For ASSISTED requests where userId is null)
+  beneficiaryName       String?
+  beneficiaryIdType     String?
+  beneficiaryIdNum      String?
+  beneficiaryFrontIdUrl String?
+  beneficiaryBackIdUrl  String?
+  beneficiaryFanNumber  String?
+  beneficiaryPhone      String?
 
   // Publishing
   isPublished Boolean  @default(false)
@@ -221,7 +231,6 @@ model Campaign {
 
   // Admin-only information
   supportLetterUrl   String?
-  registrationUrl    String?   // org registration document
   additionalNotes    String?
 
   // Publishing
@@ -488,4 +497,15 @@ model InspectionReport {
   updatedAt       DateTime        @updatedAt
 
   @@map("inspection_reports")
+}
+
+model ChatMessage {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  text      String
+  isUser    Boolean
+  timestamp DateTime @default(now())
+
+  @@map("chat_messages")
 }

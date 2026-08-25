@@ -2,6 +2,7 @@ import { Routes, Route, Navigate, useRouteError, isRouteErrorResponse, Link } fr
 import { useAuth } from './context/AuthContext';
 import { useTheme } from './context/ThemeContext';
 import { cn } from './lib/utils';
+import ChatbotWidget from './components/chatbot/ChatbotWidget';
 
 // Layouts
 import MainLayout from './components/layout/MainLayout';
@@ -155,8 +156,9 @@ function withLayout(children: React.ReactNode, roles?: string[]) {
 
 export default function App() {
   return (
-    <Routes>
-      {/* Public — but /donate is hidden from admins */}
+    <>
+      <Routes>
+        {/* Public — but /donate is hidden from admins */}
       <Route path="/"               element={<MainLayout><HomePage /></MainLayout>} />
       <Route path="/about"          element={<MainLayout><AboutPage /></MainLayout>} />
       <Route path="/donate"         element={<PublicDonateRoute><MainLayout><DonatePage /></MainLayout></PublicDonateRoute>} />
@@ -206,6 +208,8 @@ export default function App() {
 
       {/* Fallback */}
       <Route path="*" element={<Error404 />} />
-    </Routes>
+      </Routes>
+      <ChatbotWidget />
+    </>
   );
 }

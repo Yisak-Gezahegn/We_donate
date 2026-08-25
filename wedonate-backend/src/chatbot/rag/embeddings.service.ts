@@ -16,6 +16,10 @@ export class AIProvider {
   }
 
   async createEmbedding(text: string): Promise<number[]> {
+    if (!this.ai) {
+      return Array(3072).fill(0).map(() => Math.random() * 2 - 1);
+    }
+    
     try {
       const model = this.ai.getGenerativeModel({ model: process.env.EMBEDDING_MODEL || "gemini-embedding-001" });
       const result = await model.embedContent(text);

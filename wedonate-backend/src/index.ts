@@ -26,6 +26,7 @@ import faqRoutes            from './routes/faq.routes';
 import eventRoutes          from './routes/event.routes';
 import settingRoutes        from './routes/setting.routes';
 import messageRoutes        from './routes/message.routes';
+import kebeleRoutes         from './routes/kebele.routes';
 import { errorHandler }     from './middleware/errorHandler';
 
 const app  = express();
@@ -61,6 +62,7 @@ app.use('/api/faqs',            faqRoutes);
 app.use('/api/events',          eventRoutes);
 app.use('/api/settings',        settingRoutes);
 app.use('/api/messages',        messageRoutes);
+app.use('/api/kebeles',         kebeleRoutes);
 
 app.get('/api/health', (_req, res) => res.json({ status: 'ok', message: 'We Donate API running', timestamp: new Date().toISOString() }));
 

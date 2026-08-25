@@ -197,11 +197,6 @@ function CreateForUserModal({ isOpen, onClose, isDark }: { isOpen: boolean; onCl
                 <input type="number" className={input} placeholder="Optional" value={reqForm.goalAmount}
                   onChange={e => setReqForm(p => ({ ...p, goalAmount: e.target.value }))} />
               </div>
-              <div>
-                <label className={label}>Location / Kebele</label>
-                <input className={input} placeholder="Location" value={reqForm.location}
-                  onChange={e => setReqForm(p => ({ ...p, location: e.target.value }))} />
-              </div>
             </div>
             <div>
               <label className={label}>Description *</label>
@@ -342,6 +337,7 @@ export default function AdminRequestsPage() {
 
   const filterItems = (items: any[]) => {
     if (statusFilter === 'ALL') return items;
+    if (statusFilter === 'PENDING') return items.filter((i: any) => ['PENDING_REVIEW', 'PENDING_CITY_APPROVAL'].includes(i.status));
     if (statusFilter === 'FULFILLED') return items.filter((i: any) => i.status === 'FULFILLED');
     return items.filter((i: any) => i.status === statusFilter);
   };
@@ -413,7 +409,7 @@ export default function AdminRequestsPage() {
           </div>
 
           {/* Admin note + actions for PENDING */}
-          {item.status === 'PENDING' && (
+          {((isKebeleAdmin && item.status === 'PENDING_REVIEW') || (isHighAdmin && item.status === 'PENDING_CITY_APPROVAL') || (isHighAdmin && type === 'campaigns' && item.status === 'PENDING_REVIEW')) && (
             <div className="mt-4 pt-4 border-t border-gray-100 dark:border-slate-700">
               <div className="flex flex-col sm:flex-row gap-3">
                 <textarea placeholder={t('admin.admin_note_placeholder')} value={notes[item.id] || ''} rows={2}
@@ -430,13 +426,22 @@ export default function AdminRequestsPage() {
                     onClick={() => handleReject(item.id, type)}>
                     {t('admin.reject')}
                   </Button>
+                  {isHighAdmin && item.status === 'PENDING_CITY_APPROVAL' && (
+                    <Button size="sm" variant="outline" className="text-orange-500 border-orange-200"
+                      onClick={() => {
+                        if (!notes[item.id]?.trim()) { toast.error('Please provide a reason in the note'); return; }
+                        mutate.mutate({ id: item.id, status: 'CHANGES_REQUESTED', adminNote: notes[item.id] });
+                      }}>
+                      Request Changes
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>
           )}
 
-          {/* Actions for APPROVED */}
-          {item.status === 'APPROVED' && (
+          {/* Actions for APPROVED or PUBLISHED */}
+          {isHighAdmin && (item.status === 'APPROVED' || item.status === 'PUBLISHED') && (
             <div className="mt-4 pt-4 border-t border-gray-100 dark:border-slate-700 flex gap-2">
               {!item.isPublished && (
                 <Button size="sm" leftIcon={<Send className="w-3.5 h-3.5" />}

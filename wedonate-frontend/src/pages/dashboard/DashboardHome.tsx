@@ -143,25 +143,64 @@ export default function DashboardHome() {
         </motion.div>
       )}
 
-      {isAdmin && adminStats && (adminStats.pendingRequests > 0 || adminStats.pendingCampaigns > 0 || adminStats.pendingVerifications > 0 || adminStats.pendingUserVerifications > 0) && (
-        <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
-          className={cn('flex items-center gap-4 p-4 rounded-2xl border',
-            isDark ? 'bg-amber-900/20 border-amber-700/40 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-800')}>
-          <Bell className="w-5 h-5 shrink-0" />
-          <div className="flex-1 text-sm">
-            <span className="font-semibold">{t('dashboard.admin_alert')} </span>
-            {adminStats.pendingRequests > 0 && `${adminStats.pendingRequests} request${adminStats.pendingRequests > 1 ? 's' : ''} pending review`}
-            {(adminStats.pendingRequests > 0) && (adminStats.pendingCampaigns > 0 || adminStats.pendingVerifications > 0 || adminStats.pendingUserVerifications > 0) && ' · '}
-            {adminStats.pendingCampaigns > 0 && `${adminStats.pendingCampaigns} campaign${adminStats.pendingCampaigns > 1 ? 's' : ''} pending`}
-            {(adminStats.pendingCampaigns > 0) && (adminStats.pendingVerifications > 0 || adminStats.pendingUserVerifications > 0) && ' · '}
-            {adminStats.pendingVerifications > 0 && `${adminStats.pendingVerifications} verification${adminStats.pendingVerifications > 1 ? 's' : ''} pending`}
-            {(adminStats.pendingVerifications > 0) && (adminStats.pendingUserVerifications > 0) && ' · '}
-            {adminStats.pendingUserVerifications > 0 && `${adminStats.pendingUserVerifications} user verification${adminStats.pendingUserVerifications > 1 ? 's' : ''} pending`}
-          </div>
-          <Link to={adminStats.pendingUserVerifications > 0 && user?.role === 'KEBELE_ADMIN' ? "/admin/user-verification" : "/admin/requests"}>
-            <Button size="sm" variant="secondary">{t('dashboard.review')}</Button>
-          </Link>
-        </motion.div>
+      {isAdmin && adminStats && (
+        <div className="space-y-3">
+          {adminStats.pendingUserVerifications > 0 && (
+            <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
+              className={cn('flex items-center gap-4 p-4 rounded-2xl border', isDark ? 'bg-amber-900/20 border-amber-700/40 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-800')}>
+              <Bell className="w-5 h-5 shrink-0" />
+              <div className="flex-1 text-sm">
+                <span className="font-semibold">Action Required: </span>
+                {adminStats.pendingUserVerifications} {user?.role === 'KEBELE_ADMIN' ? 'citizen' : 'organization'} verification{adminStats.pendingUserVerifications > 1 ? 's' : ''} pending.
+              </div>
+              <Link to="/admin/user-verification">
+                <Button size="sm" variant="secondary">Review Users</Button>
+              </Link>
+            </motion.div>
+          )}
+
+          {adminStats.pendingRequests > 0 && (
+            <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
+              className={cn('flex items-center gap-4 p-4 rounded-2xl border', isDark ? 'bg-blue-900/20 border-blue-700/40 text-blue-300' : 'bg-blue-50 border-blue-200 text-blue-800')}>
+              <FileText className="w-5 h-5 shrink-0" />
+              <div className="flex-1 text-sm">
+                <span className="font-semibold">Action Required: </span>
+                {adminStats.pendingRequests} support request{adminStats.pendingRequests > 1 ? 's' : ''} pending {user?.role === 'CITY_ADMIN' ? 'city approval' : 'kebele review'}.
+              </div>
+              <Link to="/admin/requests">
+                <Button size="sm" variant="secondary">Review Requests</Button>
+              </Link>
+            </motion.div>
+          )}
+
+          {adminStats.pendingCampaigns > 0 && (
+            <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
+              className={cn('flex items-center gap-4 p-4 rounded-2xl border', isDark ? 'bg-purple-900/20 border-purple-700/40 text-purple-300' : 'bg-purple-50 border-purple-200 text-purple-800')}>
+              <Target className="w-5 h-5 shrink-0" />
+              <div className="flex-1 text-sm">
+                <span className="font-semibold">Action Required: </span>
+                {adminStats.pendingCampaigns} campaign{adminStats.pendingCampaigns > 1 ? 's' : ''} pending review.
+              </div>
+              <Link to="/admin/campaigns">
+                <Button size="sm" variant="secondary">Review Campaigns</Button>
+              </Link>
+            </motion.div>
+          )}
+
+          {adminStats.pendingVerifications > 0 && (
+            <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
+              className={cn('flex items-center gap-4 p-4 rounded-2xl border', isDark ? 'bg-green-900/20 border-green-700/40 text-green-300' : 'bg-green-50 border-green-200 text-green-800')}>
+              <Heart className="w-5 h-5 shrink-0" />
+              <div className="flex-1 text-sm">
+                <span className="font-semibold">Action Required: </span>
+                {adminStats.pendingVerifications} donation payment{adminStats.pendingVerifications > 1 ? 's' : ''} pending verification.
+              </div>
+              <Link to="/admin/donations">
+                <Button size="sm" variant="secondary">Verify Payments</Button>
+              </Link>
+            </motion.div>
+          )}
+        </div>
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">

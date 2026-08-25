@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { v4 as uuidv4 } from 'uuid';
+import bcrypt from 'bcryptjs';
 import prisma from '../lib/prisma';
 import { createError } from '../middleware/errorHandler';
 import { AuthRequest } from '../middleware/auth.middleware';
@@ -157,7 +158,11 @@ export const getDashboardStats = async (req: AuthRequest, res: Response, next: N
       prisma.user.count({ where: isKebeleAdmin ? { role: 'USER', ...kebeleWhere } : {} }),
       prisma.donation.count({ where: { paymentStatus: 'SUCCESS' } }),
       prisma.donation.aggregate({ _sum: { amount: true }, where: { paymentStatus: 'SUCCESS' } }),
-      prisma.supportRequest.count({ where: { status: 'PENDING_REVIEW', ...kebeleWhere } }),
+      prisma.supportRequest.count({ 
+        where: isKebeleAdmin 
+          ? { status: 'PENDING_REVIEW', kebeleId: req.user!.kebeleId || 'UNASSIGNED' }
+          : { status: { in: ['PENDING_CITY_APPROVAL', 'APPROVED'] } }
+      }),
       isKebeleAdmin ? Promise.resolve(0) : prisma.campaign.count({ where: { status: 'PENDING_REVIEW' } }),
       prisma.donation.findMany({
         take: 10, where: { paymentStatus: 'SUCCESS' },
@@ -166,7 +171,11 @@ export const getDashboardStats = async (req: AuthRequest, res: Response, next: N
       }),
       isKebeleAdmin ? Promise.resolve(0) : prisma.campaign.count(),
       prisma.supportRequest.count({ where: { status: 'FULFILLED', ...kebeleWhere } }),
-      isKebeleAdmin ? Promise.resolve(0) : prisma.donation.count({ where: { paymentStatus: 'PENDING' } }),
+      prisma.donation.count({ 
+        where: isKebeleAdmin 
+          ? { paymentStatus: 'PENDING', supportRequest: { kebeleId: req.user!.kebeleId || 'UNASSIGNED' } }
+          : { paymentStatus: 'PENDING', campaignId: { not: null } }
+      }),
       prisma.supportRequest.count({ where: { isPublished: true, ...kebeleWhere } }),
       isKebeleAdmin ? Promise.resolve(0) : prisma.campaign.count({ where: { status: 'PUBLISHED' } }),
       prisma.auditLog.findMany({
@@ -182,7 +191,11 @@ export const getDashboardStats = async (req: AuthRequest, res: Response, next: N
         GROUP BY TO_CHAR("createdAt", 'YYYY-MM')
         ORDER BY month ASC
       `,
-      prisma.user.count({ where: { verificationStatus: 'PENDING', ...kebeleWhere, role: 'USER' } }),
+      prisma.user.count({ 
+        where: isKebeleAdmin 
+          ? { verificationStatus: 'PENDING', kebeleId: req.user!.kebeleId || 'UNASSIGNED', role: 'USER' }
+          : { verificationStatus: 'PENDING', role: 'ORGANIZATION' }
+      }),
     ]);
 
     res.json({
@@ -273,8 +286,13 @@ export const toggleVerification = async (req: AuthRequest, res: Response, next: 
     const newVerifiedState = targetUser.verificationStatus !== 'VERIFIED';
     const user = await prisma.user.update({
       where: { id: req.params.id },
-      data: { verificationStatus: newVerifiedState ? 'VERIFIED' : 'UNVERIFIED' },
-      select: { id: true, firstName: true, lastName: true, email: true, role: true, verificationStatus: true },
+      data: {
+        verificationStatus: newVerifiedState ? 'VERIFIED' : 'UNVERIFIED',
+        verifiedById: newVerifiedState ? req.user!.userId : null,
+        verifiedByRole: newVerifiedState ? req.user!.role : null,
+        verifiedAt: newVerifiedState ? new Date() : null,
+      },
+      select: { id: true, firstName: true, lastName: true, email: true, role: true, verificationStatus: true, verifiedById: true, verifiedByRole: true, verifiedAt: true },
     });
 
     await prisma.auditLog.create({
@@ -303,12 +321,31 @@ export const toggleVerification = async (req: AuthRequest, res: Response, next: 
 
 export const createUser = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { firstName, lastName, email, password, phone, role } = req.body;
+    const { firstName, lastName, email, password, phone, role, orgType, orgName, licenseNumber, registrationDocUrl, representativeName, officeAddress } = req.body;
     if (!firstName || !lastName || !email || !password) return next(createError('First name, last name, email and password are required', 400));
+    
+    const isOrg = role === 'ORGANIZATION';
+    if (isOrg) {
+      if (!orgType || !orgName || !licenseNumber || !registrationDocUrl || !officeAddress) {
+        return next(createError('All organization fields are required', 400));
+      }
+    }
+
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) return next(createError('Email already in use', 409));
+    
+    const hashedPassword = await bcrypt.hash(password, 12);
+    
     const user = await prisma.user.create({
-      data: { id: uuidv4(), firstName, lastName, email, password, phone: phone || null, role: (role || 'USER') as any },
+      data: { 
+        id: uuidv4(), firstName, lastName, email, password: hashedPassword, phone: phone || null, role: (role || 'USER') as any,
+        orgType: isOrg ? orgType : null,
+        orgName: isOrg ? orgName : null,
+        licenseNumber: isOrg ? licenseNumber : null,
+        registrationDocUrl: isOrg ? registrationDocUrl : null,
+        representativeName: isOrg ? representativeName : null,
+        officeAddress: isOrg ? officeAddress : null,
+      },
       select: { id: true, firstName: true, lastName: true, email: true, role: true, isActive: true, createdAt: true },
     });
     await prisma.auditLog.create({
@@ -375,10 +412,17 @@ export const getAllDonationsAdmin = async (req: Request, res: Response, next: Ne
   } catch (error) { next(error); }
 };
 
-export const getPendingDonations = async (_req: Request, res: Response, next: NextFunction) => {
+export const getPendingDonations = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
+    let where: any = { paymentStatus: 'PENDING' };
+    if (req.user!.role === 'KEBELE_ADMIN') {
+      where.supportRequest = { kebeleId: req.user!.kebeleId || 'UNASSIGNED' };
+    } else if (req.user!.role === 'CITY_ADMIN') {
+      where.campaignId = { not: null };
+    }
+
     const donations = await prisma.donation.findMany({
-      where: { paymentStatus: 'PENDING' },
+      where,
       include: {
         donor: { select: { firstName: true, lastName: true, email: true, phone: true } },
         supportRequest: { select: { title: true } },
@@ -416,8 +460,32 @@ export const verifyDonation = async (req: AuthRequest, res: Response, next: Next
     }
 
     await prisma.notification.create({
-      data: { id: uuidv4(), userId: donation.donorId, title: 'Donation Verified', message: `Your donation of ${donation.amount || 0} ETB has been verified and confirmed.`, type: 'SUCCESS' },
+      data: { id: uuidv4(), userId: donation.donorId, title: 'Donation Verified', message: `Your donation has been verified successfully.`, type: 'SUCCESS' },
     });
+
+    let beneficiaryId: string | null = null;
+    let targetName = '';
+    if (donation.supportRequestId) {
+      const sr = await prisma.supportRequest.findUnique({ where: { id: donation.supportRequestId }, select: { userId: true, title: true } });
+      beneficiaryId = sr?.userId ?? null;
+      targetName = sr?.title ?? 'support request';
+    } else if (donation.campaignId) {
+      const camp = await prisma.campaign.findUnique({ where: { id: donation.campaignId }, select: { userId: true, title: true } });
+      beneficiaryId = camp?.userId ?? null;
+      targetName = camp?.title ?? 'campaign';
+    }
+
+    if (beneficiaryId) {
+      await prisma.notification.create({
+        data: {
+          id: uuidv4(), userId: beneficiaryId,
+          title: 'New Verified Donation 💰',
+          message: `You received a verified donation of ETB ${donation.amount || 0} for "${targetName}".`,
+          type: 'SUCCESS',
+        },
+      });
+    }
+
     await prisma.auditLog.create({
       data: { id: uuidv4(), userId: req.user!.userId, action: 'VERIFY_DONATION', resource: 'donation', resourceId: donation.id, details: `Verified donation of ${donation.amount || 0} ETB from donor ${donation.donorId}` },
     });
@@ -438,7 +506,7 @@ export const rejectDonation = async (req: AuthRequest, res: Response, next: Next
     });
 
     await prisma.notification.create({
-      data: { id: uuidv4(), userId: donation.donorId, title: 'Donation Rejected', message: `Your donation has been rejected.${reason ? ` Reason: ${reason}` : ''}`, type: 'ERROR' },
+      data: { id: uuidv4(), userId: donation.donorId, title: 'Donation Rejected', message: `Your donation could not be verified. Please review the payment information.${reason ? ` Reason: ${reason}` : ''}`, type: 'ERROR' },
     });
     await prisma.auditLog.create({
       data: { id: uuidv4(), userId: req.user!.userId, action: 'REJECT_DONATION', resource: 'donation', resourceId: donation.id, details: `Rejected donation. Reason: ${reason || 'N/A'}` },

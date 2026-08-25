@@ -73,6 +73,7 @@ export const createRequest = async (req: AuthRequest, res: Response, next: NextF
         kebeleId: kebeleId || 'UNASSIGNED',
         source: (isAdmin && targetUserId) ? 'ASSISTED' : 'SELF_SERVICE',
         createdById: (isAdmin && targetUserId) ? req.user!.userId : null,
+        status: (isAdmin && targetUserId) ? 'PENDING_CITY_APPROVAL' : 'PENDING_REVIEW',
       },
     });
 
@@ -84,6 +85,31 @@ export const createRequest = async (req: AuthRequest, res: Response, next: NextF
           details: `Created support request "${title}" on behalf of user ${targetUserId}`,
         },
       });
+      // Notify City Admins of a new Assisted request pending review
+      const cityAdmins = await prisma.user.findMany({ where: { role: 'CITY_ADMIN' } });
+      if (cityAdmins.length > 0) {
+        await prisma.notification.createMany({
+          data: cityAdmins.map(admin => ({
+            id: uuidv4(), userId: admin.id,
+            title: 'Assisted Request Submitted',
+            message: `Kebele Admin submitted an assisted request "${title}" pending your review.`,
+            type: 'INFO',
+          })),
+        });
+      }
+    } else {
+      // Notify Kebele Admins of a new self-service request
+      const kebeleAdmins = await prisma.user.findMany({ where: { role: 'KEBELE_ADMIN', kebeleId } });
+      if (kebeleAdmins.length > 0) {
+        await prisma.notification.createMany({
+          data: kebeleAdmins.map(admin => ({
+            id: uuidv4(), userId: admin.id,
+            title: 'New Support Request',
+            message: `A new support request "${title}" was submitted in your Kebele.`,
+            type: 'INFO',
+          })),
+        });
+      }
     }
 
     res.status(201).json({ success: true, data: request });
@@ -105,7 +131,7 @@ export const getApprovedRequests = async (req: Request, res: Response, next: Nex
       // Omit admin-only fields from public response
     });
     // Strip admin-only fields from public view
-    const publicRequests = requests.map(({ supportLetterUrl, nationalIdFrontUrl, nationalIdBackUrl, fanNumber, additionalNotes, ...r }) => r);
+    const publicRequests = requests.map(({ supportLetterUrl, additionalNotes, ...r }) => r);
     res.json({ success: true, data: publicRequests });
   } catch (error) { next(error); }
 };
@@ -115,7 +141,9 @@ export const getAllRequests = async (req: AuthRequest, res: Response, next: Next
   try {
     let where: any = {};
     if (req.user!.role === 'KEBELE_ADMIN') {
-      where.kebeleId = req.user!.kebeleId || 'UNASSIGNED'; // strict kebele scoping
+      where.kebeleId = req.user!.kebeleId || 'UNASSIGNED';
+    } else if (req.user!.role === 'CITY_ADMIN') {
+      // City Admin can see all requests
     }
     const requests = await prisma.supportRequest.findMany({
       where,
@@ -150,7 +178,7 @@ export const getRequestById = async (req: AuthRequest, res: Response, next: Next
     const isOwner = req.user && req.user.userId === request.userId;
 
     if (!isAdmin && !isOwner) {
-      const { supportLetterUrl, nationalIdFrontUrl, nationalIdBackUrl, fanNumber, additionalNotes, ...publicData } = request;
+      const { supportLetterUrl, additionalNotes, ...publicData } = request;
       return res.json({ success: true, data: publicData });
     }
     
@@ -235,19 +263,44 @@ export const updateRequestStatus = async (req: AuthRequest, res: Response, next:
     });
     if (!request) return next(createError('Request not found', 404));
 
-    if (req.user!.role === 'KEBELE_ADMIN' && request.kebeleId !== req.user!.kebeleId) {
-      return next(createError('Unauthorized to modify this Kebele\'s request', 403));
+    const role = req.user!.role;
+    
+    // Kebele Admin scope check
+    if (role === 'KEBELE_ADMIN') {
+      if (request.kebeleId !== req.user!.kebeleId) {
+        return next(createError('Unauthorized to modify this Kebele\'s request', 403));
+      }
+      if (!['APPROVED', 'REJECTED', 'CHANGES_REQUESTED'].includes(status)) {
+        return next(createError('Kebele Admin can only approve, reject or request changes', 403));
+      }
+      if (request.source === 'ASSISTED') {
+        return next(createError('Assisted requests must be approved by City Admin', 403));
+      }
+    }
+    
+    // City Admin scope check
+    if (role === 'CITY_ADMIN') {
+      if (!['APPROVED', 'PUBLISHED', 'REJECTED', 'FULFILLED', 'CHANGES_REQUESTED'].includes(status)) {
+        return next(createError('Invalid status transition for City Admin', 403));
+      }
     }
 
     // Anti-self-approval rule
     if (['APPROVED', 'PUBLISHED', 'FULFILLED', 'REJECTED'].includes(status) && (request.createdById === req.user!.userId || request.userId === req.user!.userId)) {
-      return next(createError('Conflict of Interest: You cannot approve or reject a request you created', 403));
+      if (role !== 'SYSTEM_ADMIN') { // System Admin can override
+        return next(createError('Conflict of Interest: You cannot approve or reject a request you created', 403));
+      }
     }
 
     const updatedRequest = await prisma.supportRequest.update({
       where: { id: req.params.id },
-      data: { status, adminNote: adminNote || null },
+      data: { 
+        status, 
+        adminNote: adminNote || null,
+        ...(status === 'PUBLISHED' ? { isPublished: true, publishedAt: new Date() } : {})
+      },
     });
+
     const notifications = [{
       id: uuidv4(), userId: updatedRequest.userId,
       title: `Request ${status}`,
@@ -256,15 +309,32 @@ export const updateRequestStatus = async (req: AuthRequest, res: Response, next:
     }];
     
     if (updatedRequest.createdById && updatedRequest.createdById !== updatedRequest.userId) {
-      notifications.push({
-        id: uuidv4(), userId: updatedRequest.createdById,
-        title: `Assisted Request ${status}`,
-        message: `The support request "${updatedRequest.title}" you created on behalf of a citizen has been ${status.toLowerCase()}.${adminNote ? ` Reason: ${adminNote}` : ''}`,
+        let assistedMsg = `The support request "${updatedRequest.title}" you created on behalf of a citizen has been ${status.toLowerCase()}.`;
+        if (role === 'CITY_ADMIN') {
+          if (status === 'APPROVED') assistedMsg = `Assisted request "${updatedRequest.title}" was approved by City Administration.`;
+          else if (status === 'REJECTED') assistedMsg = `Assisted request "${updatedRequest.title}" was rejected.`;
+          else if (status === 'CHANGES_REQUESTED') assistedMsg = `City Administration requested changes to the assisted request "${updatedRequest.title}".`;
+        }
+        
+        notifications.push({
+          id: uuidv4(), userId: updatedRequest.createdById,
+          title: `Assisted Request ${status}`,
+          message: `${assistedMsg}${adminNote ? ` Reason: ${adminNote}` : ''}`,
         type: (status === 'PUBLISHED' ? 'SUCCESS' : status === 'REJECTED' ? 'ERROR' : 'INFO') as any,
       });
     }
 
     await prisma.notification.createMany({ data: notifications });
-    res.json({ success: true, data: updatedRequest, message: 'Status updated' });
+    
+    await prisma.auditLog.create({
+      data: {
+        id: uuidv4(), userId: req.user!.userId,
+        action: 'UPDATE_REQUEST_STATUS',
+        resource: 'support_request', resourceId: req.params.id,
+        details: `Changed request status to ${status}. Note: ${adminNote || 'None'}`
+      }
+    });
+
+    res.json({ success: true, data: updatedRequest, message: `Status updated to ${status}` });
   } catch (error) { next(error); }
 };

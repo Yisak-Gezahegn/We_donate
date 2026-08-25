@@ -325,7 +325,15 @@ export default function SupportRequestsPage() {
       toast.error('Admin users must upload a support letter');
       return;
     }
-    mutation.mutate(data);
+    
+    if (data.category === 'MONEY') {
+      if (!data.telebirrAccount && !data.cbeAccount && !data.boaAccount && !data.awashAccount && !data.otherBankAccount) {
+        toast.error('Financial Aid requests must include at least one payment receiving method (Telebirr or Bank Account).');
+        return;
+      }
+    }
+    
+    mutation.mutate({ ...data, imageUrl, supportLetterUrl });
   };
 
   return (
@@ -410,21 +418,12 @@ export default function SupportRequestsPage() {
                 </div>
 
                 {/* Goal Amount + Location */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <Input
                     label="Target Amount (ETB, optional)"
                     type="number"
                     placeholder="e.g. 5000"
                     {...register('goalAmount')}
                   />
-                  <Input
-                    label="Your Location / Kebele *"
-                    placeholder="e.g. Kebele 05, Adama"
-                    error={errors.location?.message as string}
-                    {...register('location', { required: 'Location is required' })}
-                  />
-                </div>
-
                 {/* Family size */}
                 <div>
                   <label className={lbl}>Family Size</label>

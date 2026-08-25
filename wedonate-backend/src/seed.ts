@@ -10,8 +10,26 @@ async function main() {
   const hashedSuperAdmin = await bcrypt.hash('superadmin123', 12);
   const hashedCityAdmin = await bcrypt.hash('cityadmin123', 12);
   const hashedKebeleAdmin = await bcrypt.hash('kebeleadmin123', 12);
+  const hashedKebeleAdminB = await bcrypt.hash('kebeleadminB123', 12);
   const hashedOrganization = await bcrypt.hash('organization123', 12);
   const hashedUser = await bcrypt.hash('user123', 12);
+
+  // Kebeles
+  await prisma.kebele.upsert({
+    where: { name: 'Kebele 01' },
+    update: {},
+    create: { id: 'K-01', name: 'Kebele 01', status: 'ACTIVE' },
+  });
+  await prisma.kebele.upsert({
+    where: { name: 'Kebele 02' },
+    update: {},
+    create: { id: 'K-02', name: 'Kebele 02', status: 'ACTIVE' },
+  });
+  await prisma.kebele.upsert({
+    where: { name: 'Kebele 03 (Inactive)' },
+    update: {},
+    create: { id: 'K-03', name: 'Kebele 03 (Inactive)', status: 'INACTIVE' },
+  });
 
   await prisma.user.upsert({
     where: { email: 'superadmin@wedonate.et' },
@@ -29,6 +47,12 @@ async function main() {
     where: { email: 'kebeleadmin@adama.et' },
     update: { password: hashedKebeleAdmin },
     create: { id: uuidv4(), firstName: 'Kebele', lastName: 'Administrator', email: 'kebeleadmin@adama.et', password: hashedKebeleAdmin, role: 'KEBELE_ADMIN', kebeleId: 'K-01', verificationStatus: 'VERIFIED' },
+  });
+  
+  await prisma.user.upsert({
+    where: { email: 'kebeleadminB@adama.et' },
+    update: { password: hashedKebeleAdminB },
+    create: { id: uuidv4(), firstName: 'Kebele B', lastName: 'Administrator', email: 'kebeleadminB@adama.et', password: hashedKebeleAdminB, role: 'KEBELE_ADMIN', kebeleId: 'K-02', verificationStatus: 'VERIFIED' },
   });
 
   await prisma.user.upsert({
@@ -72,7 +96,11 @@ async function main() {
       { id: uuidv4(), userId: donor.id, title: 'School Supplies for Children', description: 'Three children need school uniforms and supplies to continue their education.', category: 'CLOTHES', urgencyLevel: 3, goalAmount: 3000, raisedAmount: 800, status: 'PUBLISHED' },
       { 
         id: uuidv4(), userId: unverifiedUser.id, createdById: kebeleAdmin?.id, kebeleId: 'K-01',
-        title: 'Assisted: Rebuilding Home', description: 'Beneficiary lost home in a fire and needs assistance. Request created by Kebele Admin.', category: 'OTHER', urgencyLevel: 4, goalAmount: 10000, raisedAmount: 0, status: 'PENDING_REVIEW', source: 'ASSISTED' 
+        title: 'Assisted: Rebuilding Home', description: 'Beneficiary lost home in a fire and needs assistance. Request created by Kebele Admin.', category: 'OTHER', urgencyLevel: 4, goalAmount: 10000, raisedAmount: 0, status: 'PENDING_CITY_APPROVAL', source: 'ASSISTED' 
+      },
+      { 
+        id: uuidv4(), userId: user2.id, kebeleId: 'K-01',
+        title: 'Need medical wheelchair', description: 'Normal user requesting a wheelchair for grandmother.', category: 'MEDICINE', urgencyLevel: 3, goalAmount: 8000, raisedAmount: 0, status: 'PENDING_REVIEW', source: 'SELF_SERVICE' 
       },
     ],
   });
@@ -87,11 +115,34 @@ async function main() {
     ],
   });
 
+  const campaign = await prisma.campaign.findFirst({ where: { userId: donor.id } });
+  const request = await prisma.supportRequest.findFirst({ where: { userId: donor.id } });
+
+  // Add some pending donations for verification workflows
+  if (campaign && request) {
+    await prisma.donation.createMany({
+      skipDuplicates: true,
+      data: [
+        {
+          id: uuidv4(), donorId: user2.id, amount: 500, donationType: 'MONEY', currency: 'ETB',
+          paymentMethod: 'TELEBIRR', referenceCode: 'TB-PEND-123',
+          campaignId: campaign.id, paymentStatus: 'PENDING'
+        },
+        {
+          id: uuidv4(), donorId: user2.id, amount: 300, donationType: 'MONEY', currency: 'ETB',
+          paymentMethod: 'CBE', referenceCode: 'CBE-PEND-456',
+          supportRequestId: request.id, paymentStatus: 'PENDING'
+        }
+      ]
+    });
+  }
+
   console.log('✅ Seed complete!');
   console.log('📋 Accounts:');
   console.log('  System Admin : superadmin@wedonate.et / superadmin123');
   console.log('  City Admin   : cityadmin@adama.et     / cityadmin123');
-  console.log('  Kebele Admin : kebeleadmin@adama.et   / kebeleadmin123');
+  console.log('  Kebele Admin A : kebeleadmin@adama.et   / kebeleadmin123');
+  console.log('  Kebele Admin B : kebeleadminB@adama.et  / kebeleadminB123');
   console.log('  Organization : org@example.com        / organization123');
   console.log('  User         : abebe@example.com      / user123');
 }

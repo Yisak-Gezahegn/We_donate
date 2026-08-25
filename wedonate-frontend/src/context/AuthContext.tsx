@@ -9,6 +9,9 @@ interface User {
   role: string;
   profileImage?: string;
   verificationStatus?: string;
+  phone?: string;
+  kebeleId?: string;
+  verifiedByRole?: string;
 }
 
 interface AuthContextType {

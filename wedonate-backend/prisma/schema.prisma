@@ -15,6 +15,23 @@ enum Role {
   SYSTEM_ADMIN
 }
 
+enum KebeleStatus {
+  ACTIVE
+  INACTIVE
+}
+
+model Kebele {
+  id          String       @id @default(uuid())
+  name        String       @unique
+  status      KebeleStatus @default(ACTIVE)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  users       User[]
+
+  @@map("kebeles")
+}
+
 enum VerificationStatus {
   UNVERIFIED
   PENDING
@@ -42,6 +59,8 @@ enum DonationType {
 enum RequestStatus {
   DRAFT
   PENDING_REVIEW
+  PENDING_CITY_APPROVAL
+  APPROVED
   CHANGES_REQUESTED
   PUBLISHED
   FULFILLED
@@ -83,6 +102,7 @@ model User {
   password     String
   role               Role     @default(USER)
   kebeleId           String?
+  kebele             Kebele?  @relation(fields: [kebeleId], references: [id])
   verificationStatus VerificationStatus @default(UNVERIFIED)
   isActive           Boolean  @default(true)
   profileImage       String?

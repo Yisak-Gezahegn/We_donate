@@ -17,6 +17,7 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
       firstName, lastName, email, password, phone,
       accountType, orgType, orgName, licenseNumber,
       registrationDocUrl, representativeName, officeAddress,
+      kebeleId,
     } = req.body;
 
     if (!firstName || !lastName || !email || !password)
@@ -46,6 +47,7 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
         registrationDocUrl: isOrg ? registrationDocUrl : null,
         representativeName: isOrg ? representativeName : null,
         officeAddress: isOrg ? officeAddress : null,
+        kebeleId: (!isOrg && kebeleId) ? kebeleId : null,
       },
       select: { id: true, firstName: true, lastName: true, email: true, role: true, verificationStatus: true, createdAt: true, kebeleId: true },
     });

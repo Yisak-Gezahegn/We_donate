@@ -74,6 +74,19 @@ export const createCampaign = async (req: AuthRequest, res: Response, next: Next
       });
     }
 
+    // Notify City Admins of new campaign
+    const cityAdmins = await prisma.user.findMany({ where: { role: 'CITY_ADMIN' } });
+    if (cityAdmins.length > 0) {
+      await prisma.notification.createMany({
+        data: cityAdmins.map(admin => ({
+          id: uuidv4(), userId: admin.id,
+          title: 'New Campaign Pending Review',
+          message: `A new campaign "${title}" has been submitted for approval.`,
+          type: 'INFO',
+        })),
+      });
+    }
+
     res.status(201).json({ success: true, data: campaign });
   } catch (error) { next(error); }
 };
@@ -91,7 +104,7 @@ export const getActiveCampaigns = async (req: Request, res: Response, next: Next
       take: limit ? parseInt(limit as string) : undefined,
     });
     // Strip admin-only fields
-    const pub = campaigns.map(({ supportLetterUrl, registrationUrl, nationalIdFrontUrl, nationalIdBackUrl, fanNumber, additionalNotes, ...c }) => c);
+    const pub = campaigns.map(({ supportLetterUrl, additionalNotes, ...c }) => c);
     res.json({ success: true, data: pub });
   } catch (error) { next(error); }
 };
@@ -115,7 +128,7 @@ export const getCampaignById = async (req: AuthRequest, res: Response, next: Nex
     const isOwner = req.user && req.user.userId === campaign.userId;
 
     if (!isAdmin && !isOwner) {
-      const { supportLetterUrl, registrationUrl, nationalIdFrontUrl, nationalIdBackUrl, fanNumber, additionalNotes, ...pub } = campaign;
+      const { supportLetterUrl, additionalNotes, ...pub } = campaign;
       return res.json({ success: true, data: pub });
     }
     res.json({ success: true, data: campaign });

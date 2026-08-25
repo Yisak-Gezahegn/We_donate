@@ -28,6 +28,8 @@ import UserVerificationPage from './pages/dashboard/UserVerificationPage';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import ManageUsersPage from './pages/admin/ManageUsersPage';
 import AdminDonationsPage from './pages/admin/AdminDonationsPage';
+import ManageKebelesPage from './pages/admin/ManageKebelesPage';
+
 import AdminRequestsPage from './pages/admin/AdminRequestsPage';
 import AuditLogsPage from './pages/admin/AuditLogsPage';
 import AdminGalleryPage from './pages/admin/AdminGalleryPage';
@@ -37,7 +39,8 @@ import PaymentReconciliationPage from './pages/admin/PaymentReconciliationPage';
 import VerificationPage from './pages/admin/VerificationPage';
 import IndividualVerificationPage from './pages/admin/IndividualVerificationPage';
 import InspectionsPage from './pages/admin/InspectionsPage';
-import ReportsPage from './pages/admin/ReportsPage';
+
+import OperationalSupportPage from './pages/admin/OperationalSupportPage';
 import AdminNewsPage from './pages/admin/AdminNewsPage';
 import AdminFaqsPage from './pages/admin/AdminFaqsPage';
 import AdminEventsPage from './pages/admin/AdminEventsPage';
@@ -185,7 +188,9 @@ export default function App() {
       {/* Kebele, City, System Admins */}
       <Route path="/admin/user-verification" element={withLayout(<IndividualVerificationPage />, ALL_ADMINS)} />
       <Route path="/admin/donations"      element={withLayout(<AdminDonationsPage />, CITY_AND_SYSTEM)} />
-      <Route path="/admin/reports"        element={withLayout(<ReportsPage />, CITY_AND_SYSTEM)} />
+      <Route path="/admin/support"        element={withLayout(<OperationalSupportPage />, CITY_AND_SYSTEM)} />
+      <Route path="/admin/kebeles"        element={withLayout(<ManageKebelesPage />, CITY_AND_SYSTEM)} />
+
       <Route path="/admin/news"           element={withLayout(<AdminNewsPage />, CITY_AND_SYSTEM)} />
       <Route path="/admin/events"         element={withLayout(<AdminEventsPage />, CITY_AND_SYSTEM)} />
 

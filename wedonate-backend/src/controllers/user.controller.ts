@@ -10,7 +10,7 @@ export const getProfile = async (req: AuthRequest, res: Response, next: NextFunc
       select: {
         id: true, firstName: true, lastName: true, email: true,
         phone: true, role: true, profileImage: true,
-        verificationStatus: true, createdAt: true,
+        verificationStatus: true, createdAt: true, verifiedByRole: true,
         donations: {
           take: 5, orderBy: { createdAt: 'desc' },
           select: { id: true, amount: true, donationType: true, paymentStatus: true, createdAt: true },

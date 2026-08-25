@@ -149,7 +149,7 @@ function CampaignCard({ camp, onDonate, onDetail, isDark }: { camp: any; onDonat
             {camp._count?.donations ?? 0} donors
           </span>
           <span className={cn(isDark ? 'text-slate-400' : 'text-gray-500')}>
-            by {camp.user?.firstName} {camp.user?.lastName} {camp.user?.verificationStatus === 'VERIFIED' && <span className="inline-flex items-center gap-0.5 text-blue-500"><BadgeCheck className="w-3 h-3" /></span>}
+            by {camp.user?.firstName} {camp.user?.lastName} {camp.user?.verificationStatus === 'VERIFIED' && <span className="inline-flex items-center gap-0.5 text-blue-500" title={camp.user?.role === 'ORGANIZATION' ? 'Verified by City Administration' : 'Verified'}><BadgeCheck className="w-3 h-3" /></span>}
           </span>
         </div>
 
@@ -235,7 +235,7 @@ function RequestCard({ req, onDonate, onDetail, isDark }: { req: any; onDonate: 
                 {req.user?.firstName?.[0]}
               </div>
             )}
-            <span>{req.user?.firstName} {req.user?.lastName} {req.user?.verificationStatus === 'VERIFIED' && <BadgeCheck className="w-3 h-3 inline text-blue-500" />}</span>
+            <span>{req.user?.firstName} {req.user?.lastName} {req.user?.verificationStatus === 'VERIFIED' && <span title={req.user?.role === 'USER' ? 'Verified by Kebele' : 'Verified'}><BadgeCheck className="w-3 h-3 inline text-blue-500" /></span>}</span>
           </div>
           <span className={isDark ? 'text-slate-500' : 'text-gray-400'}>{formatDate(req.createdAt)}</span>
         </div>
@@ -555,10 +555,6 @@ function DonationModal({
   const [delivery, setDelivery] = useState('BRING_TO_OFFICE');
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (step === 2 && donateType === 'ITEM') setStep(3);
-  }, [step, donateType]);
-
   const AMOUNTS = [50, 100, 200, 500, 1000, 2000];
   const finalAmount = parseFloat(amount || custom) || 0;
   const inp = cn('w-full rounded-xl border px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500',
@@ -834,8 +830,8 @@ function DonationModal({
             </motion.div>
           )}
 
-          {/* ════ STEP 3: Item details ════ */}
-          {step === 3 && donateType === 'ITEM' && (
+          {/* ════ STEP 2: Item details ════ */}
+          {step === 2 && donateType === 'ITEM' && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
               <button onClick={() => { setStep(1); setDonateType(''); }}
                 className={cn('flex items-center gap-1 text-xs font-medium mb-1',

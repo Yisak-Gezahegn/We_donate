@@ -16,6 +16,12 @@ export const createDonation = async (req: AuthRequest, res: Response, next: Next
     if (!supportRequestId && !campaignId)
       return next(createError('A support request or campaign must be specified', 400));
 
+    if (donationType === 'MONEY' && paymentMethod && paymentMethod !== 'CHAPA') {
+      if (!referenceCode || !referenceCode.trim()) {
+        return next(createError('Bank Reference Number is required for manual bank transfers', 400));
+      }
+    }
+
     // Check if goal is already reached
     if (supportRequestId) {
       const sr = await prisma.supportRequest.findUnique({
@@ -57,9 +63,8 @@ export const createDonation = async (req: AuthRequest, res: Response, next: Next
         deliveryMethod:   deliveryMethod   || null,
         supportRequestId: supportRequestId || null,
         campaignId:       campaignId       || null,
-        // Non-Chapa donations start as SUCCESS if proof is provided, else PENDING
-        paymentStatus: (paymentMethod && paymentMethod !== 'CHAPA' && paymentProofUrl)
-          ? 'SUCCESS' : 'PENDING',
+        // Manual donations must be verified by admin. Auto-payment (Chapa) is handled via webhook.
+        paymentStatus: 'PENDING',
       },
     });
 
@@ -103,25 +108,65 @@ export const createDonation = async (req: AuthRequest, res: Response, next: Next
       },
     });
 
-    // Notify beneficiary (campaign/request owner)
+    // Only notify beneficiary immediately if payment is already successful
     let beneficiaryId: string | null = null;
-    if (campaignId) {
-      const campaign = await prisma.campaign.findUnique({ where: { id: campaignId }, select: { userId: true } });
-      beneficiaryId = campaign?.userId ?? null;
-    } else if (supportRequestId) {
-      const req2 = await prisma.supportRequest.findUnique({ where: { id: supportRequestId }, select: { userId: true } });
-      beneficiaryId = req2?.userId ?? null;
+    if (donation.paymentStatus === 'SUCCESS') {
+      if (campaignId) {
+        const campaign = await prisma.campaign.findUnique({ where: { id: campaignId }, select: { userId: true } });
+        beneficiaryId = campaign?.userId ?? null;
+      } else if (supportRequestId) {
+        const req2 = await prisma.supportRequest.findUnique({ where: { id: supportRequestId }, select: { userId: true } });
+        beneficiaryId = req2?.userId ?? null;
+      }
+      if (beneficiaryId && beneficiaryId !== req.user!.userId) {
+        const donorName = isAnonymous ? 'Anonymous' : (await prisma.user.findUnique({ where: { id: req.user!.userId }, select: { firstName: true } }))?.firstName ?? 'Someone';
+        await prisma.notification.create({
+          data: {
+            id: uuidv4(), userId: beneficiaryId,
+            title: 'New Verified Donation 💰',
+            message: `${donorName} has made a verified donation of${donation.amount ? ` ${donation.amount} ETB` : ' items'} to your ${campaignId ? 'campaign' : 'support request'}.`,
+            type: 'SUCCESS',
+          },
+        });
+      }
     }
-    if (beneficiaryId && beneficiaryId !== req.user!.userId) {
-      const donorName = isAnonymous ? 'Anonymous' : (await prisma.user.findUnique({ where: { id: req.user!.userId }, select: { firstName: true } }))?.firstName ?? 'Someone';
-      await prisma.notification.create({
-        data: {
-          id: uuidv4(), userId: beneficiaryId,
-          title: 'New Donation Received 💰',
-          message: `${donorName} has donated${donation.amount ? ` ${donation.amount} ETB` : ''} to your ${campaignId ? 'campaign' : 'support request'}.`,
-          type: 'SUCCESS',
-        },
-      });
+
+    // Notify appropriate admin for verification if pending
+    if (donation.paymentStatus === 'PENDING') {
+      const donorName = isAnonymous ? 'Anonymous Donor' : (await prisma.user.findUnique({ where: { id: req.user!.userId }, select: { firstName: true, lastName: true } }))?.firstName || 'Someone';
+      
+      if (campaignId) {
+        const cityAdmins = await prisma.user.findMany({ where: { role: 'CITY_ADMIN' } });
+        if (cityAdmins.length > 0) {
+          await prisma.notification.createMany({
+            data: cityAdmins.map(admin => ({
+              id: uuidv4(), userId: admin.id,
+              title: donationType === 'MONEY' ? 'Donation Pending Verification' : 'New Item Donation',
+              message: donationType === 'MONEY'
+                ? `A donation of ${amount} ETB by ${donorName} (Ref: ${referenceCode || 'N/A'}) requires your verification for an Organization Campaign.`
+                : `A new item donation by ${donorName} requires coordination for an Organization Campaign.`,
+              type: 'INFO',
+            })),
+          });
+        }
+      } else if (supportRequestId) {
+        const sr = await prisma.supportRequest.findUnique({ where: { id: supportRequestId }, select: { kebeleId: true } });
+        if (sr && sr.kebeleId && sr.kebeleId !== 'UNASSIGNED') {
+          const kebeleAdmins = await prisma.user.findMany({ where: { role: 'KEBELE_ADMIN', kebeleId: sr.kebeleId } });
+          if (kebeleAdmins.length > 0) {
+            await prisma.notification.createMany({
+              data: kebeleAdmins.map(admin => ({
+                id: uuidv4(), userId: admin.id,
+                title: donationType === 'MONEY' ? 'Donation Pending Verification' : 'New Item Donation',
+                message: donationType === 'MONEY'
+                  ? `A donation of ${amount} ETB by ${donorName} (Ref: ${referenceCode || 'N/A'}) requires your verification for a Kebele Support Request.`
+                  : `A new item donation by ${donorName} requires coordination for a Kebele Support Request.`,
+                type: 'INFO',
+              })),
+            });
+          }
+        }
+      }
     }
 
     res.status(201).json({ success: true, data: donation });

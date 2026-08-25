@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useTranslation } from 'react-i18next';
@@ -61,39 +62,54 @@ export default function UserVerificationPage() {
               </p>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <div>
-                <label className={cn('block text-sm font-semibold mb-1.5', isDark ? 'text-slate-300' : 'text-gray-700')}>
-                  National ID (Front) *
-                </label>
-                <ImageUpload label="" value={idFront} onChange={setIdFront} hint="Upload front of ID" />
+            {!(user as any)?.kebeleId ? (
+              <div className="text-center py-6">
+                <AlertTriangle className="w-12 h-12 mx-auto mb-3 text-amber-500" />
+                <h3 className={cn('text-lg font-bold mb-2', isDark ? 'text-white' : 'text-gray-900')}>Kebele Required</h3>
+                <p className={cn('text-sm mb-4', isDark ? 'text-slate-400' : 'text-gray-500')}>
+                  Please select your Kebele before submitting your account for verification.
+                </p>
+                <Link to="/dashboard/profile">
+                  <Button>Go to Profile</Button>
+                </Link>
               </div>
-              <div>
-                <label className={cn('block text-sm font-semibold mb-1.5', isDark ? 'text-slate-300' : 'text-gray-700')}>
-                  National ID (Back) *
-                </label>
-                <ImageUpload label="" value={idBack} onChange={setIdBack} hint="Upload back of ID" />
-              </div>
-            </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div>
+                    <label className={cn('block text-sm font-semibold mb-1.5', isDark ? 'text-slate-300' : 'text-gray-700')}>
+                      National ID (Front) *
+                    </label>
+                    <ImageUpload label="" value={idFront} onChange={setIdFront} hint="Upload front of ID" />
+                  </div>
+                  <div>
+                    <label className={cn('block text-sm font-semibold mb-1.5', isDark ? 'text-slate-300' : 'text-gray-700')}>
+                      National ID (Back) *
+                    </label>
+                    <ImageUpload label="" value={idBack} onChange={setIdBack} hint="Upload back of ID" />
+                  </div>
+                </div>
 
-            <div>
-              <label className={cn('block text-sm font-semibold mb-1.5', isDark ? 'text-slate-300' : 'text-gray-700')}>
-                FAN Number (Federal Admin Number) *
-              </label>
-              <input type="text" value={fanNumber} onChange={e => setFanNumber(e.target.value)}
-                className={cn('w-full px-4 py-2.5 rounded-xl border text-sm transition-all focus:ring-2 outline-none',
-                  isDark ? 'bg-slate-900/50 border-slate-700 text-white focus:border-green-500 focus:ring-green-500/20' 
-                         : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-green-500 focus:ring-green-500/20'
-                )} placeholder="Enter your FAN number" />
-            </div>
+                <div>
+                  <label className={cn('block text-sm font-semibold mb-1.5', isDark ? 'text-slate-300' : 'text-gray-700')}>
+                    FAN Number (Federal Admin Number) *
+                  </label>
+                  <input type="text" value={fanNumber} onChange={e => setFanNumber(e.target.value)}
+                    className={cn('w-full px-4 py-2.5 rounded-xl border text-sm transition-all focus:ring-2 outline-none',
+                      isDark ? 'bg-slate-900/50 border-slate-700 text-white focus:border-green-500 focus:ring-green-500/20' 
+                             : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-green-500 focus:ring-green-500/20'
+                    )} placeholder="Enter your FAN number" />
+                </div>
 
-            <div className="pt-4 flex justify-end">
-              <Button size="lg" isLoading={mutation.isPending} 
-                disabled={!idFront || !idBack || !fanNumber}
-                onClick={() => mutation.mutate({ nationalIdFrontUrl: idFront, nationalIdBackUrl: idBack, fanNumber })}>
-                Submit Verification
-              </Button>
-            </div>
+                <div className="pt-4 flex justify-end">
+                  <Button size="lg" isLoading={mutation.isPending} 
+                    disabled={!idFront || !idBack || !fanNumber}
+                    onClick={() => mutation.mutate({ nationalIdFrontUrl: idFront, nationalIdBackUrl: idBack, fanNumber })}>
+                    Submit Verification
+                  </Button>
+                </div>
+              </>
+            )}
           </div>
         )}
 

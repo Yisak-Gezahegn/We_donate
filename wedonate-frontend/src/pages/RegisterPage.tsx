@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { cn } from '../lib/utils';
 import toast from 'react-hot-toast';
+import api from '../lib/api';
 import { ArrowLeft, Mail, Phone, Lock, Eye, EyeOff, ChevronRight, Building2, MapPin, FileText, CheckCircle } from 'lucide-react';
 import Button from '../components/ui/Button';
 import ImageUpload from '../components/ui/ImageUpload';
@@ -60,6 +61,12 @@ export default function RegisterPage() {
   const [licenseNumber, setLicenseNumber] = useState('');
   const [registrationDocUrl, setRegistrationDocUrl] = useState('');
   const [officeAddress, setOfficeAddress] = useState('');
+  const [kebeles, setKebeles] = useState<any[]>([]);
+  const [kebeleId, setKebeleId] = useState('');
+
+  useEffect(() => {
+    api.get('/kebeles/active').then(res => setKebeles(res.data)).catch(console.error);
+  }, []);
 
   const input = cn('w-full rounded-xl border px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors',
     isDark ? 'bg-slate-700 border-slate-600 text-white placeholder-slate-400' : 'bg-white border-gray-300 text-gray-900');
@@ -76,7 +83,7 @@ export default function RegisterPage() {
 
     setLoading(true);
     try {
-      const payload: any = { firstName, lastName, email, phone, password };
+      const payload: any = { firstName, lastName, email, phone, password, kebeleId: kebeleId || null };
       if (isOrg) {
         payload.accountType = 'organization';
         payload.orgName = orgName;
@@ -84,6 +91,7 @@ export default function RegisterPage() {
         payload.licenseNumber = licenseNumber;
         payload.registrationDocUrl = registrationDocUrl;
         payload.officeAddress = officeAddress;
+        delete payload.kebeleId;
       }
       await register(payload);
       toast.success(isOrg ? 'Registration submitted! Pending admin verification.' : 'Account created!');
@@ -206,6 +214,22 @@ export default function RegisterPage() {
                   value={phone} onChange={e => setPhone(e.target.value)} />
               </div>
             </div>
+
+            {/* Kebele Selection for Individuals */}
+            {!isOrg && (
+              <div>
+                <label className={label}>Kebele (Optional)</label>
+                <div className="relative">
+                  <MapPin className={cn('absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4', isDark ? 'text-slate-500' : 'text-gray-400')} />
+                  <select className={cn(input, 'pl-10 appearance-none')} value={kebeleId} onChange={e => setKebeleId(e.target.value)}>
+                    <option value="">-- Select your Kebele --</option>
+                    {kebeles.map(k => (
+                      <option key={k.id} value={k.id}>{k.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            )}
 
             {/* ── Organization Fields ── */}
             <AnimatePresence>

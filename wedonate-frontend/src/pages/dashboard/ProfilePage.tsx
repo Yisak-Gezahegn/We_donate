@@ -1,8 +1,9 @@
 import { useState } from 'react';
+import React from 'react';
 import { useForm } from 'react-hook-form';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { User, Mail, Phone, Save, Camera, BadgeCheck } from 'lucide-react';
+import { User, Mail, Phone, Save, Camera, BadgeCheck, MapPin } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
@@ -24,14 +25,24 @@ export default function ProfilePage() {
     defaultValues: {
       firstName: user?.firstName || '',
       lastName:  user?.lastName  || '',
-      phone:     '',
+      phone:     user?.phone || '',
+      kebeleId:  user?.kebeleId || '',
     },
+  });
+
+  const { data: kebeles = [] } = useQuery({
+    queryKey: ['kebeles', 'active'],
+    queryFn: async () => {
+      const res = await api.get('/kebeles/active');
+      return res.data;
+    },
+    enabled: user?.role === 'USER', // only needed for users
   });
 
   const updateMutation = useMutation({
     mutationFn: (data: any) => api.put('/users/profile', data),
     onSuccess: (_res, variables) => {
-      updateUser({ firstName: variables.firstName, lastName: variables.lastName });
+      updateUser({ firstName: variables.firstName, lastName: variables.lastName, phone: variables.phone, kebeleId: variables.kebeleId });
       toast.success(t('dashboard.profile_updated'));
     },
     onError:   () => toast.error(t('dashboard.profile_update_failed')),
@@ -108,7 +119,10 @@ export default function ProfilePage() {
                 isDark ? 'bg-blue-900/40 text-blue-400' : 'bg-blue-100 text-blue-700',
               )}>
                 <BadgeCheck className="w-3.5 h-3.5" />
-                Verified by Kebele
+                {(user as any)?.verifiedByRole === 'CITY_ADMIN' ? 'Verified by City Administration' : 
+                 (user as any)?.verifiedByRole === 'KEBELE_ADMIN' ? 'Verified by Kebele' : 
+                 user?.role === 'ORGANIZATION' ? 'Verified by City Administration' : 
+                 user?.role === 'USER' ? 'Verified by Kebele' : 'Verified'}
               </span>
             )}
             <p className={cn('text-xs mt-2', isDark ? 'text-slate-500' : 'text-gray-400')}>
@@ -135,6 +149,30 @@ export default function ProfilePage() {
             value={user?.email} disabled className="opacity-60" />
           <Input label={t('dashboard.phone_number')} placeholder="+251 911 234 567"
             leftIcon={<Phone className="w-4 h-4" />} {...register('phone')} />
+
+          {user?.role === 'USER' && (
+            <div className="space-y-1.5">
+              <label className={cn('block text-sm font-medium', isDark ? 'text-slate-300' : 'text-gray-700')}>
+                Kebele
+              </label>
+              <div className="relative">
+                <MapPin className={cn('absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4', isDark ? 'text-slate-500' : 'text-gray-400')} />
+                <select
+                  {...register('kebeleId')}
+                  className={cn(
+                    'w-full rounded-xl border pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none',
+                    isDark ? 'bg-slate-700 border-slate-600 text-white' : 'bg-white border-gray-300 text-gray-900'
+                  )}
+                >
+                  <option value="">-- Select your Kebele --</option>
+                  {kebeles.map((k: any) => (
+                    <option key={k.id} value={k.id}>{k.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
+
           <Button type="submit" isLoading={updateMutation.isPending}
             leftIcon={<Save className="w-4 h-4" />}>
             {t('dashboard.save_changes')}

@@ -28,6 +28,21 @@ export const authenticate = (req: AuthRequest, _res: Response, next: NextFunctio
   }
 };
 
+export const optionalAuthenticate = (req: AuthRequest, _res: Response, next: NextFunction) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return next(); // Proceed without req.user
+  }
+  const token = authHeader.split(' ')[1];
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JwtPayload;
+    req.user = decoded;
+  } catch {
+    // Ignore invalid tokens for optional auth, treat as unauthenticated
+  }
+  next();
+};
+
 export const authorize = (...roles: string[]) => {
   return (req: AuthRequest, _res: Response, next: NextFunction) => {
     if (!req.user || !roles.includes(req.user.role)) {

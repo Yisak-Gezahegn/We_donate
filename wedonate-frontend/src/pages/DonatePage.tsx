@@ -20,7 +20,7 @@ import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import ImageUpload from '../components/ui/ImageUpload';
 
-type DonateTab = 'campaigns' | 'requests' | 'create-campaign';
+type DonateTab = 'campaigns' | 'requests';
 
 const CAMPAIGN_CATEGORIES = [
   { value: '', label: 'All Categories' },
@@ -958,240 +958,7 @@ function DonationModal({
   );
 }
 
-/* ── Create Campaign Form ───────────────────────────────────── */
-function CreateCampaignForm({ isDark, onSuccess }: { isDark: boolean; onSuccess: () => void }) {
-  const [form, setForm] = useState({ title: '', description: '', category: 'OTHER', goalAmount: '', deadline: '', imageUrl: '' });
-  const [loading, setLoading] = useState(false);
-  const { isAuthenticated, user } = useAuth();
-  const navigate = useNavigate();
 
-  // Payment accounts
-  const [telebirrAccount, setTelebirrAccount] = useState('');
-  const [cbeAccount, setCbeAccount] = useState('');
-  const [boaAccount, setBoaAccount] = useState('');
-  const [awashAccount, setAwashAccount] = useState('');
-  const [otherBankName, setOtherBankName] = useState('');
-  const [otherBankAccount, setOtherBankAccount] = useState('');
-
-  // Contact for item donations
-  const [requesterPhone, setRequesterPhone] = useState('');
-
-  // Admin-only documents
-  const [supportLetterUrl, setSupportLetterUrl] = useState('');
-  const [registrationUrl, setRegistrationUrl] = useState('');
-  const [nationalIdFrontUrl, setNationalIdFrontUrl] = useState('');
-  const [nationalIdBackUrl, setNationalIdBackUrl] = useState('');
-  const [fanNumber, setFanNumber] = useState('');
-  const [additionalNotes, setAdditionalNotes] = useState('');
-
-  const isAdmin = user && ['KEBELE_ADMIN', 'CITY_ADMIN', 'SYSTEM_ADMIN'].includes(user.role);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!isAuthenticated) { toast.error('Please login first'); navigate('/login'); return; }
-    if (!form.title || !form.description || !form.goalAmount)
-      return toast.error('Please fill all required fields');
-
-    if (isAdmin && (!supportLetterUrl || !nationalIdFrontUrl || !nationalIdBackUrl || !fanNumber)) {
-      toast.error('Admin users must upload support letter, national ID (front & back), and provide FAN number');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      await api.post('/campaigns', {
-        ...form,
-        telebirrAccount, cbeAccount, boaAccount, awashAccount,
-        otherBankName, otherBankAccount,
-        requesterPhone,
-        supportLetterUrl, registrationUrl,
-        nationalIdFrontUrl, nationalIdBackUrl, fanNumber,
-        additionalNotes,
-      });
-      toast.success('Campaign submitted for admin approval!');
-      onSuccess();
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message || 'Failed to create campaign');
-    } finally { setLoading(false); }
-  };
-
-  const input = cn('w-full rounded-xl border px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors',
-    isDark ? 'bg-slate-700 border-slate-600 text-white placeholder-slate-400' : 'bg-white border-gray-300 text-gray-900');
-  const label = cn('block text-sm font-medium mb-1.5', isDark ? 'text-slate-300' : 'text-gray-700');
-
-  return (
-    <Card className="max-w-2xl mx-auto" padding="lg">
-      <div className="flex items-center gap-3 mb-6">
-        <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center',
-          isDark ? 'bg-green-900/40' : 'bg-green-100')}>
-          <Target className="w-5 h-5 text-green-500" />
-        </div>
-        <div>
-          <h2 className={cn('text-lg font-bold', isDark ? 'text-white' : 'text-gray-900')}>Create a Campaign</h2>
-          <p className={cn('text-xs', isDark ? 'text-slate-400' : 'text-gray-500')}>
-            Campaigns need admin approval before going live
-          </p>
-        </div>
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-5">
-        <div>
-          <label className={label}>Campaign Title *</label>
-          <input className={input} placeholder="e.g. Build a Community Library"
-            value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} />
-        </div>
-
-        <div>
-          <label className={label}>Description *</label>
-          <textarea rows={4} className={cn(input, 'resize-none')}
-            placeholder="Describe your campaign — why it's important, how funds will be used, and the expected impact..."
-            value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} />
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className={label}>Category *</label>
-            <select className={input} value={form.category}
-              onChange={e => setForm(p => ({ ...p, category: e.target.value }))}>
-              {CAMPAIGN_CATEGORIES.filter(c => c.value).map(c => (
-                <option key={c.value} value={c.value}>{c.label}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className={label}>Goal Amount (ETB) *</label>
-            <input type="number" className={input} placeholder="e.g. 50000"
-              value={form.goalAmount} onChange={e => setForm(p => ({ ...p, goalAmount: e.target.value }))} min="1" />
-          </div>
-        </div>
-
-        <div>
-          <label className={label}>Deadline (optional)</label>
-          <input type="date" className={input}
-            value={form.deadline} onChange={e => setForm(p => ({ ...p, deadline: e.target.value }))} />
-        </div>
-
-        <ImageUpload label="Campaign Cover Photo (optional)" value={form.imageUrl}
-          onChange={url => setForm(p => ({ ...p, imageUrl: url }))}
-          hint="A compelling photo makes your campaign more trustworthy" />
-
-        {/* Payment Accounts Section */}
-        <div className={cn('rounded-2xl border p-4 space-y-3',
-          isDark ? 'border-slate-600 bg-slate-700/30' : 'border-green-100 bg-green-50')}>
-          <p className={cn('text-sm font-bold', isDark ? 'text-green-400' : 'text-green-700')}>
-            💳 Your Payment Accounts
-          </p>
-          <p className={cn('text-xs', isDark ? 'text-slate-400' : 'text-gray-500')}>
-            Donors will use these to send money directly to you. Add at least one.
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className={label}>TeleBirr Account</label>
-              <input className={input} placeholder="+251 9XX XXX XXX"
-                value={telebirrAccount} onChange={e => setTelebirrAccount(e.target.value)} />
-            </div>
-            <div>
-              <label className={label}>CBE Account</label>
-              <input className={input} placeholder="Account number"
-                value={cbeAccount} onChange={e => setCbeAccount(e.target.value)} />
-            </div>
-            <div>
-              <label className={label}>BOA Account</label>
-              <input className={input} placeholder="Account number"
-                value={boaAccount} onChange={e => setBoaAccount(e.target.value)} />
-            </div>
-            <div>
-              <label className={label}>Awash Bank Account</label>
-              <input className={input} placeholder="Account number"
-                value={awashAccount} onChange={e => setAwashAccount(e.target.value)} />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className={label}>Other Bank Name</label>
-              <input className={input} placeholder="e.g. Abyssinia Bank"
-                value={otherBankName} onChange={e => setOtherBankName(e.target.value)} />
-            </div>
-            <div>
-              <label className={label}>Other Bank Account</label>
-              <input className={input} placeholder="Account number"
-                value={otherBankAccount} onChange={e => setOtherBankAccount(e.target.value)} />
-            </div>
-          </div>
-
-          <div className={cn('mt-4 pt-4 border-t', isDark ? 'border-slate-600' : 'border-green-200')}>
-            <p className={cn('text-sm font-bold mb-2', isDark ? 'text-blue-400' : 'text-blue-700')}>
-              📞 Contact for Item Donations
-            </p>
-            <p className={cn('text-xs mb-3', isDark ? 'text-slate-400' : 'text-gray-500')}>
-              If people want to donate items (food, clothes, etc.) instead of money, they can call you to coordinate delivery.
-            </p>
-            <div>
-              <label className={label}>Your Phone Number</label>
-              <input className={input} placeholder="+251 9XX XXX XXX"
-                value={requesterPhone} onChange={e => setRequesterPhone(e.target.value)} />
-            </div>
-          </div>
-        </div>
-
-        {/* Admin-only documents */}
-        <div className={cn('rounded-2xl border p-4 space-y-4',
-          isDark ? 'border-slate-600 bg-slate-700/30' : 'border-amber-100 bg-amber-50')}>
-          <div>
-            <p className={cn('text-sm font-bold', isDark ? 'text-amber-400' : 'text-amber-700')}>
-              🔒 Documents for Admin Review Only
-            </p>
-            <p className={cn('text-xs mt-1', isDark ? 'text-slate-400' : 'text-gray-500')}>
-              These documents are only visible to admins — not shown to the public.
-              {isAdmin && <span className="block mt-1 text-amber-500 font-semibold">Required for admin users.</span>}
-            </p>
-          </div>
-          <ImageUpload
-            label={isAdmin ? "Support Letter (official letter or ID) *" : "Support Letter (official letter or ID)"}
-            value={supportLetterUrl}
-            onChange={setSupportLetterUrl}
-            hint="Upload a kebele support letter, hospital letter, or official document"
-          />
-          <ImageUpload
-            label={isAdmin ? "Registration Document *" : "Registration Document"}
-            value={registrationUrl}
-            onChange={setRegistrationUrl}
-            hint="Organization registration document (if applicable)"
-          />
-          <ImageUpload
-            label={isAdmin ? "National ID - Front Side *" : "National ID - Front Side"}
-            value={nationalIdFrontUrl}
-            onChange={setNationalIdFrontUrl}
-            hint="Upload the front side of your national ID"
-          />
-          <ImageUpload
-            label={isAdmin ? "National ID - Back Side *" : "National ID - Back Side"}
-            value={nationalIdBackUrl}
-            onChange={setNationalIdBackUrl}
-            hint="Upload the back side of your national ID"
-          />
-          <div>
-            <label className={label}>{isAdmin ? "FAN Number (Federal Admin Number) *" : "FAN Number (Federal Admin Number)"}</label>
-            <input className={input} placeholder="e.g. 1234567890"
-              value={fanNumber} onChange={e => setFanNumber(e.target.value)} />
-          </div>
-          <div>
-            <label className={label}>Additional Notes for Admin</label>
-            <textarea rows={3}
-              placeholder="Any additional information you want to share with the admin only..."
-              value={additionalNotes} onChange={e => setAdditionalNotes(e.target.value)}
-              className={cn(input, 'resize-none')} />
-          </div>
-        </div>
-
-        <Button type="submit" className="w-full" size="lg" isLoading={loading}
-          rightIcon={<ArrowRight className="w-4 h-4" />}>
-          Submit for Approval
-        </Button>
-      </form>
-    </Card>
-  );
-}
 
 /* ═══════════════════════════════════════════════════════════════
    MAIN DonatePage
@@ -1203,7 +970,7 @@ export default function DonatePage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  const canCreateCampaign = user && ['ORGANIZATION','KEBELE_ADMIN','CITY_ADMIN','SYSTEM_ADMIN'].includes(user.role);
+
 
   const [tab, setTab] = useState<DonateTab>('campaigns');
   const [campCat, setCampCat] = useState('');
@@ -1244,7 +1011,6 @@ export default function DonatePage() {
   const TABS = [
     { id: 'campaigns', label: '🏗️ Campaigns', count: campaigns?.length },
     { id: 'requests', label: '🤲 Direct Support', count: requests?.length },
-    ...(canCreateCampaign ? [{ id: 'create-campaign', label: '+ Create Campaign', count: null }] : []),
   ];
 
   return (
@@ -1319,9 +1085,6 @@ export default function DonatePage() {
                 <div className="text-center py-20">
                   <Target className={cn('w-12 h-12 mx-auto mb-3', isDark ? 'text-slate-600' : 'text-gray-300')} />
                   <p className={cn('font-medium', isDark ? 'text-slate-400' : 'text-gray-400')}>No campaigns found</p>
-                  <Button size="sm" className="mt-4" onClick={() => setTab('create-campaign')}>
-                    <Plus className="w-4 h-4 mr-2" /> Create One
-                  </Button>
                 </div>
               ) : (
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -1382,12 +1145,6 @@ export default function DonatePage() {
                   ))}
                 </div>
               )}
-            </motion.div>
-          )}
-
-          {tab === 'create-campaign' && (
-            <motion.div key="create" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-              <CreateCampaignForm isDark={isDark} onSuccess={() => setTab('campaigns')} />
             </motion.div>
           )}
         </AnimatePresence>

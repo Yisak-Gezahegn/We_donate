@@ -15,9 +15,15 @@ export const getAllUsers = async (req: AuthRequest, res: Response, next: NextFun
       baseWhere.role = 'USER';
       baseWhere.kebeleId = req.user!.kebeleId;
     } else if (req.user!.role === 'CITY_ADMIN') {
-      baseWhere.role = { in: ['KEBELE_ADMIN', 'USER', 'ORGANIZATION'] };
+      if (role && ['KEBELE_ADMIN', 'ORGANIZATION'].includes(role as string)) {
+        baseWhere.role = role as string;
+      } else {
+        baseWhere.role = { in: ['KEBELE_ADMIN', 'ORGANIZATION'] };
+      }
     } else if (req.user!.role === 'SYSTEM_ADMIN') {
-      // SYSTEM_ADMIN sees everyone by default unless filtered
+      if (role) {
+        baseWhere.role = role as string;
+      }
     } else {
       return next(createError('Unauthorized to view users', 403));
     }
@@ -25,7 +31,6 @@ export const getAllUsers = async (req: AuthRequest, res: Response, next: NextFun
     const users = await prisma.user.findMany({
       where: {
         ...baseWhere,
-        ...(role && (!baseWhere.role || req.user!.role === 'SYSTEM_ADMIN') ? { role: role as any } : {}),
         ...(search ? {
           OR: [
             { firstName: { contains: search as string, mode: 'insensitive' } },
@@ -464,10 +469,12 @@ export const verifyDonation = async (req: AuthRequest, res: Response, next: Next
     });
 
     let beneficiaryId: string | null = null;
+    let createdById: string | null = null;
     let targetName = '';
     if (donation.supportRequestId) {
-      const sr = await prisma.supportRequest.findUnique({ where: { id: donation.supportRequestId }, select: { userId: true, title: true } });
+      const sr = await prisma.supportRequest.findUnique({ where: { id: donation.supportRequestId }, select: { userId: true, createdById: true, title: true } });
       beneficiaryId = sr?.userId ?? null;
+      createdById = sr?.createdById ?? null;
       targetName = sr?.title ?? 'support request';
     } else if (donation.campaignId) {
       const camp = await prisma.campaign.findUnique({ where: { id: donation.campaignId }, select: { userId: true, title: true } });
@@ -481,6 +488,15 @@ export const verifyDonation = async (req: AuthRequest, res: Response, next: Next
           id: uuidv4(), userId: beneficiaryId,
           title: 'New Verified Donation 💰',
           message: `You received a verified donation of ETB ${donation.amount || 0} for "${targetName}".`,
+          type: 'SUCCESS',
+        },
+      });
+    } else if (createdById) {
+      await prisma.notification.create({
+        data: {
+          id: uuidv4(), userId: createdById,
+          title: 'New Verified Donation (Assisted Request) 💰',
+          message: `An assisted request "${targetName}" you submitted received a verified donation of ETB ${donation.amount || 0}.`,
           type: 'SUCCESS',
         },
       });
@@ -535,9 +551,11 @@ export const fulfillRequest = async (req: AuthRequest, res: Response, next: Next
       where: { id: req.params.id },
       data: { status: 'FULFILLED' },
     });
-    await prisma.notification.create({
-      data: { id: uuidv4(), userId: request.userId, title: 'Request Fulfilled', message: `Your support request "${request.title}" has been marked as fulfilled.`, type: 'SUCCESS' },
-    });
+    if (request.userId) {
+      await prisma.notification.create({
+        data: { id: uuidv4(), userId: request.userId, title: 'Request Fulfilled', message: `Your support request "${request.title}" has been marked as fulfilled.`, type: 'SUCCESS' },
+      });
+    }
     await prisma.auditLog.create({
       data: { id: uuidv4(), userId: req.user!.userId, action: 'FULFILL_REQUEST', resource: 'support_request', resourceId: req.params.id, details: `Fulfilled request: ${request.title}` },
     });
@@ -561,7 +579,7 @@ export const publishCampaign = async (req: AuthRequest, res: Response, next: Nex
 export const getPendingOrganizations = async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const orgs = await prisma.user.findMany({
-      where: { verificationStatus: 'PENDING' },
+      where: { verificationStatus: 'PENDING', role: 'ORGANIZATION' },
       select: {
         id: true, firstName: true, lastName: true, email: true, phone: true,
         role: true, verificationStatus: true, orgType: true, orgName: true,

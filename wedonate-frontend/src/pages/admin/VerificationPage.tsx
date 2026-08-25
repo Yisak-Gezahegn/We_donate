@@ -205,8 +205,8 @@ export default function VerificationPage() {
   });
 
   const { data: users } = useQuery({
-    queryKey: ['admin-users', ''],
-    queryFn: () => api.get('/admin/users').then(r => r.data.data),
+    queryKey: ['admin-users', 'ORGANIZATION'],
+    queryFn: () => api.get('/admin/users?role=ORGANIZATION').then(r => r.data.data),
   });
 
   const approveOrg = useMutation({
@@ -232,7 +232,7 @@ export default function VerificationPage() {
     onError: (e: any) => toast.error(e?.response?.data?.message || 'Failed'),
   });
 
-  const allOrgs = (users || []).filter((u: any) => ['ORGANIZATION'].includes(u.role) && u.verificationStatus);
+  const allOrgs = users || [];
   const approvedOrgs = allOrgs.filter((u: any) => u.verificationStatus === 'VERIFIED');
   const rejectedOrgs = allOrgs.filter((u: any) => u.verificationStatus === 'REJECTED');
   const pendingCount = pendingOrgs?.length || 0;

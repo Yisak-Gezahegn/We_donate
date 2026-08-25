@@ -110,21 +110,35 @@ export const createDonation = async (req: AuthRequest, res: Response, next: Next
 
     // Only notify beneficiary immediately if payment is already successful
     let beneficiaryId: string | null = null;
+    let createdById: string | null = null;
     if (donation.paymentStatus === 'SUCCESS') {
       if (campaignId) {
         const campaign = await prisma.campaign.findUnique({ where: { id: campaignId }, select: { userId: true } });
         beneficiaryId = campaign?.userId ?? null;
       } else if (supportRequestId) {
-        const req2 = await prisma.supportRequest.findUnique({ where: { id: supportRequestId }, select: { userId: true } });
+        const req2 = await prisma.supportRequest.findUnique({ where: { id: supportRequestId }, select: { userId: true, createdById: true } });
         beneficiaryId = req2?.userId ?? null;
+        createdById = req2?.createdById ?? null;
       }
+      
+      const donorName = isAnonymous ? 'Anonymous' : (await prisma.user.findUnique({ where: { id: req.user!.userId }, select: { firstName: true } }))?.firstName ?? 'Someone';
+      
       if (beneficiaryId && beneficiaryId !== req.user!.userId) {
-        const donorName = isAnonymous ? 'Anonymous' : (await prisma.user.findUnique({ where: { id: req.user!.userId }, select: { firstName: true } }))?.firstName ?? 'Someone';
         await prisma.notification.create({
           data: {
             id: uuidv4(), userId: beneficiaryId,
             title: 'New Verified Donation 💰',
             message: `${donorName} has made a verified donation of${donation.amount ? ` ${donation.amount} ETB` : ' items'} to your ${campaignId ? 'campaign' : 'support request'}.`,
+            type: 'SUCCESS',
+          },
+        });
+      } else if (!beneficiaryId && createdById) {
+        // Assisted Request -> Kebele Admin gets notified
+        await prisma.notification.create({
+          data: {
+            id: uuidv4(), userId: createdById,
+            title: 'New Verified Donation (Assisted Request) 💰',
+            message: `${donorName} has made a verified donation of${donation.amount ? ` ${donation.amount} ETB` : ' items'} to an assisted support request you submitted.`,
             type: 'SUCCESS',
           },
         });

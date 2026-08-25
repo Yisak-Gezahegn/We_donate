@@ -48,21 +48,21 @@ export default function DashboardHome() {
     {
       label: t('dashboard.my_donations'),
       value: myDonations?.length ?? 0,
-      sub: formatCurrency(myDonations?.reduce((s: number, d: any) => s + (d.amount || 0), 0) ?? 0),
+      sub: formatCurrency(myDonations?.filter((d: any) => d.paymentStatus === 'SUCCESS').reduce((s: number, d: any) => s + (d.amount || 0), 0) ?? 0),
       icon: Heart, color: 'text-green-500', bg: isDark ? 'bg-green-900/30' : 'bg-green-50',
       to: '/dashboard/donations',
     },
-    {
+    ...(!isOrgRole ? [{
       label: t('dashboard.my_requests'),
       value: myRequests?.length ?? 0,
-      sub: `${myRequests?.filter((r: any) => r.status === 'PENDING').length ?? 0} ${t('dashboard.pending')}`,
+      sub: `${myRequests?.filter((r: any) => r.status === 'PENDING_REVIEW' || r.status === 'PENDING_CITY_APPROVAL').length ?? 0} ${t('dashboard.pending')}`,
       icon: FileText, color: 'text-blue-500', bg: isDark ? 'bg-blue-900/30' : 'bg-blue-50',
       to: '/dashboard/requests',
-    },
+    }] : []),
     ...(isOrgRole && !isPendingOrg ? [{
       label: t('dashboard.my_campaigns'),
       value: (myCampaigns as any[])?.length ?? 0,
-      sub: `${(myCampaigns as any[])?.filter((c: any) => c.status === 'ACTIVE').length ?? 0} ${t('dashboard.active')}`,
+      sub: `${(myCampaigns as any[])?.filter((c: any) => c.status === 'PUBLISHED').length ?? 0} ${t('dashboard.active')}`,
       icon: Target, color: 'text-amber-500', bg: isDark ? 'bg-amber-900/30' : 'bg-amber-50',
       to: '/dashboard/campaigns',
     }] : []),
@@ -97,12 +97,22 @@ export default function DashboardHome() {
                 {t('dashboard.donate_now')}
               </Button>
             </Link>
-            <Link to="/dashboard/requests">
-              <Button size="sm" className="bg-white/20 hover:bg-white/30 text-white border-white/30"
-                variant="outline" leftIcon={<Plus className="w-4 h-4" />}>
-                {t('dashboard.post_request')}
-              </Button>
-            </Link>
+            {!isOrgRole && (
+              <Link to="/dashboard/requests">
+                <Button size="sm" className="bg-white/20 hover:bg-white/30 text-white border-white/30"
+                  variant="outline" leftIcon={<Plus className="w-4 h-4" />}>
+                  {t('dashboard.post_request')}
+                </Button>
+              </Link>
+            )}
+            {isOrgRole && !isPendingOrg && !isRejectedOrg && (
+              <Link to="/donate?tab=create-campaign">
+                <Button size="sm" className="bg-white/20 hover:bg-white/30 text-white border-white/30"
+                  variant="outline" leftIcon={<Plus className="w-4 h-4" />}>
+                  Create Campaign
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
       </motion.div>
@@ -113,8 +123,8 @@ export default function DashboardHome() {
             isDark ? 'bg-amber-900/20 border-amber-700/40 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-800')}>
           <AlertTriangle className="w-5 h-5 shrink-0" />
           <div className="flex-1 text-sm">
-            <span className="font-semibold">Awaiting Verification — </span>
-            Your organization registration is being reviewed by the Adama City Admin. Once approved, you will be able to create campaigns and support requests.
+            <span className="font-semibold">Organization verification pending — </span>
+            City Administration is reviewing your organization. Campaign creation becomes available after approval. You may still browse and donate.
           </div>
         </motion.div>
       )}
@@ -138,7 +148,7 @@ export default function DashboardHome() {
           <BadgeCheck className="w-5 h-5 shrink-0" />
           <div className="flex-1 text-sm">
             <span className="font-semibold">Verified Organization — </span>
-            Your organization is verified. You can create campaigns and support requests.
+            Your organization is verified. You can create campaigns.
           </div>
         </motion.div>
       )}
@@ -258,37 +268,39 @@ export default function DashboardHome() {
           </div>
         </div>
 
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className={h2}>{t('dashboard.my_requests')}</h2>
-            <Link to="/dashboard/requests" className="text-xs text-green-500 font-semibold hover:underline flex items-center gap-1">
-              {t('dashboard.view_all')} <ArrowRight className="w-3 h-3" />
-            </Link>
+        {!isOrgRole && (
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className={h2}>{t('dashboard.my_requests')}</h2>
+              <Link to="/dashboard/requests" className="text-xs text-green-500 font-semibold hover:underline flex items-center gap-1">
+                {t('dashboard.view_all')} <ArrowRight className="w-3 h-3" />
+              </Link>
+            </div>
+            <div className="space-y-3">
+              {myRequests?.slice(0, 4).map((req: any) => (
+                <Card key={req.id} className="flex items-center gap-3 p-4">
+                  <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center shrink-0',
+                    isDark ? 'bg-blue-900/40' : 'bg-blue-50')}>
+                    <FileText className="w-4 h-4 text-blue-500" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className={cn('text-sm font-semibold truncate', isDark ? 'text-white' : 'text-gray-800')}>{req.title}</p>
+                    <p className={cn('text-xs', isDark ? 'text-slate-500' : 'text-gray-400')}>{formatDate(req.createdAt)}</p>
+                  </div>
+                  <Badge variant={statusVariant(req.status)}>{req.status}</Badge>
+                </Card>
+              )) ?? (
+                <Card className="text-center py-10">
+                  <p className={cn('text-sm', isDark ? 'text-slate-500' : 'text-gray-400')}>{t('dashboard.no_requests')}</p>
+                  <Link to="/dashboard/requests"><Button size="sm" className="mt-3">{t('dashboard.post_request')}</Button></Link>
+                </Card>
+              )}
+            </div>
           </div>
-          <div className="space-y-3">
-            {myRequests?.slice(0, 4).map((req: any) => (
-              <Card key={req.id} className="flex items-center gap-3 p-4">
-                <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center shrink-0',
-                  isDark ? 'bg-blue-900/40' : 'bg-blue-50')}>
-                  <FileText className="w-4 h-4 text-blue-500" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className={cn('text-sm font-semibold truncate', isDark ? 'text-white' : 'text-gray-800')}>{req.title}</p>
-                  <p className={cn('text-xs', isDark ? 'text-slate-500' : 'text-gray-400')}>{formatDate(req.createdAt)}</p>
-                </div>
-                <Badge variant={statusVariant(req.status)}>{req.status}</Badge>
-              </Card>
-            )) ?? (
-              <Card className="text-center py-10">
-                <p className={cn('text-sm', isDark ? 'text-slate-500' : 'text-gray-400')}>{t('dashboard.no_requests')}</p>
-                <Link to="/dashboard/requests"><Button size="sm" className="mt-3">{t('dashboard.post_request')}</Button></Link>
-              </Card>
-            )}
-          </div>
-        </div>
+        )}
       </div>
 
-      {isOrgRole && myCampaigns && (myCampaigns as any[]).length > 0 && !isPendingOrg && (
+      {isOrgRole && !isPendingOrg && (
         <div>
           <div className="flex items-center justify-between mb-4">
             <h2 className={h2}>{t('dashboard.my_campaigns')}</h2>
@@ -296,31 +308,38 @@ export default function DashboardHome() {
               {t('dashboard.view_all')} <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
-          <div className="grid sm:grid-cols-2 gap-4">
-            {(myCampaigns as any[]).slice(0, 2).map((camp: any) => {
-              const pct = Math.min((camp.raisedAmount / camp.goalAmount) * 100, 100);
-              return (
-                <Card key={camp.id} className="p-5">
-                  <div className="flex items-start justify-between gap-2 mb-3">
-                    <p className={cn('text-sm font-bold flex-1', isDark ? 'text-white' : 'text-gray-900')}>{camp.title}</p>
-                    <Badge variant={statusVariant(camp.status)}>{camp.status}</Badge>
-                  </div>
-                  <div className="mb-2">
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="text-green-500 font-medium">{formatCurrency(camp.raisedAmount)}</span>
-                      <span className={isDark ? 'text-slate-500' : 'text-gray-400'}>{Math.round(pct)}%</span>
+          {myCampaigns && (myCampaigns as any[]).length > 0 ? (
+            <div className="grid sm:grid-cols-2 gap-4">
+              {(myCampaigns as any[]).slice(0, 2).map((camp: any) => {
+                const pct = Math.min((camp.raisedAmount / camp.goalAmount) * 100, 100);
+                return (
+                  <Card key={camp.id} className="p-5">
+                    <div className="flex items-start justify-between gap-2 mb-3">
+                      <p className={cn('text-sm font-bold flex-1', isDark ? 'text-white' : 'text-gray-900')}>{camp.title}</p>
+                      <Badge variant={statusVariant(camp.status)}>{camp.status}</Badge>
                     </div>
-                    <div className={cn('h-2 rounded-full overflow-hidden', isDark ? 'bg-slate-700' : 'bg-gray-200')}>
-                      <div className="h-full bg-green-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                    <div className="mb-2">
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-green-500 font-medium">{formatCurrency(camp.raisedAmount)}</span>
+                        <span className={isDark ? 'text-slate-500' : 'text-gray-400'}>{Math.round(pct)}%</span>
+                      </div>
+                      <div className={cn('h-2 rounded-full overflow-hidden', isDark ? 'bg-slate-700' : 'bg-gray-200')}>
+                        <div className="h-full bg-green-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                      </div>
                     </div>
-                  </div>
-                  <p className={cn('text-xs', isDark ? 'text-slate-500' : 'text-gray-400')}>
-                    {t('dashboard.goal')} {formatCurrency(camp.goalAmount)}
-                  </p>
-                </Card>
-              );
-            })}
-          </div>
+                    <p className={cn('text-xs', isDark ? 'text-slate-500' : 'text-gray-400')}>
+                      {t('dashboard.goal')} {formatCurrency(camp.goalAmount)}
+                    </p>
+                  </Card>
+                );
+              })}
+            </div>
+          ) : (
+            <Card className="text-center py-10">
+              <p className={cn('text-sm', isDark ? 'text-slate-500' : 'text-gray-400')}>No campaigns yet.</p>
+              <Link to="/donate?tab=create-campaign"><Button size="sm" className="mt-3">Create Campaign</Button></Link>
+            </Card>
+          )}
         </div>
       )}
     </div>

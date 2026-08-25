@@ -42,12 +42,12 @@ export default function AdminDashboard() {
     { label: t('admin.total_users'),       value: stats.totalUsers,              icon: Users,       color: 'text-blue-500',   bg: 'bg-blue-50',   link: '/admin/users' },
     { label: t('admin.total_donations'),   value: stats.totalDonations,          icon: Heart,       color: 'text-green-500',  bg: 'bg-green-50',  link: '/admin/donations' },
     { label: t('admin.total_raised'),      value: formatCurrency(stats.totalAmount), icon: TrendingUp, color: 'text-amber-500',  bg: 'bg-amber-50',  link: '/admin/donations' },
-    { label: t('admin.total_campaigns'),   value: stats.totalCampaigns,          icon: BarChart3,   color: 'text-indigo-500', bg: 'bg-indigo-50', link: '/admin/requests' },
+    { label: t('admin.total_campaigns'),   value: stats.totalCampaigns,          icon: BarChart3,   color: 'text-indigo-500', bg: 'bg-indigo-50', link: '/admin/campaigns' },
     { label: t('admin.pending_requests'),  value: stats.pendingRequests,         icon: AlertCircle, color: 'text-orange-500', bg: 'bg-orange-50', link: '/admin/requests' },
-    { label: t('admin.pending_campaigns'), value: stats.pendingCampaigns,        icon: Clock,       color: 'text-red-500',    bg: 'bg-red-50',    link: '/admin/requests' },
+    { label: t('admin.pending_campaigns'), value: stats.pendingCampaigns,        icon: Clock,       color: 'text-red-500',    bg: 'bg-red-50',    link: '/admin/campaigns' },
     { label: 'Fulfilled Requests',         value: stats.fulfilledRequests,       icon: CheckCircle, color: 'text-teal-500',   bg: 'bg-teal-50',   link: '/admin/requests' },
     { label: 'Pending Verifications',      value: stats.pendingVerifications,    icon: Eye,         color: 'text-yellow-500', bg: 'bg-yellow-50', link: '/admin/verification' },
-    { label: 'Active Campaigns',           value: stats.activeCampaigns,         icon: BarChart3,   color: 'text-purple-500', bg: 'bg-purple-50', link: '/admin/requests' },
+    { label: 'Active Campaigns',           value: stats.activeCampaigns,         icon: BarChart3,   color: 'text-purple-500', bg: 'bg-purple-50', link: '/admin/campaigns' },
   ] : [];
 
   const managementCards = [
@@ -79,7 +79,7 @@ export default function AdminDashboard() {
       badge: stats?.totalDonations,
       badgeLabel: 'total',
     }] : []),
-    ...(user?.role === 'KEBELE_ADMIN' || user?.role === 'SYSTEM_ADMIN' ? [{
+    ...(user?.role === 'KEBELE_ADMIN' || user?.role === 'SYSTEM_ADMIN' || user?.role === 'CITY_ADMIN' ? [{
       title: 'Approve Requests',
       description: 'Review and approve support requests',
       icon: ClipboardList,

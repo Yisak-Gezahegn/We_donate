@@ -30,41 +30,37 @@ interface SidebarProps {
 
 function SidebarContent({ links, user, location, onClose, onLogout, logoutLabel, isDark, collapsed }: SidebarProps) {
   return (
-    <div className="flex flex-col h-full">
-      <div className={cn('px-6 py-5 border-b', isDark ? 'border-slate-700' : 'border-gray-100', collapsed && 'px-3 py-4 flex justify-center')}>
-        {collapsed ? (
-          <Link to="/" className="flex items-center justify-center">
-            <div className="w-9 h-9 rounded-xl overflow-hidden border-2 border-green-200 shadow-sm">
-              <img src="/adama_logo.png" alt="Logo" className="w-full h-full object-cover" />
-            </div>
-          </Link>
-        ) : (
-          <Link to="/" className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl overflow-hidden border-2 border-green-200 shadow-sm">
-              <img src="/adama_logo.png" alt="Logo" className="w-full h-full object-cover" />
-            </div>
-            <span className={cn('font-extrabold text-lg', isDark ? 'text-green-400' : 'text-green-800')}>
-              We<span className="text-amber-500">Donate</span>
-            </span>
-          </Link>
-        )}
+    <div className="flex flex-col h-full w-full overflow-hidden">
+      {/* Header */}
+      <div className={cn('px-5 py-5 border-b h-20 shrink-0 flex items-center', isDark ? 'border-slate-700' : 'border-gray-100')}>
+        <Link to="/" className="flex items-center gap-3 overflow-hidden">
+          <div className="w-9 h-9 rounded-xl overflow-hidden border-2 border-green-200 shadow-sm shrink-0 flex-none">
+            <img src="/adama_logo.png" alt="Logo" className="w-full h-full object-cover" />
+          </div>
+          <span className={cn('font-extrabold text-lg transition-opacity duration-300 ease-in-out whitespace-nowrap',
+            collapsed ? 'opacity-0' : 'opacity-100',
+            isDark ? 'text-green-400' : 'text-green-800'
+          )}>
+            We<span className="text-amber-500">Donate</span>
+          </span>
+        </Link>
       </div>
 
+      {/* User Profile */}
       {user && (
-        <div className={cn('py-4 border-b transition-all duration-300',
-          isDark ? 'bg-slate-700/50 border-slate-700' : 'bg-gradient-to-r from-green-50 to-emerald-50 border-gray-100',
-          collapsed ? 'px-3 flex justify-center' : 'px-6'
+        <div className={cn('px-5 py-4 border-b h-[73px] shrink-0 flex items-center',
+          isDark ? 'bg-slate-700/50 border-slate-700' : 'bg-gradient-to-r from-green-50 to-emerald-50 border-gray-100'
         )}>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 overflow-hidden w-full">
             {(user as any)?.profileImage ? (
-              <img src={(user as any).profileImage} alt="" className="w-10 h-10 rounded-full object-cover shrink-0" />
+              <img src={(user as any).profileImage} alt="" className="w-10 h-10 rounded-full object-cover shrink-0 flex-none" />
             ) : (
-              <div className="w-10 h-10 rounded-full bg-green-700 flex items-center justify-center text-white font-bold text-sm shrink-0">
+              <div className="w-10 h-10 rounded-full bg-green-700 flex items-center justify-center text-white font-bold text-sm shrink-0 flex-none">
                 {user.firstName?.[0] ?? '?'}{user.lastName?.[0] ?? ''}
               </div>
             )}
-            <div className={cn('overflow-hidden transition-all duration-300 ease-in-out',
-              collapsed ? 'w-0 opacity-0 ml-0' : 'w-32 opacity-100'
+            <div className={cn('transition-opacity duration-300 ease-in-out whitespace-nowrap',
+              collapsed ? 'opacity-0' : 'opacity-100'
             )}>
               <p className={cn('text-sm font-semibold truncate', isDark ? 'text-white' : 'text-gray-800')}>
                 {user.firstName} {user.lastName}
@@ -77,16 +73,19 @@ function SidebarContent({ links, user, location, onClose, onLogout, logoutLabel,
         </div>
       )}
 
-      <nav className={cn('flex-1 py-4 space-y-4 overflow-y-auto overflow-x-hidden', collapsed ? 'px-2' : 'px-3')}>
+      {/* Navigation */}
+      <nav className="flex-1 px-3 py-4 space-y-4 overflow-y-auto overflow-x-hidden">
         {links.map((section: any, idx: number) => (
           <div key={idx} className="space-y-1">
             {section.title && (
-              <p className={cn('px-4 text-[10px] font-extrabold uppercase tracking-wider transition-all duration-300 whitespace-nowrap',
-                collapsed ? 'opacity-0 h-0 mb-0 overflow-hidden' : 'opacity-100 h-4 mb-2',
-                isDark ? 'text-slate-500' : 'text-gray-400'
-              )}>
-                {section.title}
-              </p>
+              <div className="h-4 mb-2 px-2 flex items-center">
+                <p className={cn('text-[10px] font-extrabold uppercase tracking-wider whitespace-nowrap transition-opacity duration-300 ease-in-out',
+                  collapsed ? 'opacity-0' : 'opacity-100',
+                  isDark ? 'text-slate-500' : 'text-gray-400'
+                )}>
+                  {section.title}
+                </p>
+              </div>
             )}
             {section.links.map(({ to, icon: Icon, label }: any) => {
               const active = location.pathname === to || (to !== '/admin' && to !== '/dashboard' && location.pathname.startsWith(to));
@@ -94,20 +93,19 @@ function SidebarContent({ links, user, location, onClose, onLogout, logoutLabel,
                 <Link key={to} to={to} onClick={onClose}
                   title={collapsed ? label : undefined}
                   className={cn(
-                    'flex items-center rounded-xl text-sm font-medium transition-colors overflow-hidden',
-                    collapsed ? 'justify-center py-3' : 'px-3 py-2.5',
+                    'flex items-center rounded-xl text-sm font-medium transition-colors px-2 py-2.5 overflow-hidden',
                     active
                       ? 'bg-green-700 text-white shadow-md'
                       : (isDark ? 'text-slate-300 hover:bg-slate-700/50 hover:text-green-400' : 'text-gray-600 hover:bg-green-50 hover:text-green-700'),
                   )}>
-                  <div className={cn('flex items-center justify-center shrink-0 transition-all duration-300', collapsed ? 'w-10' : 'w-8')}>
+                  <div className="w-10 flex items-center justify-center shrink-0 flex-none">
                     <Icon className="w-5 h-5" />
                   </div>
-                  <div className={cn("flex items-center overflow-hidden transition-all duration-300 whitespace-nowrap",
-                    collapsed ? "w-0 opacity-0" : "w-40 opacity-100"
+                  <span className={cn('ml-1 transition-opacity duration-300 ease-in-out whitespace-nowrap',
+                    collapsed ? 'opacity-0' : 'opacity-100'
                   )}>
-                    <span className="flex-1 ml-1">{label}</span>
-                  </div>
+                    {label}
+                  </span>
                 </Link>
               );
             })}
@@ -115,20 +113,20 @@ function SidebarContent({ links, user, location, onClose, onLogout, logoutLabel,
         ))}
       </nav>
 
-      <div className={cn('px-3 py-4 border-t', isDark ? 'border-slate-700' : 'border-gray-100')}>
+      {/* Footer / Logout */}
+      <div className={cn('px-3 py-4 border-t shrink-0', isDark ? 'border-slate-700' : 'border-gray-100')}>
         <button onClick={onLogout}
           title={collapsed ? logoutLabel : undefined}
-          className={cn('w-full flex items-center rounded-xl text-sm font-medium text-red-500 transition-colors overflow-hidden',
-            collapsed ? 'justify-center py-3' : 'px-3 py-3',
+          className={cn('w-full flex items-center rounded-xl text-sm font-medium text-red-500 transition-colors px-2 py-3 overflow-hidden',
             isDark ? 'hover:bg-red-900/30' : 'hover:bg-red-50')}>
-          <div className={cn('flex items-center justify-center shrink-0 transition-all duration-300', collapsed ? 'w-10' : 'w-8')}>
-            <LogOut className="w-4 h-4" />
+          <div className="w-10 flex items-center justify-center shrink-0 flex-none">
+            <LogOut className="w-5 h-5" />
           </div>
-          <div className={cn("flex items-center overflow-hidden transition-all duration-300 whitespace-nowrap",
-            collapsed ? "w-0 opacity-0" : "w-40 opacity-100"
+          <span className={cn('ml-1 transition-opacity duration-300 ease-in-out whitespace-nowrap',
+            collapsed ? 'opacity-0' : 'opacity-100'
           )}>
-            <span className="flex-1 ml-1 text-left">{logoutLabel}</span>
-          </div>
+            {logoutLabel}
+          </span>
         </button>
       </div>
     </div>
@@ -397,14 +395,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       title: 'Overview',
       links: [
         { to: '/admin', icon: LayoutDashboard, label: 'City Dashboard' },
-        { to: '/admin/support', icon: FileBarChart, label: 'Operational Support' },
+        { to: '/admin/requests', icon: FileBarChart, label: 'Operational Support' },
       ]
     },
     {
       title: 'Management',
       links: [
         { to: '/admin/verification', icon: BadgeCheck, label: 'Organizations' },
-        { to: '/admin/requests', icon: Target, label: 'Campaign Approvals' },
+        { to: '/admin/campaigns', icon: Target, label: 'Campaign Approvals' },
         { to: '/admin/donations', icon: Heart, label: 'Donation Management' },
         { to: '/admin/users', icon: Users, label: 'Kebele Admins' },
         { to: '/admin/kebeles', icon: MapPin, label: 'Manage Kebeles' },
@@ -479,7 +477,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <div className={cn('min-h-screen flex transition-colors duration-300', isDark ? 'bg-slate-900' : 'bg-gray-50')}>
       <aside className={cn(
-        'hidden lg:flex flex-col fixed inset-y-0 left-0 z-40 border-r shadow-sm transition-all duration-300',
+        'hidden lg:flex flex-col fixed inset-y-0 left-0 z-40 border-r shadow-sm transition-[width] duration-300 ease-in-out',
         sidebarExpanded ? 'w-64' : 'w-20',
         isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-100',
       )}>
@@ -488,19 +486,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {sidebarOpen && (
         <div className="lg:hidden fixed inset-0 z-50 flex">
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
-          <aside className={cn('relative w-72 flex flex-col z-50 shadow-2xl', isDark ? 'bg-slate-800' : 'bg-white')}>
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity" onClick={() => setSidebarOpen(false)} />
+          <aside className={cn('relative w-64 flex flex-col z-50 shadow-2xl h-full', isDark ? 'bg-slate-800' : 'bg-white')}>
             <button className={cn('absolute top-4 right-4 p-1.5 rounded-lg z-10',
               isDark ? 'hover:bg-slate-700' : 'hover:bg-gray-100')}
               onClick={() => setSidebarOpen(false)}>
               <X className={cn('w-5 h-5', isDark ? 'text-slate-300' : 'text-gray-600')} />
             </button>
-            <SidebarContent {...sidebarProps} />
+            <SidebarContent {...sidebarProps} collapsed={false} />
           </aside>
         </div>
       )}
 
-      <div className={cn('flex-1 flex flex-col min-h-screen transition-all duration-300 ease-in-out', sidebarExpanded ? 'lg:ml-64' : 'lg:ml-20')}>
+      <div className={cn('flex-1 flex flex-col min-h-screen transition-[margin] duration-300 ease-in-out', sidebarExpanded ? 'lg:ml-64' : 'lg:ml-20')}>
         <header className={cn(
           'sticky top-0 z-30 px-4 lg:px-6 h-16 flex items-center justify-between border-b shadow-sm transition-colors duration-300',
           isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-100',
@@ -567,16 +565,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </header>
 
         <main className="flex-1 p-4 lg:p-8">
-          {user && ['ORGANIZATION'].includes(user.role) && (user as any).verificationStatus === 'PENDING' && (
-            <div className={cn('mb-6 flex items-center gap-3 p-4 rounded-2xl border',
-              isDark ? 'bg-amber-900/20 border-amber-700/40 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-800')}>
-              <AlertTriangle className="w-5 h-5 shrink-0" />
-              <div className="flex-1 text-sm">
-                <span className="font-semibold">Your organization is pending verification. </span>
-                Campaign and support request creation will be available after admin approval. You can still browse the dashboard and donate.
-              </div>
-            </div>
-          )}
             <ErrorBoundary>
               {children}
             </ErrorBoundary>

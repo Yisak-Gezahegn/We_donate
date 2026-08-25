@@ -171,8 +171,8 @@ export default function IndividualVerificationPage() {
   });
 
   const { data: users, isLoading: isLoadingAll } = useQuery({
-    queryKey: ['admin-users', ''],
-    queryFn: () => api.get('/admin/users').then(r => r.data.data),
+    queryKey: ['admin-users', 'USER'],
+    queryFn: () => api.get('/admin/users?role=USER').then(r => r.data.data),
   });
 
   const approveUserMutation = useMutation({
@@ -200,7 +200,7 @@ export default function IndividualVerificationPage() {
     onError: (e: any) => toast.error(e?.response?.data?.message || 'Failed'),
   });
 
-  const allUsersList = (users || []).filter((u: any) => ['USER'].includes(u.role) && u.verificationStatus);
+  const allUsersList = users || [];
   const approvedUsers = allUsersList.filter((u: any) => u.verificationStatus === 'VERIFIED');
   const rejectedUsers = allUsersList.filter((u: any) => u.verificationStatus === 'REJECTED');
   

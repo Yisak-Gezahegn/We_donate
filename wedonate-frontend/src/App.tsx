@@ -41,7 +41,7 @@ import VerificationPage from './pages/admin/VerificationPage';
 import IndividualVerificationPage from './pages/admin/IndividualVerificationPage';
 import InspectionsPage from './pages/admin/InspectionsPage';
 
-import OperationalSupportPage from './pages/admin/OperationalSupportPage';
+
 import AdminNewsPage from './pages/admin/AdminNewsPage';
 import AdminFaqsPage from './pages/admin/AdminFaqsPage';
 import AdminEventsPage from './pages/admin/AdminEventsPage';
@@ -190,7 +190,7 @@ export default function App() {
       {/* Kebele, City, System Admins */}
       <Route path="/admin/user-verification" element={withLayout(<IndividualVerificationPage />, ALL_ADMINS)} />
       <Route path="/admin/donations"      element={withLayout(<AdminDonationsPage />, CITY_AND_SYSTEM)} />
-      <Route path="/admin/support"        element={withLayout(<OperationalSupportPage />, CITY_AND_SYSTEM)} />
+
       <Route path="/admin/kebeles"        element={withLayout(<ManageKebelesPage />, CITY_AND_SYSTEM)} />
 
       <Route path="/admin/news"           element={withLayout(<AdminNewsPage />, CITY_AND_SYSTEM)} />

@@ -15,7 +15,7 @@ export const createCampaign = async (req: AuthRequest, res: Response, next: Next
       telebirrAccount, cbeAccount, boaAccount, awashAccount,
       otherBankName, otherBankAccount,
       requesterPhone,
-      supportLetterUrl, registrationUrl, additionalNotes,
+      supportLetterUrl, additionalNotes,
       // Admin can create on behalf of another user
       targetUserId,
     } = req.body;
@@ -59,8 +59,8 @@ export const createCampaign = async (req: AuthRequest, res: Response, next: Next
         otherBankAccount: otherBankAccount || null,
         requesterPhone: requesterPhone || null,
         supportLetterUrl: supportLetterUrl || null,
-        registrationUrl: registrationUrl || null,
         additionalNotes: additionalNotes || null,
+        status: 'PENDING_REVIEW',
       },
     });
 
@@ -195,6 +195,12 @@ export const deleteCampaign = async (req: AuthRequest, res: Response, next: Next
 export const updateCampaignStatus = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { status, adminNote } = req.body;
+    
+    const validStatuses = ['PENDING_REVIEW', 'CHANGES_REQUESTED', 'PUBLISHED', 'COMPLETED', 'REJECTED', 'SUSPENDED', 'CANCELLED', 'ARCHIVED'];
+    if (!validStatuses.includes(status)) {
+      return next(createError(`Invalid status: ${status}`, 400));
+    }
+
     if (status === 'REJECTED' && (!adminNote || !adminNote.trim())) {
       return next(createError('Rejection reason is required', 400));
     }
@@ -208,17 +214,32 @@ export const updateCampaignStatus = async (req: AuthRequest, res: Response, next
       return next(createError('Conflict of Interest: You cannot approve or reject a campaign you created', 403));
     }
 
+    const dataToUpdate: any = { status, adminNote: adminNote || null };
+    if (status === 'PUBLISHED') {
+      dataToUpdate.isPublished = true;
+      dataToUpdate.publishedAt = new Date();
+    }
+
     const updatedCampaign = await prisma.campaign.update({
       where: { id: req.params.id },
-      data: { status, adminNote: adminNote || null },
+      data: dataToUpdate,
     });
     
     await prisma.notification.create({
       data: {
         id: uuidv4(), userId: updatedCampaign.userId,
         title: `Campaign ${status}`,
-        message: `Your campaign "${updatedCampaign.title}" has been ${status.toLowerCase()}.${adminNote ? ` Reason: ${adminNote}` : ''}`,
+        message: `Your campaign "${updatedCampaign.title}" has been ${status.replace(/_/g, ' ').toLowerCase()}.${adminNote ? ` Reason: ${adminNote}` : ''}`,
         type: ['PUBLISHED','COMPLETED'].includes(status) ? 'SUCCESS' : status === 'REJECTED' ? 'ERROR' : 'INFO',
+      },
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        id: uuidv4(), userId: req.user!.userId,
+        action: `CAMPAIGN_${status}`,
+        resource: 'campaign', resourceId: updatedCampaign.id,
+        details: `Updated campaign status to ${status}${adminNote ? ` with note: ${adminNote}` : ''}`,
       },
     });
     res.json({ success: true, data: updatedCampaign });

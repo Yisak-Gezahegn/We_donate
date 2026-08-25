@@ -47,7 +47,9 @@ const EMPTY_REQUEST_FORM = {
   imageUrl: '', telebirrAccount: '', cbeAccount: '', boaAccount: '', awashAccount: '',
   otherBankName: '', otherBankAccount: '',
   requesterPhone: '',
-  supportLetterUrl: '', nationalIdFrontUrl: '', nationalIdBackUrl: '', fanNumber: '', additionalNotes: '',
+  supportLetterUrl: '', additionalNotes: '',
+  beneficiaryName: '', beneficiaryIdType: 'NATIONAL_ID', beneficiaryIdNum: '',
+  beneficiaryFrontIdUrl: '', beneficiaryBackIdUrl: '', beneficiaryFanNumber: '', beneficiaryPhone: '',
 };
 
 const EMPTY_CAMPAIGN_FORM = {
@@ -55,7 +57,7 @@ const EMPTY_CAMPAIGN_FORM = {
   imageUrl: '', telebirrAccount: '', cbeAccount: '', boaAccount: '', awashAccount: '',
   otherBankName: '', otherBankAccount: '',
   requesterPhone: '',
-  supportLetterUrl: '', nationalIdFrontUrl: '', nationalIdBackUrl: '', fanNumber: '', additionalNotes: '',
+  supportLetterUrl: '', additionalNotes: '',
 };
 
 function DetailRow({ label, value, isDark }: { label: string; value?: string | null; isDark: boolean }) {
@@ -112,7 +114,7 @@ function CreateForUserModal({ isOpen, onClose, isDark }: { isOpen: boolean; onCl
   const createRequest = useMutation({
     mutationFn: (data: any) => api.post('/support-requests', data),
     onSuccess: () => {
-      toast.success('Support request created for user');
+      toast.success('Assisted support request created');
       qc.invalidateQueries({ queryKey: ['admin-requests'] });
       resetForm();
       onClose();
@@ -132,15 +134,24 @@ function CreateForUserModal({ isOpen, onClose, isDark }: { isOpen: boolean; onCl
   });
 
   const resetForm = () => {
-    setTargetUserId('');
     setReqForm(EMPTY_REQUEST_FORM);
     setCampForm(EMPTY_CAMPAIGN_FORM);
   };
 
   const handleSubmit = () => {
-    if (!targetUserId) { toast.error('Please select a user'); return; }
-    if (!reqForm.title || !reqForm.description || !reqForm.category) { toast.error('Fill required fields'); return; }
-    createRequest.mutate({ ...reqForm, targetUserId });
+    if (!reqForm.beneficiaryName) { toast.error('Beneficiary name is required'); return; }
+    if (!reqForm.title || !reqForm.description || !reqForm.category) { toast.error('Fill required request fields'); return; }
+    
+    if (parseFloat(reqForm.goalAmount) > 0) {
+      const hasPaymentMethod = reqForm.telebirrAccount || reqForm.cbeAccount || reqForm.boaAccount || reqForm.awashAccount || (reqForm.otherBankName && reqForm.otherBankAccount);
+      if (!hasPaymentMethod) {
+        toast.error('At least one receiving method (Bank or Telebirr) must be supplied for financial requests.');
+        return;
+      }
+    }
+    
+    // We send isAssisted = true to indicate this is an assisted request
+    createRequest.mutate({ ...reqForm, isAssisted: true });
   };
 
   if (!isOpen) return null;
@@ -156,16 +167,55 @@ function CreateForUserModal({ isOpen, onClose, isDark }: { isOpen: boolean; onCl
           </button>
         </div>
 
-        {/* User Selector */}
-        <div className="mb-4">
-          <label className={label}>Select Beneficiary (Citizen) *</label>
-          <select value={targetUserId} onChange={e => setTargetUserId(e.target.value)}
-            className={cn(input, !targetUserId && 'opacity-60')}>
-            <option value="">— Choose a local citizen —</option>
-            {users?.map((u: any) => (
-              <option key={u.id} value={u.id}>{u.firstName} {u.lastName} ({u.email})</option>
-            ))}
-          </select>
+        {/* Beneficiary Snapshot */}
+        <div className={cn('mb-6 rounded-xl p-4 space-y-3', isDark ? 'bg-slate-700/50 border border-slate-600' : 'bg-blue-50 border border-blue-200')}>
+          <p className={cn('text-sm font-bold', isDark ? 'text-blue-400' : 'text-blue-700')}>Beneficiary Information</p>
+          <div className="space-y-3">
+            <div>
+              <label className={label}>Full Name *</label>
+              <input className={input} placeholder="Beneficiary's full name" value={reqForm.beneficiaryName}
+                onChange={e => setReqForm(p => ({ ...p, beneficiaryName: e.target.value }))} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={label}>ID Type</label>
+                <select className={input} value={reqForm.beneficiaryIdType}
+                  onChange={e => setReqForm(p => ({ ...p, beneficiaryIdType: e.target.value }))}>
+                  <option value="NATIONAL_ID">National ID</option>
+                  <option value="PASSPORT">Passport</option>
+                  <option value="DRIVER_LICENSE">Driver's License</option>
+                  <option value="KEBELE_ID">Kebele ID</option>
+                </select>
+              </div>
+              <div>
+                <label className={label}>ID Number</label>
+                <input className={input} placeholder="ID Number" value={reqForm.beneficiaryIdNum}
+                  onChange={e => setReqForm(p => ({ ...p, beneficiaryIdNum: e.target.value }))} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={label}>Contact Phone</label>
+                <input className={input} placeholder="Phone (if available)" value={reqForm.beneficiaryPhone}
+                  onChange={e => setReqForm(p => ({ ...p, beneficiaryPhone: e.target.value }))} />
+              </div>
+              <div>
+                <label className={label}>FAN Number (Optional)</label>
+                <input className={input} placeholder="FAN Number" value={reqForm.beneficiaryFanNumber}
+                  onChange={e => setReqForm(p => ({ ...p, beneficiaryFanNumber: e.target.value }))} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3 mt-2">
+              <div>
+                <label className={label}>Front ID Photo</label>
+                <ImageUpload label="" value={reqForm.beneficiaryFrontIdUrl} onChange={v => setReqForm(p => ({ ...p, beneficiaryFrontIdUrl: v }))} accept="image/*" />
+              </div>
+              <div>
+                <label className={label}>Back ID Photo</label>
+                <ImageUpload label="" value={reqForm.beneficiaryBackIdUrl} onChange={v => setReqForm(p => ({ ...p, beneficiaryBackIdUrl: v }))} accept="image/*" />
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Support Request Form */}
@@ -226,16 +276,6 @@ function CreateForUserModal({ isOpen, onClose, isDark }: { isOpen: boolean; onCl
               <div><label className={label}>Support Letter *</label>
                 <ImageUpload label="" value={reqForm.supportLetterUrl} onChange={v => setReqForm(p => ({ ...p, supportLetterUrl: v }))}
                   hint="Upload the support letter" accept=".pdf,image/*" /></div>
-              <div className="grid grid-cols-2 gap-3">
-                <div><label className={label}>National ID Front *</label>
-                  <ImageUpload label="" value={reqForm.nationalIdFrontUrl} onChange={v => setReqForm(p => ({ ...p, nationalIdFrontUrl: v }))}
-                    hint="Front side" accept=".pdf,image/*" /></div>
-                <div><label className={label}>National ID Back *</label>
-                  <ImageUpload label="" value={reqForm.nationalIdBackUrl} onChange={v => setReqForm(p => ({ ...p, nationalIdBackUrl: v }))}
-                    hint="Back side" accept=".pdf,image/*" /></div>
-              </div>
-              <div><label className={label}>FAN Number *</label>
-                <input className={input} placeholder="Federal Admin Number" value={reqForm.fanNumber} onChange={e => setReqForm(p => ({ ...p, fanNumber: e.target.value }))} /></div>
               <div><label className={label}>Additional Notes</label>
                 <textarea className={cn(input, 'resize-none')} rows={2} value={reqForm.additionalNotes} onChange={e => setReqForm(p => ({ ...p, additionalNotes: e.target.value }))} /></div>
             </div>
@@ -243,8 +283,7 @@ function CreateForUserModal({ isOpen, onClose, isDark }: { isOpen: boolean; onCl
 
         <div className="flex gap-3 mt-5 pt-4 border-t border-gray-100 dark:border-slate-700">
           <Button onClick={handleSubmit}
-            isLoading={createRequest.isPending}
-            disabled={!targetUserId}>
+            isLoading={createRequest.isPending}>
             <Plus className="w-4 h-4 mr-1" /> Create Assisted Request
           </Button>
           <Button variant="ghost" onClick={() => { resetForm(); onClose(); }}>Cancel</Button>
@@ -261,7 +300,7 @@ export default function AdminRequestsPage() {
   const { isDark } = useTheme();
   const { user: currentUser } = useAuth();
   const isCampaignsPage = location.pathname.includes('/admin/campaigns');
-  const [view, setView] = useState<ViewMode>(isCampaignsPage ? 'campaigns' : 'requests');
+  const view: ViewMode = isCampaignsPage ? 'campaigns' : 'requests';
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -337,7 +376,7 @@ export default function AdminRequestsPage() {
 
   const filterItems = (items: any[]) => {
     if (statusFilter === 'ALL') return items;
-    if (statusFilter === 'PENDING') return items.filter((i: any) => ['PENDING_REVIEW', 'PENDING_CITY_APPROVAL'].includes(i.status));
+    if (statusFilter === 'PENDING') return items.filter((i: any) => ['PENDING_REVIEW', 'PENDING_CITY_APPROVAL', 'DRAFT'].includes(i.status));
     if (statusFilter === 'FULFILLED') return items.filter((i: any) => i.status === 'FULFILLED');
     return items.filter((i: any) => i.status === statusFilter);
   };
@@ -374,16 +413,30 @@ export default function AdminRequestsPage() {
               </div>
               <p className={cn('text-xs line-clamp-2 mb-2', isDark ? 'text-slate-400' : 'text-gray-600')}>{item.description}</p>
               <div className="flex items-center gap-3 text-xs">
-                {item.user?.profileImage ? (
-                  <img src={item.user.profileImage} className="w-5 h-5 rounded-full object-cover" alt="" />
+                {item.user ? (
+                  <>
+                    {item.user.profileImage ? (
+                      <img src={item.user.profileImage} className="w-5 h-5 rounded-full object-cover" alt="" />
+                    ) : (
+                      <div className="w-5 h-5 rounded-full bg-green-600 flex items-center justify-center text-white font-bold text-[9px]">
+                        {item.user.firstName?.[0]}
+                      </div>
+                    )}
+                    <span className={isDark ? 'text-slate-400' : 'text-gray-500'}>
+                      {item.user.firstName} {item.user.lastName} {item.user.verificationStatus === 'VERIFIED' && <BadgeCheck className="w-3.5 h-3.5 inline text-blue-500" />} · {item.user.email}
+                    </span>
+                  </>
                 ) : (
-                  <div className="w-5 h-5 rounded-full bg-green-600 flex items-center justify-center text-white font-bold text-[9px]">
-                    {item.user?.firstName?.[0]}
-                  </div>
+                  <>
+                    <div className="w-5 h-5 rounded-full bg-purple-600 flex items-center justify-center text-white font-bold text-[9px]">
+                      {item.beneficiaryName?.[0] || '?'}
+                    </div>
+                    <span className={isDark ? 'text-slate-400' : 'text-gray-500'}>
+                      {item.beneficiaryName || 'Assisted Beneficiary'}
+                      {item.beneficiaryPhone ? ` · ${item.beneficiaryPhone}` : ''}
+                    </span>
+                  </>
                 )}
-                <span className={isDark ? 'text-slate-400' : 'text-gray-500'}>
-                  {item.user?.firstName} {item.user?.lastName} {item.user?.verificationStatus === 'VERIFIED' && <BadgeCheck className="w-3.5 h-3.5 inline text-blue-500" />} · {item.user?.email}
-                </span>
                 <span className={isDark ? 'text-slate-600' : 'text-gray-300'}>·</span>
                 <span className={isDark ? 'text-slate-500' : 'text-gray-400'}>{formatDate(item.createdAt)}</span>
               </div>
@@ -409,7 +462,7 @@ export default function AdminRequestsPage() {
           </div>
 
           {/* Admin note + actions for PENDING */}
-          {((isKebeleAdmin && item.status === 'PENDING_REVIEW') || (isHighAdmin && item.status === 'PENDING_CITY_APPROVAL') || (isHighAdmin && type === 'campaigns' && item.status === 'PENDING_REVIEW')) && (
+          {((isKebeleAdmin && type === 'requests' && item.status === 'PENDING_REVIEW') || (isHighAdmin && type === 'requests' && item.status === 'PENDING_CITY_APPROVAL') || (isHighAdmin && type === 'campaigns' && (item.status === 'PENDING_REVIEW' || item.status === 'DRAFT'))) && (
             <div className="mt-4 pt-4 border-t border-gray-100 dark:border-slate-700">
               <div className="flex flex-col sm:flex-row gap-3">
                 <textarea placeholder={t('admin.admin_note_placeholder')} value={notes[item.id] || ''} rows={2}
@@ -419,14 +472,14 @@ export default function AdminRequestsPage() {
                 <div className="flex gap-2">
                   <Button size="sm" leftIcon={<CheckCircle className="w-3.5 h-3.5" />}
                     isLoading={mutate.isPending}
-                    onClick={() => mutate.mutate({ id: item.id, status: 'APPROVED', adminNote: notes[item.id] })}>
+                    onClick={() => mutate.mutate({ id: item.id, status: type === 'campaigns' ? 'PUBLISHED' : 'APPROVED', adminNote: notes[item.id] })}>
                     {t('admin.approve')}
                   </Button>
                   <Button size="sm" variant="danger" leftIcon={<XCircle className="w-3.5 h-3.5" />}
                     onClick={() => handleReject(item.id, type)}>
                     {t('admin.reject')}
                   </Button>
-                  {isHighAdmin && item.status === 'PENDING_CITY_APPROVAL' && (
+                  {isHighAdmin && (item.status === 'PENDING_CITY_APPROVAL' || (type === 'campaigns' && (item.status === 'PENDING_REVIEW' || item.status === 'DRAFT'))) && (
                     <Button size="sm" variant="outline" className="text-orange-500 border-orange-200"
                       onClick={() => {
                         if (!notes[item.id]?.trim()) { toast.error('Please provide a reason in the note'); return; }
@@ -441,7 +494,7 @@ export default function AdminRequestsPage() {
           )}
 
           {/* Actions for APPROVED or PUBLISHED */}
-          {isHighAdmin && (item.status === 'APPROVED' || item.status === 'PUBLISHED') && (
+          {(item.status === 'APPROVED' || item.status === 'PUBLISHED') && (
             <div className="mt-4 pt-4 border-t border-gray-100 dark:border-slate-700 flex gap-2">
               {!item.isPublished && (
                 <Button size="sm" leftIcon={<Send className="w-3.5 h-3.5" />}
@@ -534,25 +587,39 @@ export default function AdminRequestsPage() {
               <DetailRow label="Last Updated" value={formatDate(item.updatedAt)} isDark={isDark} />
             </div>
 
-            {/* Requester info */}
+            {/* Requester / Beneficiary info */}
             <div>
-              <p className={cn('text-xs font-semibold mb-2', isDark ? 'text-slate-400' : 'text-gray-500')}>Requester Information</p>
+              <p className={cn('text-xs font-semibold mb-2', isDark ? 'text-slate-400' : 'text-gray-500')}>
+                {item.user ? 'Requester Information' : 'Assisted Beneficiary Snapshot'}
+              </p>
               <div className={cn('rounded-xl p-4 space-y-2', isDark ? 'bg-slate-800' : 'bg-white border')}>
-                <DetailRow label="Name" value={item.user ? `${item.user.firstName ?? ''} ${item.user.lastName ?? ''}`.trim() : null} isDark={isDark} />
-                <DetailRow label="Email" value={item.user?.email} isDark={isDark} />
-                <DetailRow label={t('admin.phone')} value={item.user?.phone} isDark={isDark} />
+                {item.user ? (
+                  <>
+                    <DetailRow label="Name" value={`${item.user.firstName ?? ''} ${item.user.lastName ?? ''}`.trim()} isDark={isDark} />
+                    <DetailRow label="Email" value={item.user.email} isDark={isDark} />
+                    <DetailRow label={t('admin.phone')} value={item.user.phone} isDark={isDark} />
+                  </>
+                ) : (
+                  <>
+                    <DetailRow label="Name" value={item.beneficiaryName} isDark={isDark} />
+                    <DetailRow label="ID Type" value={item.beneficiaryIdType?.replace(/_/g, ' ')} isDark={isDark} />
+                    <DetailRow label="ID Number" value={item.beneficiaryIdNum} isDark={isDark} />
+                    <DetailRow label="FAN Number" value={item.beneficiaryFanNumber} isDark={isDark} />
+                    <DetailRow label="Phone" value={item.beneficiaryPhone} isDark={isDark} />
+                  </>
+                )}
               </div>
             </div>
 
             {/* Documents */}
-            {(item.supportLetterUrl || item.nationalIdFrontUrl || item.nationalIdBackUrl) && (
+            {item.supportLetterUrl && (
               <div>
-                <p className={cn('text-xs font-semibold mb-2', isDark ? 'text-slate-400' : 'text-gray-500')}>{t('admin.support_letter')} & National ID</p>
+                <p className={cn('text-xs font-semibold mb-2', isDark ? 'text-slate-400' : 'text-gray-500')}>{t('admin.support_letter')}</p>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   {[
                     { label: t('admin.support_letter'), url: item.supportLetterUrl },
-                    { label: 'National ID — Front', url: item.nationalIdFrontUrl },
-                    { label: 'National ID — Back', url: item.nationalIdBackUrl },
+                    { label: 'Beneficiary Front ID', url: item.beneficiaryFrontIdUrl },
+                    { label: 'Beneficiary Back ID', url: item.beneficiaryBackIdUrl },
                   ].filter(d => d.url).map(d => (
                     <a key={d.label} href={d.url} target="_blank" rel="noopener noreferrer"
                       className={cn('rounded-xl overflow-hidden border group relative block',
@@ -630,12 +697,12 @@ export default function AdminRequestsPage() {
                 <h2 className={cn('text-lg font-bold', isDark ? 'text-white' : 'text-gray-900')}>
                   Delete {deletingItem.type === 'requests' ? 'Support Request' : 'Campaign'}
                 </h2>
-                <p className={cn('text-sm mt-2', isDark ? 'text-slate-400' : 'text-gray-500')}>
-                  Permanently delete{' '}
+                <p className={cn('text-sm mb-6', isDark ? 'text-slate-300' : 'text-gray-600')}>
+                  Are you sure you want to delete{' '}
                   <span className={cn('font-semibold break-words', isDark ? 'text-white' : 'text-gray-800')}>
                     “{deletingItem.item.title}”
                   </span>{' '}
-                  by {deletingItem.item.user?.firstName} {deletingItem.item.user?.lastName}?
+                  by {deletingItem.item.user ? `${deletingItem.item.user.firstName} ${deletingItem.item.user.lastName}` : (deletingItem.item.beneficiaryName || 'Assisted Beneficiary')}?
                 </p>
                 <p className={cn('text-xs mt-3 px-3 py-2 rounded-lg',
                   isDark ? 'bg-red-900/20 text-red-300 border border-red-700/40' : 'bg-red-50 text-red-700 border border-red-200')}>

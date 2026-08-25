@@ -11,6 +11,172 @@ import { cn } from '../../lib/utils';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Badge, { statusVariant } from '../../components/ui/Badge';
+import ImageUpload from '../../components/ui/ImageUpload';
+import toast from 'react-hot-toast';
+import { ArrowRight } from 'lucide-react';
+
+const CAMPAIGN_CATEGORIES = [
+  { value: 'INFRASTRUCTURE', label: '🏗️ Infrastructure' },
+  { value: 'EDUCATION', label: '📚 Education' },
+  { value: 'HEALTH', label: '🏥 Health & Medical' },
+  { value: 'EMERGENCY', label: '🆘 Emergency Relief' },
+  { value: 'OTHER', label: '🤝 Other' },
+];
+
+function CreateCampaignForm({ isDark, onSuccess }: { isDark: boolean; onSuccess: () => void }) {
+  const [form, setForm] = useState({ title: '', description: '', category: 'OTHER', goalAmount: '', deadline: '', imageUrl: '' });
+  const [loading, setLoading] = useState(false);
+  
+  // Payment accounts
+  const [telebirrAccount, setTelebirrAccount] = useState('');
+  const [cbeAccount, setCbeAccount] = useState('');
+  const [boaAccount, setBoaAccount] = useState('');
+  const [awashAccount, setAwashAccount] = useState('');
+  const [otherBankName, setOtherBankName] = useState('');
+  const [otherBankAccount, setOtherBankAccount] = useState('');
+
+  // Contact for item donations
+  const [requesterPhone, setRequesterPhone] = useState('');
+
+  // Admin-only documents
+  const [supportLetterUrl, setSupportLetterUrl] = useState('');
+  const [additionalNotes, setAdditionalNotes] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.title || !form.description || !form.goalAmount)
+      return toast.error('Please fill all required fields');
+
+    setLoading(true);
+    try {
+      await api.post('/campaigns', {
+        ...form,
+        telebirrAccount, cbeAccount, boaAccount, awashAccount,
+        otherBankName, otherBankAccount,
+        requesterPhone,
+        supportLetterUrl,
+        additionalNotes,
+      });
+      toast.success('Campaign submitted for admin approval!');
+      onSuccess();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Failed to create campaign');
+    } finally { setLoading(false); }
+  };
+
+  const input = cn('w-full rounded-xl border px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors',
+    isDark ? 'bg-slate-700 border-slate-600 text-white placeholder-slate-400' : 'bg-white border-gray-300 text-gray-900');
+  const label = cn('block text-sm font-medium mb-1.5', isDark ? 'text-slate-300' : 'text-gray-700');
+
+  return (
+    <Card className="max-w-2xl mx-auto" padding="lg">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center',
+            isDark ? 'bg-green-900/40' : 'bg-green-100')}>
+            <Target className="w-5 h-5 text-green-500" />
+          </div>
+          <div>
+            <h2 className={cn('text-lg font-bold', isDark ? 'text-white' : 'text-gray-900')}>Create a Campaign</h2>
+            <p className={cn('text-xs', isDark ? 'text-slate-400' : 'text-gray-500')}>
+              Campaigns need admin approval before going live
+            </p>
+          </div>
+        </div>
+        <button onClick={onSuccess} className={cn('p-2 rounded-xl transition-colors', isDark ? 'hover:bg-slate-700 text-slate-400' : 'hover:bg-gray-100 text-gray-500')}>
+          <X className="w-5 h-5" />
+        </button>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <div>
+          <label className={label}>Campaign Title *</label>
+          <input className={input} placeholder="e.g. Build a Community Library"
+            value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} />
+        </div>
+
+        <div>
+          <label className={label}>Description *</label>
+          <textarea rows={4} className={cn(input, 'resize-none')}
+            placeholder="Describe your campaign — why it's important, how funds will be used, and the expected impact..."
+            value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} />
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className={label}>Category *</label>
+            <select className={input} value={form.category}
+              onChange={e => setForm(p => ({ ...p, category: e.target.value }))}>
+              {CAMPAIGN_CATEGORIES.filter(c => c.value).map(c => (
+                <option key={c.value} value={c.value}>{c.label}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className={label}>Goal Amount (ETB) *</label>
+            <input type="number" className={input} placeholder="e.g. 50000"
+              value={form.goalAmount} onChange={e => setForm(p => ({ ...p, goalAmount: e.target.value }))} min="1" />
+          </div>
+        </div>
+
+        <div>
+          <label className={label}>Deadline (optional)</label>
+          <input type="date" className={input}
+            value={form.deadline} onChange={e => setForm(p => ({ ...p, deadline: e.target.value }))} />
+        </div>
+
+        <ImageUpload label="Campaign Cover Photo (optional)" value={form.imageUrl}
+          onChange={url => setForm(p => ({ ...p, imageUrl: url }))}
+          hint="A compelling photo makes your campaign more trustworthy" />
+
+        <div className={cn('rounded-2xl border p-4 space-y-3',
+          isDark ? 'border-slate-600 bg-slate-700/30' : 'border-green-100 bg-green-50')}>
+          <p className={cn('text-sm font-bold', isDark ? 'text-green-400' : 'text-green-700')}>💳 Your Payment Accounts</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div><label className={label}>TeleBirr</label><input className={input} value={telebirrAccount} onChange={e => setTelebirrAccount(e.target.value)} /></div>
+            <div><label className={label}>CBE</label><input className={input} value={cbeAccount} onChange={e => setCbeAccount(e.target.value)} /></div>
+            <div><label className={label}>BOA</label><input className={input} value={boaAccount} onChange={e => setBoaAccount(e.target.value)} /></div>
+            <div><label className={label}>Awash</label><input className={input} value={awashAccount} onChange={e => setAwashAccount(e.target.value)} /></div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div><label className={label}>Other Bank Name</label><input className={input} value={otherBankName} onChange={e => setOtherBankName(e.target.value)} /></div>
+            <div><label className={label}>Other Bank Account</label><input className={input} value={otherBankAccount} onChange={e => setOtherBankAccount(e.target.value)} /></div>
+          </div>
+          <div className={cn('mt-4 pt-4 border-t', isDark ? 'border-slate-600' : 'border-green-200')}>
+            <p className={cn('text-sm font-bold mb-2', isDark ? 'text-blue-400' : 'text-blue-700')}>📞 Contact for Item Donations</p>
+            <div><label className={label}>Your Phone Number</label><input className={input} value={requesterPhone} onChange={e => setRequesterPhone(e.target.value)} /></div>
+          </div>
+        </div>
+
+        <div className={cn('rounded-2xl border p-4 space-y-4',
+          isDark ? 'border-slate-600 bg-slate-700/30' : 'border-amber-100 bg-amber-50')}>
+          <div>
+            <p className={cn('text-sm font-bold', isDark ? 'text-amber-400' : 'text-amber-700')}>🔒 Documents for Admin Review</p>
+            <p className={cn('text-xs mt-1', isDark ? 'text-slate-400' : 'text-gray-500')}>These documents are only visible to admins.</p>
+          </div>
+          <ImageUpload
+            label="Support Letter (official letter or ID)"
+            value={supportLetterUrl}
+            onChange={setSupportLetterUrl}
+          />
+          <div>
+            <label className={label}>Additional Notes for Admin</label>
+            <textarea rows={3}
+              value={additionalNotes} onChange={e => setAdditionalNotes(e.target.value)}
+              className={cn(input, 'resize-none')} />
+          </div>
+        </div>
+
+        <div className="flex gap-3">
+          <Button type="submit" className="flex-1" size="lg" isLoading={loading} rightIcon={<ArrowRight className="w-4 h-4" />}>
+            Submit for Approval
+          </Button>
+          <Button variant="ghost" onClick={onSuccess}>Cancel</Button>
+        </div>
+      </form>
+    </Card>
+  );
+}
 
 function DetailRow({ label, value, isDark }: { label: string; value?: string | null; isDark: boolean }) {
   if (!value) return null;
@@ -53,9 +219,6 @@ function CampaignDetailModal({ campaignId, onClose, isDark }: { campaignId: stri
   ].filter(a => a.value);
   const docs = [
     { label: 'Support Letter', url: camp.supportLetterUrl },
-    { label: 'Registration Document', url: camp.registrationUrl },
-    { label: 'National ID (Front)', url: camp.nationalIdFrontUrl },
-    { label: 'National ID (Back)', url: camp.nationalIdBackUrl },
   ].filter(d => d.url);
 
   return (
@@ -247,6 +410,21 @@ export default function MyCampaignsPage() {
   });
 
   const [viewingId, setViewingId] = useState<string | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
+
+  if (isCreating) {
+    return (
+      <div className="space-y-6">
+        <CreateCampaignForm 
+          isDark={isDark} 
+          onSuccess={() => {
+            setIsCreating(false);
+            window.location.reload(); // Refresh the campaign list
+          }} 
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -258,9 +436,7 @@ export default function MyCampaignsPage() {
           </p>
         </div>
         {!isPendingOrg && !isRejectedOrg && (
-          <Link to="/donate">
-            <Button size="sm" leftIcon={<Plus className="w-4 h-4" />}>{t('dashboard.new_campaign')}</Button>
-          </Link>
+          <Button size="sm" onClick={() => setIsCreating(true)} leftIcon={<Plus className="w-4 h-4" />}>{t('dashboard.new_campaign')}</Button>
         )}
       </div>
 
@@ -269,10 +445,10 @@ export default function MyCampaignsPage() {
           isDark ? 'bg-amber-900/10 border-amber-700/30' : 'bg-amber-50 border-amber-200')}>
           <AlertTriangle className={cn('w-12 h-12 mx-auto mb-4', isDark ? 'text-amber-400' : 'text-amber-500')} />
           <h3 className={cn('text-lg font-bold mb-2', isDark ? 'text-amber-300' : 'text-amber-800')}>
-            Verification Required
+            Organization verification pending
           </h3>
           <p className={cn('text-sm max-w-md mx-auto', isDark ? 'text-amber-400/80' : 'text-amber-700')}>
-            Your organization registration is pending admin verification. Once verified, you will be able to create and manage campaigns. You can still browse the platform and donate in the meantime.
+            City Administration is reviewing your organization. Campaign creation becomes available after approval. You may still browse and donate.
           </p>
         </Card>
       )}
@@ -299,11 +475,9 @@ export default function MyCampaignsPage() {
           <Card className="text-center py-16">
             <Target className={cn('w-12 h-12 mx-auto mb-3', isDark ? 'text-slate-600' : 'text-gray-200')} />
             <p className={cn('font-medium', isDark ? 'text-slate-400' : 'text-gray-400')}>{t('dashboard.no_campaigns')}</p>
-            <Link to="/donate">
-              <Button size="sm" className="mt-4">
-                <Plus className="w-4 h-4 mr-2" /> {t('dashboard.create_campaign')}
-              </Button>
-            </Link>
+            <Button size="sm" className="mt-4" onClick={() => setIsCreating(true)}>
+              <Plus className="w-4 h-4 mr-2" /> {t('dashboard.create_campaign')}
+            </Button>
           </Card>
         ) : (
           <div className="grid md:grid-cols-2 gap-5">

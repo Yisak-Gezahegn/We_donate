@@ -3,7 +3,7 @@ version: '3.8'
 services:
   # Development Database (Persistent)
   db:
-    image: postgres:15-alpine
+    image: pgvector/pgvector:pg15
     container_name: wedonate_db
     environment:
       POSTGRES_USER: postgres
@@ -21,7 +21,7 @@ services:
 
   # Test Database (Ephemeral/In-Memory)
   db_test:
-    image: postgres:15-alpine
+    image: pgvector/pgvector:pg15
     container_name: wedonate_test_db
     environment:
       POSTGRES_USER: postgres

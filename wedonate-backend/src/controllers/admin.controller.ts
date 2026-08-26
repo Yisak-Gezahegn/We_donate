@@ -467,9 +467,11 @@ export const verifyDonation = async (req: AuthRequest, res: Response, next: Next
       }
     }
 
-    await prisma.notification.create({
-      data: { id: uuidv4(), userId: donation.donorId, title: 'Donation Verified', message: `Your donation has been verified successfully.`, type: 'SUCCESS' },
-    });
+    if (donation.donorId) {
+      await prisma.notification.create({
+        data: { id: uuidv4(), userId: donation.donorId, title: 'Donation Verified', message: `Your donation has been verified successfully.`, type: 'SUCCESS' },
+      });
+    }
 
     let beneficiaryId: string | null = null;
     let createdById: string | null = null;
@@ -524,9 +526,11 @@ export const rejectDonation = async (req: AuthRequest, res: Response, next: Next
       data: { paymentStatus: 'FAILED', rejectionReason: reason || null },
     });
 
-    await prisma.notification.create({
-      data: { id: uuidv4(), userId: donation.donorId, title: 'Donation Rejected', message: `Your donation could not be verified. Please review the payment information.${reason ? ` Reason: ${reason}` : ''}`, type: 'ERROR' },
-    });
+    if (donation.donorId) {
+      await prisma.notification.create({
+        data: { id: uuidv4(), userId: donation.donorId, title: 'Donation Rejected', message: `Your donation could not be verified. Please review the payment information.${reason ? ` Reason: ${reason}` : ''}`, type: 'ERROR' },
+      });
+    }
     await prisma.auditLog.create({
       data: { id: uuidv4(), userId: req.user!.userId, action: 'REJECT_DONATION', resource: 'donation', resourceId: donation.id, details: `Rejected donation. Reason: ${reason || 'N/A'}` },
     });

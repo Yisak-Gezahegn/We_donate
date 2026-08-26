@@ -43,7 +43,7 @@ export const createUpdate = async (req: AuthRequest, res: Response, next: NextFu
       distinct: ['donorId'],
     });
     for (const d of donors) {
-      if (d.donorId !== req.user!.userId) {
+      if (d.donorId && d.donorId !== req.user!.userId) {
         await prisma.notification.create({
           data: {
             id: uuidv4(), userId: d.donorId,

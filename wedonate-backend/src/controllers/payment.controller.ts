@@ -138,22 +138,24 @@ export const verifyPayment = async (req: AuthRequest, res: Response, next: NextF
       }
 
       // Notify donor
-      await prisma.notification.create({
-        data: {
-          id: uuidv4(), userId: donation.donorId,
-          title: 'Donation Successful 🎉',
-          message: `Your donation of ${donation.amount} ETB was received. Thank you for your generosity!`,
-          type: 'SUCCESS',
-        },
-      });
+      if (donation.donorId) {
+        await prisma.notification.create({
+          data: {
+            id: uuidv4(), userId: donation.donorId,
+            title: 'Donation Successful 🎉',
+            message: `Your donation of ${donation.amount} ETB was received. Thank you for your generosity!`,
+            type: 'SUCCESS',
+          },
+        });
 
-      await prisma.auditLog.create({
-        data: {
-          id: uuidv4(), userId: donation.donorId,
-          action: 'PAYMENT_SUCCESS', resource: 'donation',
-          resourceId: donation.id, details: `Amount: ${donation.amount} ETB, Ref: ${txRef}`,
-        },
-      });
+        await prisma.auditLog.create({
+          data: {
+            id: uuidv4(), userId: donation.donorId,
+            action: 'PAYMENT_SUCCESS', resource: 'donation',
+            resourceId: donation.id, details: `Amount: ${donation.amount} ETB, Ref: ${txRef}`,
+          },
+        });
+      }
     }
 
     res.json({ success: true, data: { status: paymentStatus, donation, chapaData: verifyResponse.data?.data } });

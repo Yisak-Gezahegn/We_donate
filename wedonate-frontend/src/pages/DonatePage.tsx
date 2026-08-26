@@ -554,6 +554,9 @@ function DonationModal({
   const [itemImgUrl, setItemImgUrl] = useState('');
   const [delivery, setDelivery] = useState('BRING_TO_OFFICE');
   const [loading, setLoading] = useState(false);
+  const [guestName, setGuestName] = useState('');
+  const [guestEmail, setGuestEmail] = useState('');
+  const [guestPhone, setGuestPhone] = useState('');
 
   const AMOUNTS = [50, 100, 200, 500, 1000, 2000];
   const finalAmount = parseFloat(amount || custom) || 0;
@@ -573,7 +576,10 @@ function DonationModal({
     : ['Choose Type', 'Item Details', 'Done'];
 
   const handleSubmit = async () => {
-    if (!isAuthenticated) { toast.error('Please login to donate'); navigate('/login'); return; }
+    if (!isAuthenticated) {
+      if (!guestName.trim()) { toast.error('Please provide your name'); return; }
+      if (!guestPhone.trim()) { toast.error('Please provide your phone number'); return; }
+    }
     if (donateType === 'MONEY') {
       if (finalAmount < 1) { toast.error('Enter a valid amount (min 1 ETB)'); return; }
       if (!refCode.trim()) { toast.error('Please enter the transaction reference code'); return; }
@@ -597,6 +603,11 @@ function DonationModal({
         itemImageUrl: itemImgUrl || null,
         deliveryMethod: donateType === 'ITEM' ? delivery : null,
       };
+      if (!isAuthenticated) {
+        payload.guestName = guestName;
+        payload.guestEmail = guestEmail;
+        payload.guestPhone = guestPhone;
+      }
       if (donateType === 'MONEY') payload.amount = finalAmount;
       if (type === 'campaign') payload.campaignId = target!.id;
       else payload.supportRequestId = target!.id;
@@ -824,6 +835,15 @@ function DonationModal({
                 </p>
               </div>
 
+              {!isAuthenticated && (
+                <div className={cn('p-4 rounded-2xl border space-y-3', isDark ? 'bg-slate-700/50 border-slate-600' : 'bg-gray-50 border-gray-200')}>
+                  <p className={cn('text-sm font-semibold', isDark ? 'text-white' : 'text-gray-800')}>Guest Donor Details</p>
+                  <input className={inp} placeholder="Full Name *" value={guestName} onChange={e => setGuestName(e.target.value)} />
+                  <input className={inp} placeholder="Email (optional)" type="email" value={guestEmail} onChange={e => setGuestEmail(e.target.value)} />
+                  <input className={inp} placeholder="Phone Number *" type="tel" value={guestPhone} onChange={e => setGuestPhone(e.target.value)} />
+                </div>
+              )}
+
               <Button className="w-full" size="lg" isLoading={loading} onClick={handleSubmit}>
                 Confirm Donation {finalAmount > 0 ? `- ${formatCurrency(finalAmount)}` : ''}
               </Button>
@@ -925,6 +945,15 @@ function DonationModal({
                 </div>
                 <span className={cn('text-sm', isDark ? 'text-slate-300' : 'text-gray-700')}>Donate anonymously</span>
               </label>
+
+              {!isAuthenticated && (
+                <div className={cn('p-4 rounded-2xl border space-y-3', isDark ? 'bg-slate-700/50 border-slate-600' : 'bg-gray-50 border-gray-200')}>
+                  <p className={cn('text-sm font-semibold', isDark ? 'text-white' : 'text-gray-800')}>Guest Donor Details</p>
+                  <input className={inp} placeholder="Full Name *" value={guestName} onChange={e => setGuestName(e.target.value)} />
+                  <input className={inp} placeholder="Email (optional)" type="email" value={guestEmail} onChange={e => setGuestEmail(e.target.value)} />
+                  <input className={inp} placeholder="Phone Number *" type="tel" value={guestPhone} onChange={e => setGuestPhone(e.target.value)} />
+                </div>
+              )}
 
               <Button className="w-full" size="lg" isLoading={loading} onClick={handleSubmit}>
                 Submit Item Donation
@@ -1091,7 +1120,7 @@ export default function DonatePage() {
                   {filteredCamps.map((camp: any) => (
                     <motion.div key={camp.id} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}>
                       <CampaignCard camp={camp} isDark={isDark}
-                        onDonate={(id, title, data) => requireAuth(() => setDonateTarget({ id, title, type: 'campaign', data }))}
+                        onDonate={(id, title, data) => setDonateTarget({ id, title, type: 'campaign', data })}
                         onDetail={(data) => setDetailTarget({ data, type: 'campaign' })} />
                     </motion.div>
                   ))}
@@ -1139,7 +1168,7 @@ export default function DonatePage() {
                   {filteredReqs.map((req: any) => (
                     <motion.div key={req.id} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}>
                       <RequestCard req={req} isDark={isDark}
-                        onDonate={(id, title, data) => requireAuth(() => setDonateTarget({ id, title, type: 'request', data }))}
+                        onDonate={(id, title, data) => setDonateTarget({ id, title, type: 'request', data })}
                         onDetail={(data) => setDetailTarget({ data, type: 'request' })} />
                     </motion.div>
                   ))}

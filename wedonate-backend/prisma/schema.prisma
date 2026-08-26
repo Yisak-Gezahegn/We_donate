@@ -265,8 +265,11 @@ model CampaignUpdate {
 
 model Donation {
   id           String        @id @default(uuid())
-  donorId      String
-  donor        User          @relation(fields: [donorId], references: [id])
+  donorId      String?
+  donor        User?         @relation(fields: [donorId], references: [id])
+  guestName    String?
+  guestEmail   String?
+  guestPhone   String?
   amount       Float?
   currency     String        @default("ETB")
   donationType DonationType

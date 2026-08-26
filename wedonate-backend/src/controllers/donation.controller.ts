@@ -11,6 +11,7 @@ export const createDonation = async (req: AuthRequest, res: Response, next: Next
       supportRequestId, campaignId,
       paymentMethod, paymentProofUrl, referenceCode,
       itemDescription, itemImageUrl, deliveryMethod,
+      guestName, guestEmail, guestPhone,
     } = req.body;
 
     if (!supportRequestId && !campaignId)
@@ -46,10 +47,15 @@ export const createDonation = async (req: AuthRequest, res: Response, next: Next
         return next(createError('The fundraising goal for this campaign has been reached', 400));
     }
 
+    const isGuest = !req.user;
+    
     const donation = await prisma.donation.create({
       data: {
         id: uuidv4(),
-        donorId: req.user!.userId,
+        donorId: req.user ? req.user.userId : null,
+        guestName: isGuest ? guestName : null,
+        guestEmail: isGuest ? guestEmail : null,
+        guestPhone: isGuest ? guestPhone : null,
         amount:      amount      ? parseFloat(amount) : null,
         donationType: donationType || 'MONEY',
         description: description || null,
@@ -96,17 +102,19 @@ export const createDonation = async (req: AuthRequest, res: Response, next: Next
       }
     }
 
-    // Notify donor
-    await prisma.notification.create({
-      data: {
-        id: uuidv4(), userId: req.user!.userId,
-        title: donation.paymentStatus === 'SUCCESS' ? 'Donation Received ✅' : 'Donation Submitted',
-        message: donation.paymentStatus === 'SUCCESS'
-          ? `Thank you! Your donation of ${donation.amount} ETB has been recorded.`
-          : `Your donation is pending verification. Please ensure payment was sent.`,
-        type: donation.paymentStatus === 'SUCCESS' ? 'SUCCESS' : 'INFO',
-      },
-    });
+    // Notify donor (if not guest)
+    if (!isGuest) {
+      await prisma.notification.create({
+        data: {
+          id: uuidv4(), userId: req.user!.userId,
+          title: donation.paymentStatus === 'SUCCESS' ? 'Donation Received ✅' : 'Donation Submitted',
+          message: donation.paymentStatus === 'SUCCESS'
+            ? `Thank you! Your donation of ${donation.amount} ETB has been recorded.`
+            : `Your donation is pending verification. Please ensure payment was sent.`,
+          type: donation.paymentStatus === 'SUCCESS' ? 'SUCCESS' : 'INFO',
+        },
+      });
+    }
 
     // Only notify beneficiary immediately if payment is already successful
     let beneficiaryId: string | null = null;
@@ -121,9 +129,10 @@ export const createDonation = async (req: AuthRequest, res: Response, next: Next
         createdById = req2?.createdById ?? null;
       }
       
-      const donorName = isAnonymous ? 'Anonymous' : (await prisma.user.findUnique({ where: { id: req.user!.userId }, select: { firstName: true } }))?.firstName ?? 'Someone';
       
-      if (beneficiaryId && beneficiaryId !== req.user!.userId) {
+      const donorName = isAnonymous ? 'Anonymous' : (isGuest ? (guestName || 'A guest') : (await prisma.user.findUnique({ where: { id: req.user!.userId }, select: { firstName: true } }))?.firstName ?? 'Someone');
+      
+      if (beneficiaryId && (!req.user || beneficiaryId !== req.user.userId)) {
         await prisma.notification.create({
           data: {
             id: uuidv4(), userId: beneficiaryId,
@@ -147,7 +156,7 @@ export const createDonation = async (req: AuthRequest, res: Response, next: Next
 
     // Notify appropriate admin for verification if pending
     if (donation.paymentStatus === 'PENDING') {
-      const donorName = isAnonymous ? 'Anonymous Donor' : (await prisma.user.findUnique({ where: { id: req.user!.userId }, select: { firstName: true, lastName: true } }))?.firstName || 'Someone';
+      const donorName = isAnonymous ? 'Anonymous Donor' : (isGuest ? (guestName || 'Guest Donor') : (await prisma.user.findUnique({ where: { id: req.user!.userId }, select: { firstName: true, lastName: true } }))?.firstName || 'Someone');
       
       if (campaignId) {
         const cityAdmins = await prisma.user.findMany({ where: { role: 'CITY_ADMIN' } });

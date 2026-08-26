@@ -41,9 +41,10 @@ export default function AdminDonationsPage() {
 
   const exportCSV = () => {
     if (!donations?.length) return;
-    const headers = ['Donor', 'Amount', 'Currency', 'Type', 'Payment Method', 'Reference Code', 'Status', 'Date'];
+    const headers = ['Donor', 'Target', 'Amount', 'Currency', 'Type', 'Payment Method', 'Reference Code', 'Status', 'Date'];
     const rows = donations.map((d: any) => [
       d.isAnonymous ? 'Anonymous' : `${d.donor?.firstName} ${d.donor?.lastName}`,
+      d.campaign ? `Campaign: ${d.campaign.title}` : (d.supportRequest ? `Support Request: ${d.supportRequest.title}` : 'General'),
       d.amount || 0, d.currency, d.donationType, d.paymentMethod || 'N/A',
       d.referenceCode || d.chapaRef || 'N/A', d.paymentStatus,
       new Date(d.createdAt).toLocaleDateString(),
@@ -127,6 +128,7 @@ export default function AdminDonationsPage() {
               <thead className={cn('border-b', isDark ? 'bg-slate-700/50 border-slate-700' : 'bg-gray-50 border-gray-100')}>
                 <tr>
                   <th className={cn('text-left px-5 py-3.5 font-semibold', isDark ? 'text-slate-400' : 'text-gray-600')}>{t('admin.donor')}</th>
+                  <th className={cn('text-left px-5 py-3.5 font-semibold', isDark ? 'text-slate-400' : 'text-gray-600')}>Target</th>
                   <th className={cn('text-left px-5 py-3.5 font-semibold', isDark ? 'text-slate-400' : 'text-gray-600')}>{t('admin.amount')}</th>
                   <th className={cn('text-left px-5 py-3.5 font-semibold', isDark ? 'text-slate-400' : 'text-gray-600')}>{t('admin.type')}</th>
                   <th className={cn('text-left px-5 py-3.5 font-semibold', isDark ? 'text-slate-400' : 'text-gray-600')}>Method</th>
@@ -150,6 +152,21 @@ export default function AdminDonationsPage() {
                           </div>
                           {d.donor?.firstName ?? ''} {d.donor?.lastName ?? ''}
                         </div>
+                      )}
+                    </td>
+                    <td className={cn('px-5 py-3.5', isDark ? 'text-slate-300' : 'text-gray-700')}>
+                      {d.campaign ? (
+                        <div className="flex flex-col">
+                          <span className={cn('text-[10px] font-bold uppercase tracking-wider', isDark ? 'text-indigo-400' : 'text-indigo-600')}>Campaign</span>
+                          <span className="font-medium truncate max-w-[150px]" title={d.campaign.title}>{d.campaign.title}</span>
+                        </div>
+                      ) : d.supportRequest ? (
+                        <div className="flex flex-col">
+                          <span className={cn('text-[10px] font-bold uppercase tracking-wider', isDark ? 'text-blue-400' : 'text-blue-600')}>Support Request</span>
+                          <span className="font-medium truncate max-w-[150px]" title={d.supportRequest.title}>{d.supportRequest.title}</span>
+                        </div>
+                      ) : (
+                        <span className={cn('text-xs italic', isDark ? 'text-slate-500' : 'text-gray-400')}>General</span>
                       )}
                     </td>
                     <td className={cn('px-5 py-3.5 font-bold text-green-700')}>{d.amount ? formatCurrency(d.amount) : '—'}</td>

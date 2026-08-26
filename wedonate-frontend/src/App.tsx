@@ -189,7 +189,7 @@ export default function App() {
       
       {/* Kebele, City, System Admins */}
       <Route path="/admin/user-verification" element={withLayout(<IndividualVerificationPage />, ALL_ADMINS)} />
-      <Route path="/admin/donations"      element={withLayout(<AdminDonationsPage />, CITY_AND_SYSTEM)} />
+      <Route path="/admin/donations"      element={withLayout(<AdminDonationsPage />, ALL_ADMINS)} />
 
       <Route path="/admin/kebeles"        element={withLayout(<ManageKebelesPage />, CITY_AND_SYSTEM)} />
 

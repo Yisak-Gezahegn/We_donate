@@ -457,8 +457,22 @@ export const getPendingDonations = async (req: AuthRequest, res: Response, next:
 
 export const verifyDonation = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const donation = await prisma.donation.findUnique({ where: { id: req.params.id } });
+    const donation = await prisma.donation.findUnique({ 
+      where: { id: req.params.id },
+      include: { supportRequest: { select: { source: true, kebeleId: true } } }
+    });
     if (!donation) return next(createError('Donation not found', 404));
+
+    // Enforce ownership model
+    if (req.user!.role === 'KEBELE_ADMIN') {
+      if (!donation.supportRequest || donation.supportRequest.source !== 'SELF_SERVICE' || donation.supportRequest.kebeleId !== req.user!.kebeleId) {
+        return next(createError('You are not authorized to verify this donation.', 403));
+      }
+    } else if (req.user!.role === 'CITY_ADMIN') {
+      if (donation.supportRequest && donation.supportRequest.source === 'SELF_SERVICE') {
+        return next(createError('City Admins cannot verify normal individual donations.', 403));
+      }
+    }
 
     const updated = await prisma.donation.update({
       where: { id: req.params.id },
@@ -531,8 +545,22 @@ export const verifyDonation = async (req: AuthRequest, res: Response, next: Next
 export const rejectDonation = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { reason } = req.body;
-    const donation = await prisma.donation.findUnique({ where: { id: req.params.id } });
+    const donation = await prisma.donation.findUnique({ 
+      where: { id: req.params.id },
+      include: { supportRequest: { select: { source: true, kebeleId: true } } }
+    });
     if (!donation) return next(createError('Donation not found', 404));
+
+    // Enforce ownership model
+    if (req.user!.role === 'KEBELE_ADMIN') {
+      if (!donation.supportRequest || donation.supportRequest.source !== 'SELF_SERVICE' || donation.supportRequest.kebeleId !== req.user!.kebeleId) {
+        return next(createError('You are not authorized to reject this donation.', 403));
+      }
+    } else if (req.user!.role === 'CITY_ADMIN') {
+      if (donation.supportRequest && donation.supportRequest.source === 'SELF_SERVICE') {
+        return next(createError('City Admins cannot reject normal individual donations.', 403));
+      }
+    }
 
     const updated = await prisma.donation.update({
       where: { id: req.params.id },

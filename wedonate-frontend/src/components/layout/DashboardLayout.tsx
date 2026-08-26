@@ -379,6 +379,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       links: [
         { to: '/admin/user-verification', icon: ShieldCheck, label: 'User Verification' },
         { to: '/admin/requests', icon: ClipboardList, label: 'Support Requests' },
+        { to: '/admin/donations', icon: Heart, label: 'Donation Management' },
         { to: '/admin/users', icon: Users, label: 'Local Individuals' },
       ]
     },

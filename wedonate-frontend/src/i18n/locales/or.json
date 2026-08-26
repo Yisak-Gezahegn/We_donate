@@ -11,8 +11,8 @@
     "profile": "Meeshaale koo"
   },
   "hero": {
-    "title": "Waliin Ta'anii Hanga Nenna",
-    "titleHighlight": "Adamaa Jaba'aa",
+    "title": "Waliin ta'anii ijaarra",
+    "titleHighlight": "Hawaasa Sooressa",
     "subtitle": "Adamaa magaalaa keessa jiru qayyuu biiroo jajjabaa waliin guyyuu hunda. Waaqa hundi yeroo hundee jijjiirama godhaa fi hawaachuu guyyuu hundee baha.",
     "cta_donate": "Amma Kenni",
     "cta_learn": "Barrisii Dabalataa",
@@ -385,7 +385,17 @@
       "DISTRIBUTED": "Hayyamte",
       "CANCELLED": "Haqame",
       "SUCCESS": "Milkaa'ine",
-      "FAILED": "Hin Milkaa'in"
+      "FAILED": "Hin Milkaa'in",
+      "PUBLISHED": "Maxxanfameera",
+      "VERIFIED": "Mirkaneeffameera"
+    },
+    "org": {
+      "verification": {
+        "verified": "Dhaabbanni kun mirkanaa'eera fi duula akkasumas gaaffii deeggarsaa uumuu danda'a.",
+        "pending": "Ilaallama eegaa jira — uumamni duulaa fi gaaffii deeggarsaa hanga hayyamamutti dhorkameera.",
+        "rejected": "Mirkaneessi fudhatama dhabeera — dhaabbanni kun duula ykn gaaffii deeggarsaa uumuu hin danda'u.",
+        "none": "Herregni kun haala mirkaneessa dhaabbataa hin qabu."
+      }
     }
   },
   "donate_page": {

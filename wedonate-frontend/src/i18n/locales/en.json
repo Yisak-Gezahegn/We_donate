@@ -12,7 +12,7 @@
   },
   "hero": {
     "title": "Together We Build",
-    "titleHighlight": "A Stronger Adama",
+    "titleHighlight": "Wealthy Community",
     "subtitle": "Connecting generous donors with families in need across Adama City. Every contribution transforms lives and strengthens our community.",
     "cta_donate": "Donate Now",
     "cta_learn": "Learn More",
@@ -391,7 +391,19 @@
       "DISTRIBUTED": "Distributed",
       "CANCELLED": "Cancelled",
       "SUCCESS": "Success",
-      "FAILED": "Failed"
+      "PUBLISHED": "Published",
+      "VERIFIED": "Verified",
+      "FAILED": "Failed",
+      "PUBLISHED": "Published",
+      "VERIFIED": "Verified"
+    },
+    "org": {
+      "verification": {
+        "verified": "This organization is verified and can create campaigns and support requests.",
+        "pending": "Awaiting review — campaign and support request creation is blocked until approved.",
+        "rejected": "Verification was rejected — this organization cannot create campaigns or support requests.",
+        "none": "This account has no organization verification status."
+      }
     }
   },
   "donate_page": {

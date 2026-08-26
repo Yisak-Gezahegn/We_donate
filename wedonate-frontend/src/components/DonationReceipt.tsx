@@ -1,8 +1,10 @@
 import { forwardRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { formatCurrency, formatDate } from '../lib/utils';
 import { Heart } from 'lucide-react';
 
 export const DonationReceipt = forwardRef<HTMLDivElement, { donation: any }>(({ donation }, ref) => {
+  const { t } = useTranslation();
   if (!donation) return null;
 
   const targetTitle = donation.supportRequest?.title || donation.campaign?.title || 'General Community Support';
@@ -38,7 +40,7 @@ export const DonationReceipt = forwardRef<HTMLDivElement, { donation: any }>(({ 
       
       {!isVerified && (
         <div className="mb-8 border-2 border-amber-400 bg-amber-50 p-4 rounded-xl text-amber-800 text-center font-bold uppercase tracking-wide">
-          Pending Verification
+          {t('common.status.PENDING')}
         </div>
       )}
       

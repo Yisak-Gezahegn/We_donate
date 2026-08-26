@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { BadgeCheck, Search, FileText, Building2, MapPin, User, Phone, ExternalLink, X, Calendar, Shield, Hash, Mail, Eye } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -49,6 +50,7 @@ function OrgDetailModal({ org, status, onClose, onApprove, onReject, isApproving
   isApproving: boolean;
   isDark: boolean;
 }) {
+  const { t } = useTranslation();
   if (!org) return null;
 
   const statusBadge = status === 'approved' ? 'success' : status === 'rejected' ? 'danger' : 'warning';
@@ -74,7 +76,7 @@ function OrgDetailModal({ org, status, onClose, onApprove, onReject, isApproving
                 </h2>
                 <div className="flex items-center gap-2 mt-1 flex-wrap">
                   <Badge variant={statusBadge}>
-                    {status === 'approved' ? 'Approved' : status === 'rejected' ? 'Rejected' : 'Pending'}
+                    {status === 'approved' ? t('common.status.APPROVED') : status === 'rejected' ? t('common.status.REJECTED') : t('common.status.PENDING')}
                   </Badge>
                   {org.orgType && <Badge variant="info">{ORG_TYPE_LABELS[org.orgType] || org.orgType}</Badge>}
                   {org.verificationStatus === 'VERIFIED' && (
@@ -162,12 +164,12 @@ function OrgDetailModal({ org, status, onClose, onApprove, onReject, isApproving
             </div>
             <p className={cn('text-sm', isDark ? 'text-blue-300' : 'text-blue-600')}>
               {org.verificationStatus === 'VERIFIED'
-                ? 'This organization is verified and can create campaigns and support requests.'
+                ? t('org.verification.verified')
                 : org.verificationStatus === 'PENDING'
-                ? 'Awaiting review — campaign and support request creation is blocked until approved.'
+                ? t('org.verification.pending')
                 : org.verificationStatus === 'REJECTED'
-                ? 'Verification was rejected — this organization cannot create campaigns or support requests.'
-                : 'This account has no organization verification status.'}
+                ? t('org.verification.rejected')
+                : t('org.verification.none')}
             </p>
           </div>
         </div>
@@ -192,6 +194,7 @@ function OrgDetailModal({ org, status, onClose, onApprove, onReject, isApproving
 
 export default function VerificationPage() {
   const { isDark } = useTheme();
+  const { t } = useTranslation();
   const [tab, setTab] = useState<Tab>('pending');
   const [search, setSearch] = useState('');
   const [rejectModal, setRejectModal] = useState<{ userId: string; name: string } | null>(null);
@@ -269,17 +272,17 @@ export default function VerificationPage() {
           <button onClick={() => setTab('pending')}
             className={cn('px-4 py-2 rounded-lg text-sm font-semibold transition-all',
               tab === 'pending' ? 'bg-amber-500 text-white shadow' : (isDark ? 'text-slate-400 hover:text-white' : 'text-gray-500 hover:text-gray-800'))}>
-            Pending ({pendingCount})
+            {t('common.status.PENDING')} ({pendingCount})
           </button>
           <button onClick={() => setTab('approved')}
             className={cn('px-4 py-2 rounded-lg text-sm font-semibold transition-all',
               tab === 'approved' ? 'bg-green-700 text-white shadow' : (isDark ? 'text-slate-400 hover:text-white' : 'text-gray-500 hover:text-gray-800'))}>
-            Approved ({approvedOrgs.length})
+            {t('common.status.APPROVED')} ({approvedOrgs.length})
           </button>
           <button onClick={() => setTab('rejected')}
             className={cn('px-4 py-2 rounded-lg text-sm font-semibold transition-all',
               tab === 'rejected' ? 'bg-red-600 text-white shadow' : (isDark ? 'text-slate-400 hover:text-white' : 'text-gray-500 hover:text-gray-800'))}>
-            Rejected ({rejectedOrgs.length})
+            {t('common.status.REJECTED')} ({rejectedOrgs.length})
           </button>
         </div>
         <div className="flex-1 min-w-[200px]">
@@ -318,7 +321,7 @@ export default function VerificationPage() {
                       {org.orgName || `${org.firstName} ${org.lastName}`}
                     </h3>
                     <Badge variant={tab === 'approved' ? 'success' : tab === 'rejected' ? 'danger' : 'warning'}>
-                      {tab === 'approved' ? 'Approved' : tab === 'rejected' ? 'Rejected' : 'Pending'}
+                      {tab === 'approved' ? t('common.status.APPROVED') : tab === 'rejected' ? t('common.status.REJECTED') : t('common.status.PENDING')}
                     </Badge>
                     {org.orgType && <Badge variant="info">{orgTypeLabel[org.orgType] || org.orgType}</Badge>}
                   </div>

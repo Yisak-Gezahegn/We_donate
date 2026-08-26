@@ -67,7 +67,7 @@ export default function AboutPage() {
     { imageUrl: '/Adama_city2.jpg',  title: 'City Streets',             description: 'Daily life and community in Adama' },
     { imageUrl: '/Adama_city3.jpg',  title: 'Adama at Dusk',            description: 'The city comes alive in the evening' },
     { imageUrl: '/Adama_City1.jfif', title: 'Central Adama',            description: 'A city of opportunity and growth' },
-    { imageUrl: '/Adama_city.jfif',  title: 'Community Gathering',      description: 'Together we build a stronger Adama' },
+    { imageUrl: '/Adama_city.jfif',  title: 'Community Gathering',      description: 'Together we build wealthy community' },
     { imageUrl: '/adama_logo.png',   title: 'Adama City Administration', description: 'Official seal of Adama City' },
   ];
 

@@ -10,7 +10,8 @@ export const getProfile = async (req: AuthRequest, res: Response, next: NextFunc
       select: {
         id: true, firstName: true, lastName: true, email: true,
         phone: true, role: true, profileImage: true,
-        verificationStatus: true, createdAt: true, verifiedByRole: true,
+        verificationStatus: true, createdAt: true, verifiedByRole: true, kebeleId: true,
+        kebele: { select: { id: true, name: true } },
         donations: {
           take: 5, orderBy: { createdAt: 'desc' },
           select: { id: true, amount: true, donationType: true, paymentStatus: true, createdAt: true },
@@ -24,15 +25,16 @@ export const getProfile = async (req: AuthRequest, res: Response, next: NextFunc
 
 export const updateProfile = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { firstName, lastName, phone } = req.body;
+    const { firstName, lastName, phone, kebeleId } = req.body;
     const user = await prisma.user.update({
       where: { id: req.user!.userId },
       data: {
         firstName: firstName || undefined,
         lastName:  lastName  || undefined,
         phone:     phone     || undefined,
+        kebeleId:  kebeleId !== undefined ? (kebeleId || null) : undefined,
       },
-      select: { id: true, firstName: true, lastName: true, email: true, phone: true, role: true, profileImage: true },
+      select: { id: true, firstName: true, lastName: true, email: true, phone: true, role: true, profileImage: true, kebeleId: true },
     });
     res.json({ success: true, data: user, message: 'Profile updated' });
   } catch (error) { next(error); }

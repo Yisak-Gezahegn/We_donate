@@ -109,6 +109,29 @@ export const assignRole = async (req: AuthRequest, res: Response, next: NextFunc
   } catch (error) { next(error); }
 };
 
+export const assignKebele = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const { kebeleId } = req.body;
+    
+    if (kebeleId) {
+      const kebele = await prisma.kebele.findUnique({ where: { id: kebeleId } });
+      if (!kebele || kebele.status !== 'ACTIVE') return next(createError('Valid active Kebele is required', 400));
+    }
+
+    const user = await prisma.user.update({
+      where: { id: req.params.id },
+      data: { kebeleId: kebeleId || null },
+      select: { id: true, firstName: true, lastName: true, email: true, role: true, kebeleId: true },
+    });
+
+    await prisma.auditLog.create({
+      data: { id: uuidv4(), userId: req.user!.userId, action: 'ASSIGN_KEBELE', resource: 'user', resourceId: req.params.id, details: `Assigned kebele ${kebeleId}` },
+    });
+
+    res.json({ success: true, data: user, message: `Kebele assignment updated` });
+  } catch (error) { next(error); }
+};
+
 export const toggleUserActive = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const targetUser = await prisma.user.findUnique({
@@ -326,8 +349,18 @@ export const toggleVerification = async (req: AuthRequest, res: Response, next: 
 
 export const createUser = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { firstName, lastName, email, password, phone, role, orgType, orgName, licenseNumber, registrationDocUrl, representativeName, officeAddress } = req.body;
+    const { firstName, lastName, email, password, phone, role, orgType, orgName, licenseNumber, registrationDocUrl, representativeName, officeAddress, kebeleId } = req.body;
     if (!firstName || !lastName || !email || !password) return next(createError('First name, last name, email and password are required', 400));
+    
+    if (req.user!.role === 'CITY_ADMIN' && role !== 'KEBELE_ADMIN') {
+      return next(createError('City Admin can only create Kebele Admins', 403));
+    }
+
+    if (role === 'KEBELE_ADMIN') {
+      if (!kebeleId) return next(createError('Kebele assignment is required for Kebele Admin', 400));
+      const kebele = await prisma.kebele.findUnique({ where: { id: kebeleId } });
+      if (!kebele || kebele.status !== 'ACTIVE') return next(createError('Valid active Kebele is required', 400));
+    }
     
     const isOrg = role === 'ORGANIZATION';
     if (isOrg) {
@@ -350,8 +383,10 @@ export const createUser = async (req: AuthRequest, res: Response, next: NextFunc
         registrationDocUrl: isOrg ? registrationDocUrl : null,
         representativeName: isOrg ? representativeName : null,
         officeAddress: isOrg ? officeAddress : null,
+        kebeleId: role === 'KEBELE_ADMIN' ? kebeleId : null,
+        verificationStatus: role === 'KEBELE_ADMIN' ? 'VERIFIED' : 'UNVERIFIED',
       },
-      select: { id: true, firstName: true, lastName: true, email: true, role: true, isActive: true, createdAt: true },
+      select: { id: true, firstName: true, lastName: true, email: true, role: true, isActive: true, createdAt: true, kebeleId: true },
     });
     await prisma.auditLog.create({
       data: { id: uuidv4(), userId: req.user!.userId, action: 'CREATE_USER', resource: 'user', resourceId: user.id, details: `Created user ${firstName} ${lastName} (${email})` },
@@ -360,39 +395,7 @@ export const createUser = async (req: AuthRequest, res: Response, next: NextFunc
   } catch (error) { next(error); }
 };
 
-export const createAssistedUser = async (req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
-    const { firstName, lastName, phone, password } = req.body;
-    if (!firstName || !lastName || !password) return next(createError('First name, last name, and password are required', 400));
-    
-    if (req.user!.role !== 'KEBELE_ADMIN') return next(createError('Only Kebele Admins can create assisted accounts', 403));
 
-    const email = `assisted.${uuidv4().split('-')[0]}@wedonate.local`;
-    
-    const user = await prisma.user.create({
-      data: {
-        id: uuidv4(),
-        firstName, lastName, email, password, phone: phone || null,
-        role: 'USER',
-        kebeleId: req.user!.kebeleId,
-        verificationStatus: 'VERIFIED',
-        accountSource: 'ASSISTED',
-        createdByAdminId: req.user!.userId,
-      },
-      select: { id: true, firstName: true, lastName: true, phone: true, role: true, kebeleId: true, accountSource: true },
-    });
-    
-    await prisma.auditLog.create({
-      data: {
-        id: uuidv4(), userId: req.user!.userId,
-        action: 'CREATE_ASSISTED_USER', resource: 'user', resourceId: user.id,
-        details: `Created assisted user ${firstName} ${lastName}`
-      },
-    });
-    
-    res.status(201).json({ success: true, data: user, message: 'Assisted user created successfully' });
-  } catch (error) { next(error); }
-};
 
 export const getAllDonationsAdmin = async (req: Request, res: Response, next: NextFunction) => {
   try {

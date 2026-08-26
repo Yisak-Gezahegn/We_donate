@@ -204,13 +204,12 @@ export default function ManageUsersPage() {
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
   const [assigningUser, setAssigningUser] = useState<string | null>(null);
+  const [assigningKebeleUser, setAssigningKebeleUser] = useState<string | null>(null);
   const [editingExpiry, setEditingExpiry] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showAssistedModal, setShowAssistedModal] = useState(false);
   const [viewingUser, setViewingUser] = useState<any>(null);
   const [deletingUser, setDeletingUser] = useState<any>(null);
-  const [createForm, setCreateForm] = useState({ firstName: '', lastName: '', email: '', password: '', phone: '', role: 'USER' });
-  const [assistedForm, setAssistedForm] = useState({ firstName: '', lastName: '', phone: '', password: '' });
+  const [createForm, setCreateForm] = useState({ firstName: '', lastName: '', email: '', password: '', phone: '', role: 'USER', kebeleId: '' });
   const { user: currentUser } = useAuth();
   const qc = useQueryClient();
 
@@ -223,11 +222,23 @@ export default function ManageUsersPage() {
     queryFn: () => api.get('/admin/users', { params: { search: search || undefined, role: roleFilter || undefined } }).then(r => r.data.data),
   });
 
+  const { data: kebeles = [] } = useQuery({
+    queryKey: ['admin-kebeles'],
+    queryFn: () => api.get('/kebeles/active').then(r => r.data),
+  });
+
   const assignRole = useMutation({
     mutationFn: ({ userId, role }: { userId: string; role: string }) =>
       api.patch(`/admin/users/${userId}/role`, { role }),
     onSuccess: () => { toast.success(t('admin.role_updated')); qc.invalidateQueries({ queryKey: ['admin-users'] }); setAssigningUser(null); },
     onError: (e: any) => toast.error(e?.response?.data?.message || t('admin.role_update_failed')),
+  });
+
+  const assignKebele = useMutation({
+    mutationFn: ({ userId, kebeleId }: { userId: string; kebeleId: string }) =>
+      api.patch(`/admin/users/${userId}/kebele`, { kebeleId }),
+    onSuccess: () => { toast.success('Kebele assigned successfully'); qc.invalidateQueries({ queryKey: ['admin-users'] }); setAssigningKebeleUser(null); },
+    onError: (e: any) => toast.error(e?.response?.data?.message || 'Failed to assign Kebele'),
   });
 
   const toggleActive = useMutation({
@@ -244,15 +255,11 @@ export default function ManageUsersPage() {
 
   const createUser = useMutation({
     mutationFn: (data: any) => api.post('/admin/users', data),
-    onSuccess: () => { toast.success('User created successfully'); qc.invalidateQueries({ queryKey: ['admin-users'] }); setShowCreateModal(false); setCreateForm({ firstName: '', lastName: '', email: '', password: '', phone: '', role: 'USER' }); },
+    onSuccess: () => { toast.success('User created successfully'); qc.invalidateQueries({ queryKey: ['admin-users'] }); setShowCreateModal(false); setCreateForm({ firstName: '', lastName: '', email: '', password: '', phone: '', role: 'USER', kebeleId: '' }); },
     onError: (e: any) => toast.error(e?.response?.data?.message || 'Failed to create user'),
   });
 
-  const createAssistedUser = useMutation({
-    mutationFn: (data: any) => api.post('/admin/users/assisted', data),
-    onSuccess: () => { toast.success('Assisted user created successfully'); qc.invalidateQueries({ queryKey: ['admin-users'] }); setShowAssistedModal(false); setAssistedForm({ firstName: '', lastName: '', phone: '', password: '' }); },
-    onError: (e: any) => toast.error(e?.response?.data?.message || 'Failed to create assisted user'),
-  });
+
 
   const deleteUser = useMutation({
     mutationFn: (userId: string) => api.delete(`/admin/users/${userId}`),
@@ -317,14 +324,9 @@ export default function ManageUsersPage() {
           <h1 className={cn('text-2xl font-extrabold', isDark ? 'text-white' : 'text-gray-900')}>{t('admin.manage_users_title')}</h1>
           <p className={cn('text-sm mt-1', isDark ? 'text-slate-400' : 'text-gray-500')}>{users?.length ?? 0} {t('admin.total_users_suffix')}</p>
         </div>
-        {isSystemAdmin && (
+        {(isSystemAdmin || currentUser?.role === 'CITY_ADMIN') && (
           <Button leftIcon={<UserPlus className="w-4 h-4" />} onClick={() => setShowCreateModal(true)}>
             Create User
-          </Button>
-        )}
-        {isKebeleAdmin && (
-          <Button leftIcon={<UserPlus className="w-4 h-4" />} onClick={() => setShowAssistedModal(true)}>
-            Create Assisted Account
           </Button>
         )}
       </div>
@@ -367,9 +369,20 @@ export default function ManageUsersPage() {
                 <select value={createForm.role} onChange={e => setCreateForm(p => ({ ...p, role: e.target.value }))}
                   className={cn('w-full rounded-xl border px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500',
                     isDark ? 'bg-slate-700 border-slate-600 text-white' : 'border-gray-300')}>
-                  {ALL_ROLES.map(r => <option key={r} value={r}>{r.replace('_', ' ')}</option>)}
+                  {ALL_ROLES.filter(r => isSystemAdmin || (currentUser?.role === 'CITY_ADMIN' && r === 'KEBELE_ADMIN')).map(r => <option key={r} value={r}>{r.replace('_', ' ')}</option>)}
                 </select>
               </div>
+              {createForm.role === 'KEBELE_ADMIN' && (
+                <div>
+                  <label className={cn('block text-sm font-medium mb-1', isDark ? 'text-slate-300' : 'text-gray-700')}>Assign Kebele</label>
+                  <select value={createForm.kebeleId} onChange={e => setCreateForm(p => ({ ...p, kebeleId: e.target.value }))}
+                    className={cn('w-full rounded-xl border px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500',
+                      isDark ? 'bg-slate-700 border-slate-600 text-white' : 'border-gray-300')}>
+                    <option value="">-- Select active Kebele --</option>
+                    {kebeles.map((k: any) => <option key={k.id} value={k.id}>{k.name}</option>)}
+                  </select>
+                </div>
+              )}
               <div className="flex gap-3 pt-2">
                 <Button onClick={() => createUser.mutate(createForm)} isLoading={createUser.isPending}
                   disabled={!createForm.firstName || !createForm.lastName || !createForm.email || !createForm.password}>
@@ -382,38 +395,7 @@ export default function ManageUsersPage() {
         </div>
       )}
 
-      {/* Create Assisted User Modal */}
-      {showAssistedModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowAssistedModal(false)} />
-          <Card className="relative z-10 w-full max-w-lg p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className={cn('text-lg font-bold', isDark ? 'text-white' : 'text-gray-900')}>Create Assisted Account</h2>
-              <button onClick={() => setShowAssistedModal(false)} className={cn('p-1.5 rounded-lg', isDark ? 'hover:bg-slate-700 text-slate-400' : 'hover:bg-gray-100 text-gray-500')}>
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <p className={cn('text-sm mb-4', isDark ? 'text-slate-400' : 'text-gray-500')}>
-              Create an account for a community member who needs assistance. Their account will be linked to your Kebele.
-            </p>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <Input label="First Name" value={assistedForm.firstName} onChange={e => setAssistedForm(p => ({ ...p, firstName: e.target.value }))} placeholder="First name" />
-                <Input label="Last Name" value={assistedForm.lastName} onChange={e => setAssistedForm(p => ({ ...p, lastName: e.target.value }))} placeholder="Last name" />
-              </div>
-              <Input label="Phone (optional)" value={assistedForm.phone} onChange={e => setAssistedForm(p => ({ ...p, phone: e.target.value }))} placeholder="+251..." />
-              <Input label="Password" type="password" value={assistedForm.password} onChange={e => setAssistedForm(p => ({ ...p, password: e.target.value }))} placeholder="Set a password for them" />
-              <div className="flex gap-3 pt-2">
-                <Button onClick={() => createAssistedUser.mutate(assistedForm)} isLoading={createAssistedUser.isPending}
-                  disabled={!assistedForm.firstName || !assistedForm.lastName || !assistedForm.password}>
-                  Create Account
-                </Button>
-                <Button variant="ghost" onClick={() => setShowAssistedModal(false)}>Cancel</Button>
-              </div>
-            </div>
-          </Card>
-        </div>
-      )}
+
 
       {isLoading ? (
         <div className="flex items-center justify-center h-48">
@@ -465,7 +447,24 @@ export default function ManageUsersPage() {
                           {ALL_ROLES.map(r => <option key={r} value={r}>{r.replace('_',' ')}</option>)}
                         </select>
                       ) : (
-                        <Badge variant={(roleColors[u.role] || 'default') as any}>{u.role.replace('_',' ')}</Badge>
+                        <div className="flex flex-col gap-1">
+                          <Badge variant={(roleColors[u.role] || 'default') as any}>{u.role.replace('_',' ')}</Badge>
+                          {u.role === 'KEBELE_ADMIN' && u.kebeleId && (
+                            <span className="text-xs text-blue-500">
+                              Kebele: {kebeles.find((k: any) => k.id === u.kebeleId)?.name || 'Unknown'}
+                            </span>
+                          )}
+                          {assigningKebeleUser === u.id ? (
+                            <select autoFocus defaultValue={u.kebeleId || ''}
+                              onChange={e => assignKebele.mutate({ userId: u.id, kebeleId: e.target.value })}
+                              onBlur={() => setAssigningKebeleUser(null)}
+                              className={cn('mt-1 rounded-lg border px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-green-500',
+                                isDark ? 'bg-slate-700 border-slate-600 text-white' : 'border-gray-300')}>
+                              <option value="">-- No Kebele --</option>
+                              {kebeles.map((k: any) => <option key={k.id} value={k.id}>{k.name}</option>)}
+                            </select>
+                          ) : null}
+                        </div>
                       )}
                     </td>
                     <td className={cn('px-5 py-3.5', isDark ? 'text-slate-400' : 'text-gray-500')}>{formatDate(u.createdAt)}</td>
@@ -496,6 +495,13 @@ export default function ManageUsersPage() {
                             className={cn('flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors',
                               isDark ? 'text-green-400 hover:text-green-300 bg-green-900/30 hover:bg-green-900/50' : 'text-green-700 hover:text-green-800 bg-green-50 hover:bg-green-100')}>
                             <UserCog className="w-3.5 h-3.5" /> {t('admin.assign_role')}
+                          </button>
+                        )}
+                        {u.role === 'KEBELE_ADMIN' && (isSystemAdmin || currentUser?.role === 'CITY_ADMIN') && (
+                          <button onClick={() => setAssigningKebeleUser(u.id)}
+                            className={cn('flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors',
+                              isDark ? 'text-purple-400 hover:text-purple-300 bg-purple-900/30 hover:bg-purple-900/50' : 'text-purple-700 hover:text-purple-800 bg-purple-50 hover:bg-purple-100')}>
+                            <UserCog className="w-3.5 h-3.5" /> Assign Kebele
                           </button>
                         )}
                         {canDeleteUser(u) && (

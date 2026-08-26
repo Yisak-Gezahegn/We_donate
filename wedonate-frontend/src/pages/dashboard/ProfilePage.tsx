@@ -21,8 +21,8 @@ export default function ProfilePage() {
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState<string>(user?.profileImage || '');
 
-  const { register, handleSubmit, formState: { errors } } = useForm({
-    values: {
+  const { register, handleSubmit, reset, formState: { errors } } = useForm({
+    defaultValues: {
       firstName: user?.firstName || '',
       lastName:  user?.lastName  || '',
       phone:     user?.phone || '',
@@ -38,6 +38,15 @@ export default function ProfilePage() {
     },
     enabled: user?.role === 'USER', // only needed for users
   });
+
+  React.useEffect(() => {
+    reset({
+      firstName: user?.firstName || '',
+      lastName:  user?.lastName  || '',
+      phone:     user?.phone || '',
+      kebeleId:  user?.kebeleId || '',
+    });
+  }, [user, kebeles, reset]);
 
   const updateMutation = useMutation({
     mutationFn: (data: any) => api.put('/users/profile', data),

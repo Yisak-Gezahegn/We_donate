@@ -27,6 +27,12 @@ export const createRequest = async (req: AuthRequest, res: Response, next: NextF
 
     if (!title || !description || !category)
       return next(createError('Title, description and category are required', 400));
+      
+    if (category === 'MONEY') {
+      if (!telebirrAccount && !cbeAccount && !boaAccount && !awashAccount && !otherBankAccount) {
+        return next(createError('Financial aid requires at least one Bank Account or Telebirr Number', 400));
+      }
+    }
 
     if (req.user!.role === 'ORGANIZATION') {
       return next(createError('Organizations cannot create individual support requests. Please create a campaign instead.', 403));
@@ -160,7 +166,7 @@ export const getAllRequests = async (req: AuthRequest, res: Response, next: Next
     if (req.user!.role === 'KEBELE_ADMIN') {
       where.kebeleId = req.user!.kebeleId || 'UNASSIGNED';
     } else if (req.user!.role === 'CITY_ADMIN') {
-      // City Admin can see all requests
+      where.source = 'ASSISTED';
     }
     const requests = await prisma.supportRequest.findMany({
       where,

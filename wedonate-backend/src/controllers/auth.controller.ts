@@ -69,7 +69,10 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
     const { email, password } = req.body;
     if (!email || !password) return next(createError('Email and password are required', 400));
 
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await prisma.user.findUnique({ 
+      where: { email },
+      include: { kebele: { select: { id: true, name: true } } }
+    });
     if (!user || !user.isActive) return next(createError('Invalid credentials', 401));
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
@@ -85,7 +88,7 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
       success: true,
       message: 'Login successful',
       data: {
-        user: { id: user.id, firstName: user.firstName, lastName: user.lastName, email: user.email, role: user.role, profileImage: user.profileImage, verificationStatus: user.verificationStatus, kebeleId: user.kebeleId },
+        user: { id: user.id, firstName: user.firstName, lastName: user.lastName, email: user.email, role: user.role, profileImage: user.profileImage, verificationStatus: user.verificationStatus, kebeleId: user.kebeleId, kebele: (user as any).kebele },
         token,
       },
     });
@@ -96,7 +99,13 @@ export const getMe = async (req: AuthRequest, res: Response, next: NextFunction)
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.user!.userId },
-      select: { id: true, firstName: true, lastName: true, email: true, phone: true, role: true, profileImage: true, verificationStatus: true, kebeleId: true, orgType: true, orgName: true, rejectionReason: true, createdAt: true, registrationExpiry: true, licenseExpiry: true },
+      select: { 
+        id: true, firstName: true, lastName: true, email: true, phone: true, 
+        role: true, profileImage: true, verificationStatus: true, kebeleId: true, 
+        orgType: true, orgName: true, rejectionReason: true, createdAt: true, 
+        registrationExpiry: true, licenseExpiry: true,
+        kebele: { select: { id: true, name: true } }
+      },
     });
     if (!user) return next(createError('User not found', 404));
     res.json({ success: true, data: user });

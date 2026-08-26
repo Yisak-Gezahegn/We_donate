@@ -1,11 +1,11 @@
 import { Router } from 'express';
 import {
   getAllUsers, assignRole, toggleUserActive, getDashboardStats, getAuditLogs,
-  toggleVerification, updateDocumentExpiry, createUser, createAssistedUser, deleteUser,
+  toggleVerification, updateDocumentExpiry, createUser, deleteUser,
   getAllDonationsAdmin, getPendingDonations, verifyDonation, rejectDonation,
   publishRequest, fulfillRequest, publishCampaign,
   getPendingOrganizations, approveOrganization, rejectOrganization,
-  getPendingUserVerifications, approveUser, rejectUser
+  getPendingUserVerifications, approveUser, rejectUser, assignKebele
 } from '../controllers/admin.controller';
 import { getInspectionReports, createInspectionReport, resolveInspection, deleteInspection } from '../controllers/inspection.controller';
 import { authenticate, authorize } from '../middleware/auth.middleware';
@@ -16,10 +16,10 @@ const CITY_AND_SYSTEM = ['CITY_ADMIN', 'SYSTEM_ADMIN'];
 const SYSTEM_ONLY = ['SYSTEM_ADMIN'];
 
 router.get('/users',               authenticate, authorize(...ALL_ADMINS), getAllUsers);
-router.post('/users',              authenticate, authorize(...SYSTEM_ONLY), createUser);
-router.post('/users/assisted',     authenticate, authorize('KEBELE_ADMIN'), createAssistedUser);
+router.post('/users',              authenticate, authorize(...CITY_AND_SYSTEM), createUser);
 router.delete('/users/:id',        authenticate, authorize(...SYSTEM_ONLY), deleteUser);
 router.patch('/users/:id/role',    authenticate, authorize(...SYSTEM_ONLY), assignRole);
+router.patch('/users/:id/kebele',  authenticate, authorize(...CITY_AND_SYSTEM), assignKebele);
 router.patch('/users/:id/toggle-active', authenticate, authorize(...CITY_AND_SYSTEM), toggleUserActive);
 router.patch('/users/:id/toggle-verification', authenticate, authorize(...CITY_AND_SYSTEM), toggleVerification);
 router.patch('/users/:id/document-expiry', authenticate, authorize(...CITY_AND_SYSTEM), updateDocumentExpiry);

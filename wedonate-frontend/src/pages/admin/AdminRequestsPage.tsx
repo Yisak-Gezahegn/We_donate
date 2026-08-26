@@ -313,10 +313,12 @@ export default function AdminRequestsPage() {
   const { data: requests, isLoading: loadingReqs } = useQuery({
     queryKey: ['admin-requests'],
     queryFn: () => api.get('/support-requests/all').then(r => r.data.data),
+    enabled: view === 'requests',
   });
   const { data: campaigns, isLoading: loadingCamps } = useQuery({
     queryKey: ['admin-campaigns'],
     queryFn: () => api.get('/campaigns/all').then(r => r.data.data),
+    enabled: view === 'campaigns' && isHighAdmin,
   });
 
   const updateReq = useMutation({

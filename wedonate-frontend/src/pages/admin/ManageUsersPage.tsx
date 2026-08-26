@@ -325,8 +325,11 @@ export default function ManageUsersPage() {
           <p className={cn('text-sm mt-1', isDark ? 'text-slate-400' : 'text-gray-500')}>{users?.length ?? 0} {t('admin.total_users_suffix')}</p>
         </div>
         {(isSystemAdmin || currentUser?.role === 'CITY_ADMIN') && (
-          <Button leftIcon={<UserPlus className="w-4 h-4" />} onClick={() => setShowCreateModal(true)}>
-            Create User
+          <Button leftIcon={<UserPlus className="w-4 h-4" />} onClick={() => {
+            setCreateForm(p => ({ ...p, role: (currentUser?.role === 'CITY_ADMIN' && !isSystemAdmin) ? 'KEBELE_ADMIN' : 'USER' }));
+            setShowCreateModal(true);
+          }}>
+            {currentUser?.role === 'CITY_ADMIN' && !isSystemAdmin ? 'Create Kebele Admin' : 'Create User'}
           </Button>
         )}
       </div>
@@ -351,7 +354,9 @@ export default function ManageUsersPage() {
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowCreateModal(false)} />
           <Card className="relative z-10 w-full max-w-lg p-6">
             <div className="flex items-center justify-between mb-6">
-              <h2 className={cn('text-lg font-bold', isDark ? 'text-white' : 'text-gray-900')}>Create New User</h2>
+              <h2 className={cn('text-lg font-bold', isDark ? 'text-white' : 'text-gray-900')}>
+                {currentUser?.role === 'CITY_ADMIN' && !isSystemAdmin ? 'Create Kebele Admin' : 'Create New User'}
+              </h2>
               <button onClick={() => setShowCreateModal(false)} className={cn('p-1.5 rounded-lg', isDark ? 'hover:bg-slate-700 text-slate-400' : 'hover:bg-gray-100 text-gray-500')}>
                 <X className="w-5 h-5" />
               </button>
@@ -366,11 +371,17 @@ export default function ManageUsersPage() {
               <Input label="Phone (optional)" value={createForm.phone} onChange={e => setCreateForm(p => ({ ...p, phone: e.target.value }))} placeholder="+251..." />
               <div>
                 <label className={cn('block text-sm font-medium mb-1', isDark ? 'text-slate-300' : 'text-gray-700')}>Role</label>
-                <select value={createForm.role} onChange={e => setCreateForm(p => ({ ...p, role: e.target.value }))}
-                  className={cn('w-full rounded-xl border px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500',
-                    isDark ? 'bg-slate-700 border-slate-600 text-white' : 'border-gray-300')}>
-                  {ALL_ROLES.filter(r => isSystemAdmin || (currentUser?.role === 'CITY_ADMIN' && r === 'KEBELE_ADMIN')).map(r => <option key={r} value={r}>{r.replace('_', ' ')}</option>)}
-                </select>
+                {currentUser?.role === 'CITY_ADMIN' && !isSystemAdmin ? (
+                  <div className={cn('w-full rounded-xl border px-4 py-3 text-sm', isDark ? 'bg-slate-700 border-slate-600 text-white' : 'bg-gray-100 border-gray-300 text-gray-700')}>
+                    KEBELE ADMIN
+                  </div>
+                ) : (
+                  <select value={createForm.role} onChange={e => setCreateForm(p => ({ ...p, role: e.target.value }))}
+                    className={cn('w-full rounded-xl border px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500',
+                      isDark ? 'bg-slate-700 border-slate-600 text-white' : 'border-gray-300')}>
+                    {ALL_ROLES.map(r => <option key={r} value={r}>{r.replace('_', ' ')}</option>)}
+                  </select>
+                )}
               </div>
               {createForm.role === 'KEBELE_ADMIN' && (
                 <div>

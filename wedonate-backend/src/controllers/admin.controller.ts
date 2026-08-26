@@ -201,8 +201,8 @@ export const getDashboardStats = async (req: AuthRequest, res: Response, next: N
       prisma.supportRequest.count({ where: { status: 'FULFILLED', ...kebeleWhere } }),
       prisma.donation.count({ 
         where: isKebeleAdmin 
-          ? { paymentStatus: 'PENDING', supportRequest: { kebeleId: req.user!.kebeleId || 'UNASSIGNED' } }
-          : { paymentStatus: 'PENDING', campaignId: { not: null } }
+          ? { paymentStatus: 'PENDING', supportRequest: { kebeleId: req.user!.kebeleId || 'UNASSIGNED', source: 'SELF_SERVICE' } }
+          : { paymentStatus: 'PENDING', OR: [{ campaignId: { not: null } }, { supportRequest: { source: 'ASSISTED' } }] }
       }),
       prisma.supportRequest.count({ where: { isPublished: true, ...kebeleWhere } }),
       isKebeleAdmin ? Promise.resolve(0) : prisma.campaign.count({ where: { status: 'PUBLISHED' } }),
@@ -397,13 +397,23 @@ export const createUser = async (req: AuthRequest, res: Response, next: NextFunc
 
 
 
-export const getAllDonationsAdmin = async (req: Request, res: Response, next: NextFunction) => {
+export const getAllDonationsAdmin = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { status, page = '1', limit = '50' } = req.query;
     const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
     const take = parseInt(limit as string);
     const where: any = {};
     if (status) where.paymentStatus = status as any;
+    
+    if (req.user!.role === 'KEBELE_ADMIN') {
+      where.supportRequest = { kebeleId: req.user!.kebeleId || 'UNASSIGNED', source: 'SELF_SERVICE' };
+    } else if (req.user!.role === 'CITY_ADMIN') {
+      where.OR = [
+        { campaignId: { not: null } },
+        { supportRequest: { source: 'ASSISTED' } }
+      ];
+    }
+    
     const [donations, total] = await Promise.all([
       prisma.donation.findMany({
         where, skip, take,
@@ -424,9 +434,12 @@ export const getPendingDonations = async (req: AuthRequest, res: Response, next:
   try {
     let where: any = { paymentStatus: 'PENDING' };
     if (req.user!.role === 'KEBELE_ADMIN') {
-      where.supportRequest = { kebeleId: req.user!.kebeleId || 'UNASSIGNED' };
+      where.supportRequest = { kebeleId: req.user!.kebeleId || 'UNASSIGNED', source: 'SELF_SERVICE' };
     } else if (req.user!.role === 'CITY_ADMIN') {
-      where.campaignId = { not: null };
+      where.OR = [
+        { campaignId: { not: null } },
+        { supportRequest: { source: 'ASSISTED' } }
+      ];
     }
 
     const donations = await prisma.donation.findMany({
@@ -543,7 +556,7 @@ export const publishRequest = async (req: AuthRequest, res: Response, next: Next
   try {
     const request = await prisma.supportRequest.update({
       where: { id: req.params.id },
-      data: { isPublished: true, publishedAt: new Date() },
+      data: { isPublished: true, publishedAt: new Date(), status: 'PUBLISHED' },
     });
     await prisma.auditLog.create({
       data: { id: uuidv4(), userId: req.user!.userId, action: 'PUBLISH_REQUEST', resource: 'support_request', resourceId: req.params.id, details: `Published request: ${request.title}` },

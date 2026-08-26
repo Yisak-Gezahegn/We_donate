@@ -35,10 +35,10 @@ router.patch('/users/:id/reject', authenticate, authorize(...ALL_ADMINS), reject
 router.get('/dashboard',           authenticate, authorize(...ALL_ADMINS), getDashboardStats);
 router.get('/audit-logs',          authenticate, authorize(...SYSTEM_ONLY), getAuditLogs);
 
-router.get('/donations',           authenticate, authorize(...CITY_AND_SYSTEM), getAllDonationsAdmin);
-router.get('/donations/pending',   authenticate, authorize(...CITY_AND_SYSTEM), getPendingDonations);
-router.patch('/donations/:id/verify', authenticate, authorize(...CITY_AND_SYSTEM), verifyDonation);
-router.patch('/donations/:id/reject', authenticate, authorize(...CITY_AND_SYSTEM), rejectDonation);
+router.get('/donations',           authenticate, authorize(...ALL_ADMINS), getAllDonationsAdmin);
+router.get('/donations/pending',   authenticate, authorize(...ALL_ADMINS), getPendingDonations);
+router.patch('/donations/:id/verify', authenticate, authorize(...ALL_ADMINS), verifyDonation);
+router.patch('/donations/:id/reject', authenticate, authorize(...ALL_ADMINS), rejectDonation);
 
 router.patch('/requests/:id/publish', authenticate, authorize(...ALL_ADMINS), publishRequest);
 router.patch('/requests/:id/fulfill', authenticate, authorize(...ALL_ADMINS), fulfillRequest);

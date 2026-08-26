@@ -173,20 +173,36 @@ export const createDonation = async (req: AuthRequest, res: Response, next: Next
           });
         }
       } else if (supportRequestId) {
-        const sr = await prisma.supportRequest.findUnique({ where: { id: supportRequestId }, select: { kebeleId: true } });
-        if (sr && sr.kebeleId && sr.kebeleId !== 'UNASSIGNED') {
-          const kebeleAdmins = await prisma.user.findMany({ where: { role: 'KEBELE_ADMIN', kebeleId: sr.kebeleId } });
-          if (kebeleAdmins.length > 0) {
-            await prisma.notification.createMany({
-              data: kebeleAdmins.map(admin => ({
-                id: uuidv4(), userId: admin.id,
-                title: donationType === 'MONEY' ? 'Donation Pending Verification' : 'New Item Donation',
-                message: donationType === 'MONEY'
-                  ? `A donation of ${amount} ETB by ${donorName} (Ref: ${referenceCode || 'N/A'}) requires your verification for a Kebele Support Request.`
-                  : `A new item donation by ${donorName} requires coordination for a Kebele Support Request.`,
-                type: 'INFO',
-              })),
-            });
+        const sr = await prisma.supportRequest.findUnique({ where: { id: supportRequestId }, select: { kebeleId: true, source: true } });
+        if (sr) {
+          if (sr.source === 'SELF_SERVICE' && sr.kebeleId && sr.kebeleId !== 'UNASSIGNED') {
+            const kebeleAdmins = await prisma.user.findMany({ where: { role: 'KEBELE_ADMIN', kebeleId: sr.kebeleId } });
+            if (kebeleAdmins.length > 0) {
+              await prisma.notification.createMany({
+                data: kebeleAdmins.map(admin => ({
+                  id: uuidv4(), userId: admin.id,
+                  title: donationType === 'MONEY' ? 'Donation Pending Verification' : 'New Item Donation',
+                  message: donationType === 'MONEY'
+                    ? `A donation of ${amount} ETB by ${donorName} (Ref: ${referenceCode || 'N/A'}) requires your verification for a Kebele Support Request.`
+                    : `A new item donation by ${donorName} requires coordination for a Kebele Support Request.`,
+                  type: 'INFO',
+                })),
+              });
+            }
+          } else if (sr.source === 'ASSISTED') {
+            const cityAdmins = await prisma.user.findMany({ where: { role: 'CITY_ADMIN' } });
+            if (cityAdmins.length > 0) {
+              await prisma.notification.createMany({
+                data: cityAdmins.map(admin => ({
+                  id: uuidv4(), userId: admin.id,
+                  title: donationType === 'MONEY' ? 'Donation Pending Verification (Assisted Request)' : 'New Item Donation (Assisted Request)',
+                  message: donationType === 'MONEY'
+                    ? `A donation of ${amount} ETB by ${donorName} (Ref: ${referenceCode || 'N/A'}) requires your verification for an Assisted Request.`
+                    : `A new item donation by ${donorName} requires coordination for an Assisted Request.`,
+                  type: 'INFO',
+                })),
+              });
+            }
           }
         }
       }

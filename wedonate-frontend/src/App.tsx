@@ -29,6 +29,7 @@ import UserVerificationPage from './pages/dashboard/UserVerificationPage';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import ManageUsersPage from './pages/admin/ManageUsersPage';
 import AdminDonationsPage from './pages/admin/AdminDonationsPage';
+import KebeleDonationsPage from './pages/admin/KebeleDonationsPage';
 import ManageKebelesPage from './pages/admin/ManageKebelesPage';
 
 import AdminRequestsPage from './pages/admin/AdminRequestsPage';
@@ -49,6 +50,7 @@ import AdminSettingsPage from './pages/admin/AdminSettingsPage';
 import AdminMessagesPage from './pages/admin/AdminMessagesPage';
 
 const ALL_ADMINS = ['KEBELE_ADMIN', 'CITY_ADMIN', 'SYSTEM_ADMIN'];
+const KEBELE_ONLY = ['KEBELE_ADMIN'];
 const CITY_AND_SYSTEM = ['CITY_ADMIN', 'SYSTEM_ADMIN'];
 const SYSTEM_ONLY = ['SYSTEM_ADMIN'];
 const ORG_AND_ADMINS = ['ORGANIZATION', 'KEBELE_ADMIN', 'CITY_ADMIN', 'SYSTEM_ADMIN'];
@@ -189,7 +191,8 @@ export default function App() {
       
       {/* Kebele, City, System Admins */}
       <Route path="/admin/user-verification" element={withLayout(<IndividualVerificationPage />, ALL_ADMINS)} />
-      <Route path="/admin/donations"      element={withLayout(<AdminDonationsPage />, ALL_ADMINS)} />
+      <Route path="/admin/kebele-donations"  element={withLayout(<KebeleDonationsPage />, KEBELE_ONLY)} />
+      <Route path="/admin/donations"         element={withLayout(<AdminDonationsPage />, CITY_AND_SYSTEM)} />
 
       <Route path="/admin/kebeles"        element={withLayout(<ManageKebelesPage />, CITY_AND_SYSTEM)} />
 

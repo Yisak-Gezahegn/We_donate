@@ -76,3 +76,20 @@
   .bg-card  { background-color: var(--bg-card); }
   .bg-muted { background-color: var(--bg-muted); }
 }
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .print-only, .print-only * {
+    visibility: visible;
+  }
+  .print-only {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+}

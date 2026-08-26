@@ -231,8 +231,9 @@ export const getMyDonations = async (req: AuthRequest, res: Response, next: Next
     const donations = await prisma.donation.findMany({
       where: { donorId: req.user!.userId },
       include: {
-        supportRequest: { select: { title: true } },
-        campaign:       { select: { title: true } },
+        donor: { select: { firstName: true, lastName: true } },
+        supportRequest: { select: { title: true, user: { select: { firstName: true, lastName: true } } } },
+        campaign:       { select: { title: true, user: { select: { orgName: true, firstName: true, lastName: true } } } },
       },
       orderBy: { createdAt: 'desc' },
     });

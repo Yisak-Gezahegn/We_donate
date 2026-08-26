@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Heart, X, Eye, CreditCard, ShieldCheck, Package, MapPin, Hash, Calendar, CheckCircle2, XCircle } from 'lucide-react';
+import { Heart, X, Eye, CreditCard, ShieldCheck, Package, MapPin, Hash, Calendar, CheckCircle2, XCircle, Printer } from 'lucide-react';
 import api from '../../lib/api';
 import { formatCurrency, formatDate, cn } from '../../lib/utils';
 import { useTheme } from '../../context/ThemeContext';
 import Card from '../../components/ui/Card';
 import Badge, { statusVariant } from '../../components/ui/Badge';
+import { DonationReceipt } from '../../components/DonationReceipt';
 
 const PAYMENT_METHOD_LABELS: Record<string, string> = {
   CHAPA: 'Chapa Payment',
@@ -75,11 +76,19 @@ function DonationDetailModal({ donation, onClose, t }: {
                 </span>
               </div>
             </div>
-            <button onClick={onClose}
-              className={cn('p-2 rounded-xl transition-colors shrink-0',
-                isDark ? 'hover:bg-slate-700 text-slate-400' : 'hover:bg-gray-100 text-gray-500')}>
-              <X className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button onClick={() => window.print()}
+                className={cn('p-2 rounded-xl transition-colors shrink-0 flex items-center gap-2 text-sm font-semibold',
+                  isDark ? 'bg-indigo-900/40 hover:bg-indigo-800/60 text-indigo-300' : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700')}>
+                <Printer className="w-4 h-4" />
+                <span className="hidden sm:inline">Print Receipt</span>
+              </button>
+              <button onClick={onClose}
+                className={cn('p-2 rounded-xl transition-colors shrink-0',
+                  isDark ? 'hover:bg-slate-700 text-slate-400' : 'hover:bg-gray-100 text-gray-500')}>
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
 
           {/* Body */}
@@ -246,7 +255,12 @@ export default function MyDonationsPage() {
 
       {/* ── Donation Detail Modal ── */}
       {viewing && (
-        <DonationDetailModal donation={viewing} onClose={() => setViewing(null)} t={t} />
+        <>
+          <div className="print:hidden">
+            <DonationDetailModal donation={viewing} onClose={() => setViewing(null)} t={t} />
+          </div>
+          <DonationReceipt donation={viewing} />
+        </>
       )}
     </div>
   );

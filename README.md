@@ -10,13 +10,15 @@ The platform is designed for the Adama City Administration, bridging the gap bet
 
 ## Core Features
 
-- **Multi-Role Architecture:** Granular access control for `USER`, `ORGANIZATION`, `KEBELE_ADMIN`, `CITY_ADMIN`, and `SYSTEM_ADMIN`.
+- **Multi-Role Architecture:** Granular access control for `USER`, `ORGANIZATION`, `KEBELE_ADMIN`, `CITY_ADMIN`, and `SYSTEM_ADMIN` with secure, token-based authentication.
 - **Intelligent AI Assistant:** Integrated RAG (Retrieval-Augmented Generation) chatbot powered by Google Gemini, capable of answering role-specific queries using embedded operational knowledge (`pgvector`).
 - **Campaign & Request Management:** End-to-end lifecycle management (draft, pending review, approved, published) for both organizational campaigns and individual support requests.
-- **Assisted Requests:** Kebele Admins can seamlessly create support requests on behalf of individuals without digital access, subject to City Admin approval.
-- **Secure Donations:** Integrated with the Chapa payment gateway alongside traditional bank transfer tracking (CBE, BOA, Awash, TeleBirr) and physical item donations.
+- **Assisted Requests:** Dedicated workflow for Kebele Admins to seamlessly create support requests on behalf of vulnerable individuals without digital access.
+- **Universal Donation Access:** Frictionless guest checkout for donations alongside authenticated user profiles.
+- **Secure Payments:** Integrated with major payment gateways (Chapa) and robust tracking for manual bank transfers (CBE, BOA, Awash, TeleBirr) and physical item donations.
+- **Real-Time Dashboards:** Specialized administrative interfaces with live metrics, audit logging, and distinct public cause visibility.
 - **Multilingual Support:** Full i18n support for English, Amharic (አማርኛ), and Afaan Oromoo.
-- **Theme Support:** Polished UI with seamless dark and light modes.
+- **Modern UI/UX:** Polished interface with seamless dark/light modes, built on a robust Tailwind CSS design system.
 
 ## Tech Stack
 

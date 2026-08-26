@@ -47,7 +47,6 @@ export default function AdminDashboard() {
     { label: t('admin.pending_campaigns'), value: stats.pendingCampaigns,        icon: Clock,       color: 'text-red-500',    bg: 'bg-red-50',    link: '/admin/campaigns' },
     { label: 'Fulfilled Requests',         value: stats.fulfilledRequests,       icon: CheckCircle, color: 'text-teal-500',   bg: 'bg-teal-50',   link: '/admin/requests' },
     { label: 'Pending Verifications',      value: stats.pendingVerifications,    icon: Eye,         color: 'text-yellow-500', bg: 'bg-yellow-50', link: '/admin/verification' },
-    { label: 'Active Campaigns',           value: stats.activeCampaigns,         icon: BarChart3,   color: 'text-purple-500', bg: 'bg-purple-50', link: '/admin/campaigns' },
   ] : [];
 
   const managementCards = [
@@ -252,6 +251,36 @@ export default function AdminDashboard() {
           </Card>
         </div>
       )}
+
+      {/* Live Public Causes */}
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className={cn('text-lg font-bold', isDark ? 'text-white' : 'text-gray-900')}>Live Public Causes</h2>
+          <Link to="/donate" className="text-xs text-green-500 font-semibold hover:bg-green-500/20 transition-colors flex items-center gap-1 bg-green-500/10 px-3 py-1.5 rounded-lg">
+            Browse Live Causes <ArrowRight className="w-3 h-3" />
+          </Link>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <Card hover className="p-5 flex items-center gap-4">
+            <div className={cn('w-12 h-12 rounded-xl flex items-center justify-center', isDark ? 'bg-indigo-500/20 text-indigo-400' : 'bg-indigo-50 text-indigo-600')}>
+              <BarChart3 className="w-6 h-6" />
+            </div>
+            <div>
+              <p className={cn('text-2xl font-extrabold', isDark ? 'text-white' : 'text-gray-900')}>{stats?.activeCampaigns || 0}</p>
+              <p className={cn('text-sm font-medium', isDark ? 'text-slate-400' : 'text-gray-500')}>Live Campaigns</p>
+            </div>
+          </Card>
+          <Card hover className="p-5 flex items-center gap-4">
+            <div className={cn('w-12 h-12 rounded-xl flex items-center justify-center', isDark ? 'bg-amber-500/20 text-amber-400' : 'bg-amber-50 text-amber-600')}>
+              <Heart className="w-6 h-6" />
+            </div>
+            <div>
+              <p className={cn('text-2xl font-extrabold', isDark ? 'text-white' : 'text-gray-900')}>{stats?.publishedRequests || 0}</p>
+              <p className={cn('text-sm font-medium', isDark ? 'text-slate-400' : 'text-gray-500')}>Live Direct Support</p>
+            </div>
+          </Card>
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Recent Donations */}

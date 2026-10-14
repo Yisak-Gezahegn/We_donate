@@ -25,13 +25,16 @@ WORKDIR /app
 
 # Copy package files
 COPY package.json package-lock.json* ./
+COPY prisma ./prisma/
 
 # Install only production dependencies
 RUN npm ci --omit=dev
 
-# Copy prisma schema and generated client
+# Generate Prisma client in production stage (ensures correct binary)
+RUN npx prisma generate
+
+# Copy prisma schema and generated client (both @prisma and .prisma are needed)
 COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 
 # Copy built artifacts
 COPY --from=builder /app/dist ./dist

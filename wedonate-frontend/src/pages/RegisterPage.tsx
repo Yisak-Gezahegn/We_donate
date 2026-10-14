@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { cn } from '../lib/utils';
 import toast from 'react-hot-toast';
 import api from '../lib/api';
@@ -19,7 +20,7 @@ const ORG_TYPES: { value: OrgType; label: string }[] = [
   { value: 'PRIVATE_CHARITY', label: 'Private Charity' },
 ];
 
-const WORDS = ['Community', 'Hope', 'Generosity', 'Together', 'Impact', 'Care'];
+const WORDS = ['register.wordCommunity', 'register.wordHope', 'register.wordGenerosity', 'register.wordTogether', 'register.wordImpact', 'register.wordCare'];
 
 function FloatingWord({ word, delay }: { word: string; delay: number }) {
   return (
@@ -33,12 +34,13 @@ function FloatingWord({ word, delay }: { word: string; delay: number }) {
 }
 
 const FEATURES = [
-  { icon: '🎯', title: 'Direct Impact', desc: 'Help real people in Adama' },
-  { icon: '📊', title: 'Full Transparency', desc: 'Track every birr donated' },
-  { icon: '🤝', title: 'Trusted Platform', desc: 'Verified organizations only' },
+  { icon: '🎯', title: 'register.featureDirectTitle', desc: 'register.featureDirectDesc' },
+  { icon: '📊', title: 'register.featureTransparentTitle', desc: 'register.featureTransparentDesc' },
+  { icon: '🤝', title: 'register.featureTrustedTitle', desc: 'register.featureTrustedDesc' },
 ];
 
 export default function RegisterPage() {
+  const { t } = useTranslation();
   const { isDark } = useTheme();
   const { register } = useAuth();
   const navigate = useNavigate();
@@ -74,12 +76,12 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isOrg && (!firstName || !lastName || !email || !password)) return toast.error('Fill all fields');
-    if (isOrg && (!orgName || !licenseNumber || !officeAddress || !email || !password)) return toast.error('Fill all required fields');
-    if (password.length < 8) return toast.error('Password must be at least 8 characters');
-    if (password !== confirmPassword) return toast.error('Passwords do not match');
-    if (isOrg && !agreed) return toast.error('You must certify the organization info');
-    if (isOrg && !registrationDocUrl) return toast.error('Please upload registration certificate');
+    if (!isOrg && (!firstName || !lastName || !email || !password)) return toast.error(t('register.fillAll'));
+    if (isOrg && (!orgName || !licenseNumber || !officeAddress || !email || !password)) return toast.error(t('register.fillAll'));
+    if (password.length < 8) return toast.error(t('register.passwordMin'));
+    if (password !== confirmPassword) return toast.error(t('register.passwordMismatch'));
+    if (isOrg && !agreed) return toast.error(t('register.certify'));
+    if (isOrg && !registrationDocUrl) return toast.error(t('register.uploadCertificate'));
 
     setLoading(true);
     try {
@@ -97,7 +99,7 @@ export default function RegisterPage() {
       toast.success(isOrg ? 'Registration submitted! Pending admin verification.' : 'Account created!');
       navigate(isOrg ? '/login' : redirectTo);
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || err.message || 'Registration failed');
+      toast.error(err?.response?.data?.message || err.message || t('common.error'));
     } finally {
       setLoading(false);
     }
@@ -110,15 +112,15 @@ export default function RegisterPage() {
         <img src="/Adama_city2.jpg" alt="" className="absolute inset-0 w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-br from-green-950/92 via-green-900/85 to-green-700/70" />
         <div className="absolute inset-0 overflow-hidden">
-          {WORDS.map((w, i) => <FloatingWord key={w} word={w} delay={i * 0.7} />)}
+          {WORDS.map((w, i) => <FloatingWord key={w} word={t(w)} delay={i * 0.7} />)}
         </div>
         <div className="relative z-10 flex flex-col items-center justify-center h-full px-12 gap-8">
           <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.3 }} className="text-center">
             <img src="/adama_logo.png" alt="Logo"
               className="w-20 h-20 rounded-2xl mx-auto mb-4 shadow-2xl border-4 border-white/30 object-cover" />
-            <h2 className="text-3xl font-extrabold text-white">Join WeDonate</h2>
-            <p className="text-white/70 mt-2">One account. Endless ways to help.</p>
+            <h2 className="text-3xl font-extrabold text-white">{t('register.join')}</h2>
+            <p className="text-white/70 mt-2">{t('register.pitch')}</p>
           </motion.div>
           <div className="w-full max-w-xs space-y-3">
             {FEATURES.map((f, i) => (
@@ -127,8 +129,8 @@ export default function RegisterPage() {
                 className="flex items-center gap-3 bg-white/10 backdrop-blur-sm border border-white/15 rounded-2xl p-3">
                 <div className="w-9 h-9 bg-white/15 rounded-xl flex items-center justify-center text-lg shrink-0">{f.icon}</div>
                 <div>
-                  <p className="text-white font-semibold text-sm">{f.title}</p>
-                  <p className="text-white/60 text-xs">{f.desc}</p>
+                  <p className="text-white font-semibold text-sm">{t(f.title)}</p>
+                  <p className="text-white/60 text-xs">{t(f.desc)}</p>
                 </div>
               </motion.div>
             ))}
@@ -158,10 +160,10 @@ export default function RegisterPage() {
           </Link>
 
           <h1 className={cn('text-3xl font-extrabold mb-1', isDark ? 'text-white' : 'text-gray-900')}>
-            {isOrg ? 'Register Organization' : 'Create Your Account'}
+            {isOrg ? t('register.organizationTitle') : t('register.accountTitle')}
           </h1>
           <p className={cn('mb-8 text-sm', isDark ? 'text-slate-400' : 'text-gray-500')}>
-            {isOrg ? 'Submit your organization details for verification' : 'Join WeDonate and start making a difference'}
+            {isOrg ? t('register.organizationSubtitle') : t('register.accountSubtitle')}
           </p>
 
           {/* ── Account Type Toggle ── */}
@@ -184,12 +186,12 @@ export default function RegisterPage() {
             {/* Name */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className={label}>First Name *</label>
+                <label className={label}>{t('register.firstName')}</label>
                 <input className={input} placeholder="Abebe"
                   value={firstName} onChange={e => setFirstName(e.target.value)} />
               </div>
               <div>
-                <label className={label}>Last Name *</label>
+                <label className={label}>{t('register.lastName')}</label>
                 <input className={input} placeholder="Kebede"
                   value={lastName} onChange={e => setLastName(e.target.value)} />
               </div>
@@ -197,7 +199,7 @@ export default function RegisterPage() {
 
             {/* Email */}
             <div>
-              <label className={label}>{isOrg ? "Official Email *" : "Email *"}</label>
+              <label className={label}>{isOrg ? t('register.officialEmail') : t('register.email')}</label>
               <div className="relative">
                 <Mail className={cn('absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4', isDark ? 'text-slate-500' : 'text-gray-400')} />
                 <input type="email" className={cn(input, 'pl-10')} placeholder={isOrg ? "org@example.com" : "you@example.com"}
@@ -207,7 +209,7 @@ export default function RegisterPage() {
 
             {/* Phone */}
             <div>
-              <label className={label}>Phone (optional)</label>
+              <label className={label}>{t('register.phoneOptional')}</label>
               <div className="relative">
                 <Phone className={cn('absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4', isDark ? 'text-slate-500' : 'text-gray-400')} />
                 <input className={cn(input, 'pl-10')} placeholder="+251 911 234 567"
@@ -218,11 +220,11 @@ export default function RegisterPage() {
             {/* Kebele Selection for Individuals */}
             {!isOrg && (
               <div>
-                <label className={label}>Kebele (Optional)</label>
+                <label className={label}>{t('register.kebeleOptional')}</label>
                 <div className="relative">
                   <MapPin className={cn('absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4', isDark ? 'text-slate-500' : 'text-gray-400')} />
                   <select className={cn(input, 'pl-10 appearance-none')} value={kebeleId} onChange={e => setKebeleId(e.target.value)}>
-                    <option value="">-- Select your Kebele --</option>
+                    <option value="">{t('register.kebeleOptional')}</option>
                     {kebeles.map(k => (
                       <option key={k.id} value={k.id}>{k.name}</option>
                     ))}
@@ -252,13 +254,13 @@ export default function RegisterPage() {
                     </div>
 
                     <div>
-                      <label className={label}>Organization Name *</label>
-                      <input className={input} placeholder="e.g. Adama Charity Foundation"
+                      <label className={label}>{t('register.organizationName')}</label>
+                      <input className={input} placeholder={t('register.organizationPlaceholder')}
                         value={orgName} onChange={e => setOrgName(e.target.value)} />
                     </div>
 
                     <div>
-                      <label className={label}>Organization Type *</label>
+                      <label className={label}>{t('register.organizationType')}</label>
                       <div className="grid grid-cols-2 gap-2">
                         {ORG_TYPES.map(ot => (
                           <button key={ot.value} type="button" onClick={() => setOrgType(ot.value)}
@@ -266,37 +268,37 @@ export default function RegisterPage() {
                               orgType === ot.value
                                 ? 'bg-green-600 text-white border-green-600'
                                 : (isDark ? 'bg-slate-700 border-slate-600 text-slate-300 hover:border-green-500' : 'bg-white border-gray-200 text-gray-700 hover:border-green-500'))}>
-                            {ot.label}
+                            {t('register.org' + ot.value)}
                           </button>
                         ))}
                       </div>
                     </div>
 
                     <div>
-                      <label className={label}>License / Registration Number *</label>
+                      <label className={label}>{t('register.license')}</label>
                       <div className="relative">
                         <FileText className={cn('absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4', isDark ? 'text-slate-500' : 'text-gray-400')} />
-                        <input className={cn(input, 'pl-10')} placeholder="e.g. 1234/2024"
+                        <input className={cn(input, 'pl-10')} placeholder={t('register.licensePlaceholder')}
                           value={licenseNumber} onChange={e => setLicenseNumber(e.target.value)} />
                       </div>
                     </div>
 
                     <div>
-                      <label className={label}>Registration Certificate *</label>
+                      <label className={label}>{t('register.certificate')}</label>
                       <ImageUpload
                         label=""
                         value={registrationDocUrl}
                         onChange={setRegistrationDocUrl}
-                        hint="Upload PDF or image of your registration certificate"
+                        hint={t('register.certificateHint')}
                         accept=".pdf,image/*"
                       />
                     </div>
 
                     <div>
-                      <label className={label}>Office Address *</label>
+                      <label className={label}>{t('register.officeAddress')}</label>
                       <div className="relative">
                         <MapPin className={cn('absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4', isDark ? 'text-slate-500' : 'text-gray-400')} />
-                        <input className={cn(input, 'pl-10')} placeholder="Sub-city, Kebele"
+                        <input className={cn(input, 'pl-10')} placeholder={t('register.officePlaceholder')}
                           value={officeAddress} onChange={e => setOfficeAddress(e.target.value)} />
                       </div>
                     </div>
@@ -308,7 +310,7 @@ export default function RegisterPage() {
                         {agreed && <CheckCircle className="w-3 h-3 text-white" />}
                       </div>
                       <span className={cn('text-xs leading-relaxed', isDark ? 'text-slate-400' : 'text-gray-600')}>
-                        I certify that this organization is legally registered in Ethiopia and all provided information is accurate.
+                        {t('register.legalAgreement')}
                       </span>
                     </label>
                   </div>
@@ -318,7 +320,7 @@ export default function RegisterPage() {
 
             {/* Password */}
             <div>
-              <label className={label}>Password *</label>
+              <label className={label}>{t('register.password')}</label>
               <div className="relative">
                 <Lock className={cn('absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4', isDark ? 'text-slate-500' : 'text-gray-400')} />
                 <input type={showPw ? 'text' : 'password'} className={cn(input, 'pl-10 pr-10')}
@@ -331,12 +333,12 @@ export default function RegisterPage() {
                 </button>
               </div>
               {password && password.length < 8 && (
-                <p className="text-xs text-amber-500 mt-1">Must be at least 8 characters</p>
+                <p className="text-xs text-amber-500 mt-1">{t('register.passwordHint')}</p>
               )}
             </div>
 
             <div>
-              <label className={label}>Confirm Password *</label>
+              <label className={label}>{t('register.confirmPassword')}</label>
               <div className="relative">
                 <Lock className={cn('absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4', isDark ? 'text-slate-500' : 'text-gray-400')} />
                 <input type={showPw ? 'text' : 'password'} className={cn(input, 'pl-10')}
@@ -344,25 +346,25 @@ export default function RegisterPage() {
                   value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
               </div>
               {confirmPassword && password !== confirmPassword && (
-                <p className="text-xs text-red-500 mt-1">Passwords do not match</p>
+                <p className="text-xs text-red-500 mt-1">{t('register.passwordMismatch')}</p>
               )}
             </div>
 
             {isOrg && (
               <div className={cn('p-3 rounded-xl text-xs leading-relaxed',
                 isDark ? 'bg-amber-900/20 text-amber-400 border border-amber-800' : 'bg-amber-50 text-amber-700 border border-amber-200')}>
-                After registration, your account will be <strong>Pending</strong>. The Adama City Admin will verify your documents within <strong>24–48 hours</strong> before you can start fundraising.
+                {t('register.pendingNotice')}
               </div>
             )}
 
             <Button type="submit" className="w-full mt-2" size="lg" isLoading={loading}
               rightIcon={<ChevronRight className="w-4 h-4" />}>
-              {isOrg ? 'Register Organization' : 'Create Free Account'}
+              {isOrg ? t('register.submitOrganization') : t('register.createAccount')}
             </Button>
           </form>
 
           <p className={cn('text-center text-sm mt-5', isDark ? 'text-slate-400' : 'text-gray-500')}>
-            Already have an account?{' '}
+            {t('register.alreadyHaveAccount')}{' '}
             <Link to={`/login?from=${encodeURIComponent(redirectTo)}`} className="text-green-500 font-semibold hover:underline">
               Log In
             </Link>

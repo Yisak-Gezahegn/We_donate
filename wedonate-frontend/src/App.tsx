@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate, useRouteError, isRouteErrorResponse, Link } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from './context/ThemeContext';
 import { cn } from './lib/utils';
 import ChatbotWidget from './components/chatbot/ChatbotWidget';
@@ -56,6 +57,7 @@ const SYSTEM_ONLY = ['SYSTEM_ADMIN'];
 const ORG_AND_ADMINS = ['ORGANIZATION', 'KEBELE_ADMIN', 'CITY_ADMIN', 'SYSTEM_ADMIN'];
 
 function Error403() {
+  const { t } = useTranslation();
   const { isDark } = useTheme();
   return (
     <MainLayout>
@@ -64,9 +66,9 @@ function Error403() {
           <div className="w-16 h-16 mx-auto mb-4 text-amber-500 flex justify-center items-center">
             <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
           </div>
-          <h1 className={cn('text-3xl font-bold mb-2', isDark ? 'text-white' : 'text-gray-900')}>403 - Access Denied</h1>
-          <p className={cn('mb-6', isDark ? 'text-slate-400' : 'text-gray-600')}>You do not have permission to access this page.</p>
-          <Link to="/" className="px-6 py-2 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700">Return to Dashboard</Link>
+          <h1 className={cn('text-3xl font-bold mb-2', isDark ? 'text-white' : 'text-gray-900')}>{t('common.ui.forbiddenTitle')}</h1>
+          <p className={cn('mb-6', isDark ? 'text-slate-400' : 'text-gray-600')}>{t('common.ui.forbiddenBody')}</p>
+          <Link to="/" className="px-6 py-2 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700">{t('common.ui.returnDashboard')}</Link>
         </div>
       </div>
     </MainLayout>
@@ -74,6 +76,7 @@ function Error403() {
 }
 
 function Error404() {
+  const { t } = useTranslation();
   const { isDark } = useTheme();
   return (
     <MainLayout>
@@ -82,9 +85,9 @@ function Error404() {
           <div className="w-16 h-16 mx-auto mb-4 text-red-500 flex justify-center items-center">
             <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
           </div>
-          <h1 className={cn('text-3xl font-bold mb-2', isDark ? 'text-white' : 'text-gray-900')}>404 - Not Found</h1>
-          <p className={cn('mb-6', isDark ? 'text-slate-400' : 'text-gray-600')}>The page you are looking for does not exist.</p>
-          <Link to="/" className="px-6 py-2 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700">Return Home</Link>
+          <h1 className={cn('text-3xl font-bold mb-2', isDark ? 'text-white' : 'text-gray-900')}>{t('common.ui.notFoundTitle')}</h1>
+          <p className={cn('mb-6', isDark ? 'text-slate-400' : 'text-gray-600')}>{t('common.ui.notFoundBody')}</p>
+          <Link to="/" className="px-6 py-2 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700">{t('common.ui.returnHome')}</Link>
         </div>
       </div>
     </MainLayout>
@@ -92,6 +95,7 @@ function Error404() {
 }
 
 function ProtectedRoute({ children, roles }: { children: React.ReactNode; roles?: string[] }) {
+  const { t } = useTranslation();
   const { isAuthenticated, user, isLoading } = useAuth();
   const { isDark } = useTheme();
 
@@ -99,7 +103,7 @@ function ProtectedRoute({ children, roles }: { children: React.ReactNode; roles?
     <div className={cn('min-h-screen flex items-center justify-center', isDark ? 'bg-slate-900' : 'bg-gray-50')}>
       <div className="flex flex-col items-center gap-4">
         <div className="w-12 h-12 border-4 border-green-600 border-t-transparent rounded-full animate-spin" />
-        <p className={cn('text-sm font-medium', isDark ? 'text-slate-400' : 'text-gray-500')}>Loading...</p>
+        <p className={cn('text-sm font-medium', isDark ? 'text-slate-400' : 'text-gray-500')}>{t('common.loading')}</p>
       </div>
     </div>
   );
@@ -112,6 +116,7 @@ function ProtectedRoute({ children, roles }: { children: React.ReactNode; roles?
 const HIGH_ADMIN_ROLES = ['KEBELE_ADMIN', 'CITY_ADMIN', 'SYSTEM_ADMIN'];
 
 function AdminOnlyRoute({ children }: { children: React.ReactNode }) {
+  const { t } = useTranslation();
   const { isAuthenticated, user, isLoading } = useAuth();
   const { isDark } = useTheme();
   const isHighAdmin = user && HIGH_ADMIN_ROLES.includes(user.role);
@@ -120,7 +125,7 @@ function AdminOnlyRoute({ children }: { children: React.ReactNode }) {
     <div className={cn('min-h-screen flex items-center justify-center', isDark ? 'bg-slate-900' : 'bg-gray-50')}>
       <div className="flex flex-col items-center gap-4">
         <div className="w-12 h-12 border-4 border-green-600 border-t-transparent rounded-full animate-spin" />
-        <p className={cn('text-sm font-medium', isDark ? 'text-slate-400' : 'text-gray-500')}>Loading...</p>
+        <p className={cn('text-sm font-medium', isDark ? 'text-slate-400' : 'text-gray-500')}>{t('common.loading')}</p>
       </div>
     </div>
   );
@@ -131,6 +136,7 @@ function AdminOnlyRoute({ children }: { children: React.ReactNode }) {
 }
 
 function PublicDonateRoute({ children }: { children: React.ReactNode }) {
+  const { t } = useTranslation();
   const { user, isLoading } = useAuth();
   const { isDark } = useTheme();
   const isHighAdmin = user && HIGH_ADMIN_ROLES.includes(user.role);
@@ -139,7 +145,7 @@ function PublicDonateRoute({ children }: { children: React.ReactNode }) {
     <div className={cn('min-h-screen flex items-center justify-center', isDark ? 'bg-slate-900' : 'bg-gray-50')}>
       <div className="flex flex-col items-center gap-4">
         <div className="w-12 h-12 border-4 border-green-600 border-t-transparent rounded-full animate-spin" />
-        <p className={cn('text-sm font-medium', isDark ? 'text-slate-400' : 'text-gray-500')}>Loading...</p>
+        <p className={cn('text-sm font-medium', isDark ? 'text-slate-400' : 'text-gray-500')}>{t('common.loading')}</p>
       </div>
     </div>
   );

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { Shield, Eye, Target, Users, Heart, ArrowRight, X, ZoomIn, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { cn } from '../lib/utils';
@@ -53,6 +54,7 @@ function Lightbox({ photos, index, onClose, onPrev, onNext }: {
 }
 
 export default function AboutPage() {
+  const { t } = useTranslation();
   const { isDark } = useTheme();
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
 
@@ -74,10 +76,10 @@ export default function AboutPage() {
   const photos = (galleryData && galleryData.length > 0) ? galleryData : defaultPhotos;
 
   const values = [
-    { icon: Shield, title: 'Transparency', desc: 'Every donation is tracked end-to-end. Donors see exactly where their money goes.' },
-    { icon: Eye,    title: 'Accountability', desc: 'Multi-level admin oversight from Kebele to City level ensures responsible distribution.' },
-    { icon: Target, title: 'Impact',     desc: 'We measure real outcomes — families fed, medical bills paid, lives improved.' },
-    { icon: Heart,  title: 'Community',  desc: 'Built by and for the people of Adama. We celebrate every generous act.' },
+    { icon: Shield, title: t('about.transparency'), desc: t('about.transparencyDesc') },
+    { icon: Eye,    title: t('about.accountability'), desc: t('about.accountabilityDesc') },
+    { icon: Target, title: t('about.impact'),     desc: t('about.impactDesc') },
+    { icon: Heart,  title: t('about.community'),  desc: t('about.communityDesc') },
   ];
 
   const sectionLight = cn('py-20 transition-colors duration-300', isDark ? 'bg-slate-900' : 'bg-white');
@@ -99,14 +101,13 @@ export default function AboutPage() {
           <motion.div initial="hidden" animate="visible" variants={fadeUp} transition={{ duration: 0.6 }}>
             <div className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm border border-white/20 rounded-full px-4 py-1.5 mb-6">
               <img src="/adama_logo.png" alt="" className="w-5 h-5 rounded-full object-cover" />
-              <span className="text-white/90 text-sm font-medium">Adama City Administration</span>
+              <span className="text-white/90 text-sm font-medium">{t('about.cityAdministration')}</span>
             </div>
             <h1 className="text-5xl font-extrabold text-white mb-6">
-              About <span className="text-amber-400">WeDonate</span>
+              {t('about.heroTitle')} <span className="text-amber-400">WeDonate</span>
             </h1>
             <p className="text-xl text-white/80 leading-relaxed max-w-3xl mx-auto">
-              Adama City Administration's official digital platform connecting generous donors
-              with families and individuals in need across Adama, Oromia, Ethiopia.
+              {t('about.heroSubtitle')}
             </p>
           </motion.div>
         </div>
@@ -117,18 +118,15 @@ export default function AboutPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}>
-              <h2 className={h2}>Our Mission</h2>
+              <h2 className={h2}>{t('about.missionTitle')}</h2>
               <p className={cn(body, 'mb-6')}>
-                To eliminate the inefficiencies of manual charity management by creating a transparent,
-                digital bridge between donors and those in need in Adama City — ensuring every birr
-                reaches those who truly need it.
+                {t('about.missionOne')}
               </p>
               <p className={cn(body, 'mb-8')}>
-                We work directly with Kebele and City-level administrators to verify requests,
-                manage distributions, and report outcomes with full accountability.
+                {t('about.missionTwo')}
               </p>
               <Link to="/register">
-                <Button rightIcon={<ArrowRight className="w-4 h-4" />}>Join the Movement</Button>
+                <Button rightIcon={<ArrowRight className="w-4 h-4" />}>{t('about.join')}</Button>
               </Link>
             </motion.div>
             <motion.div initial={{ opacity: 0, x: 30 }} whileInView={{ opacity: 1, x: 0 }}
@@ -137,8 +135,8 @@ export default function AboutPage() {
                 <img src="/Adama_city2.jpg" alt="Adama City" className="w-full h-full object-cover" />
                 <div className="absolute inset-0 bg-gradient-to-t from-green-900/60 to-transparent" />
                 <div className="absolute bottom-6 left-6 text-white">
-                  <p className="text-2xl font-bold">Adama City</p>
-                  <p className="text-sm text-white/80">Oromia, Ethiopia</p>
+                  <p className="text-2xl font-bold">{t('about.city')}</p>
+                  <p className="text-sm text-white/80">{t('about.region')}</p>
                 </div>
               </div>
             </motion.div>
@@ -151,7 +149,7 @@ export default function AboutPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}
             className="text-center mb-14">
-            <h2 className={h2}>Our Values</h2>
+            <h2 className={h2}>{t('about.valuesTitle')}</h2>
           </motion.div>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             {values.map((v, i) => (
@@ -176,9 +174,9 @@ export default function AboutPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}
             className="text-center mb-12">
-            <h2 className={h2}>Our City, Our Community</h2>
+            <h2 className={h2}>{t('about.galleryTitle')}</h2>
             <p className={cn('text-lg', isDark ? 'text-slate-400' : 'text-gray-500')}>
-              A glimpse of life in Adama — curated by our city administrators
+              {t('about.galleryDesc')}
             </p>
           </motion.div>
 
@@ -225,13 +223,13 @@ export default function AboutPage() {
         <div className="absolute inset-0 opacity-15 bg-cover bg-center" style={{ backgroundImage: "url('/Adama_city3.jpg')" }} />
         <div className="relative max-w-3xl mx-auto px-4 text-center">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}>
-            <h2 className="text-4xl font-extrabold text-white mb-6">Be Part of the Change</h2>
+            <h2 className="text-4xl font-extrabold text-white mb-6">{t('about.ctaTitle')}</h2>
             <p className="text-xl text-white/80 mb-10">
-              Post a request, donate to someone in need, or join a community campaign.
+              {t('about.ctaDesc')}
             </p>
             <Link to="/register">
               <Button size="lg" variant="secondary" rightIcon={<ArrowRight className="w-5 h-5" />}>
-                Get Started Today
+                {t('about.getStarted')}
               </Button>
             </Link>
           </motion.div>

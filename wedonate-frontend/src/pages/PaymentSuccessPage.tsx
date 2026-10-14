@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { CheckCircle, XCircle, Loader2, Heart, ArrowRight } from 'lucide-react';
 import api from '../lib/api';
 import { formatCurrency } from '../lib/utils';
 import Button from '../components/ui/Button';
 
 export default function PaymentSuccessPage() {
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const txRef = searchParams.get('tx_ref');
   const [status, setStatus] = useState<'loading' | 'success' | 'failed'>('loading');
@@ -31,8 +33,8 @@ export default function PaymentSuccessPage() {
           {status === 'loading' && (
             <>
               <Loader2 className="w-16 h-16 text-green-600 animate-spin mx-auto mb-5" />
-              <h2 className="text-xl font-bold text-gray-800">Verifying your payment...</h2>
-              <p className="text-gray-500 mt-2 text-sm">Please wait a moment.</p>
+              <h2 className="text-xl font-bold text-gray-800">{t('payment.verifying')}</h2>
+              <p className="text-gray-500 mt-2 text-sm">{t('payment.pleaseWait')}</p>
             </>
           )}
 
@@ -43,33 +45,33 @@ export default function PaymentSuccessPage() {
                   <CheckCircle className="w-10 h-10 text-green-600" />
                 </div>
               </motion.div>
-              <h2 className="text-2xl font-extrabold text-gray-900 mb-2">Payment Successful! 🎉</h2>
-              <p className="text-gray-500 mb-6">Thank you for your generosity. Your donation has been received.</p>
+              <h2 className="text-2xl font-extrabold text-gray-900 mb-2">{t('payment.successTitle')}</h2>
+              <p className="text-gray-500 mb-6">{t('payment.successMessage')}</p>
               {donation && (
                 <div className="bg-green-50 rounded-2xl p-5 mb-6 text-left space-y-3">
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Amount</span>
+                    <span className="text-gray-500">{t('payment.amount')}</span>
                     <span className="font-bold text-green-700 text-lg">{formatCurrency(donation.amount)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Reference</span>
+                    <span className="text-gray-500">{t('payment.reference')}</span>
                     <span className="font-mono text-xs text-gray-600">{donation.chapaRef?.slice(0, 20)}...</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Type</span>
-                    <span className="font-semibold">{donation.donationType}</span>
+                    <span className="text-gray-500">{t('payment.type')}</span>
+                    <span className="font-semibold">{t('donate.types.' + donation.donationType)}</span>
                   </div>
                 </div>
               )}
               <div className="flex flex-col gap-3">
                 <Link to="/dashboard/donations">
                   <Button className="w-full" rightIcon={<ArrowRight className="w-4 h-4" />}>
-                    View My Donations
+                    {t('payment.viewDonations')}
                   </Button>
                 </Link>
                 <Link to="/donate">
                   <Button variant="outline" className="w-full">
-                    <Heart className="w-4 h-4 mr-2" /> Donate Again
+                    <Heart className="w-4 h-4 mr-2" /> {t('payment.donateAgain')}
                   </Button>
                 </Link>
               </div>
@@ -81,10 +83,10 @@ export default function PaymentSuccessPage() {
               <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-5">
                 <XCircle className="w-10 h-10 text-red-500" />
               </div>
-              <h2 className="text-2xl font-extrabold text-gray-900 mb-2">Payment Failed</h2>
-              <p className="text-gray-500 mb-6">Something went wrong with your payment. No charge was made.</p>
+              <h2 className="text-2xl font-extrabold text-gray-900 mb-2">{t('payment.failedTitle')}</h2>
+              <p className="text-gray-500 mb-6">{t('payment.failedMessage')}</p>
               <Link to="/donate">
-                <Button className="w-full">Try Again</Button>
+                <Button className="w-full">{t('payment.tryAgain')}</Button>
               </Link>
             </>
           )}

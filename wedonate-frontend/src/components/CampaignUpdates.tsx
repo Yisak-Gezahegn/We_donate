@@ -34,16 +34,16 @@ export default function CampaignUpdates({ campaignId }: { campaignId: string }) 
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['campaign-updates', campaignId] });
       setTitle(''); setContent(''); setShowForm(false);
-      toast.success('Update posted successfully!');
+      toast.success(t('common.ui.updatePosted'));
     },
-    onError: () => toast.error('Failed to post update'),
+    onError: () => toast.error(t('common.ui.updatePostFailed')),
   });
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => { await api.delete(`/campaign-updates/${id}`); },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['campaign-updates', campaignId] });
-      toast.success('Update deleted');
+      toast.success(t('common.ui.updateDeleted'));
     },
   });
 
@@ -53,12 +53,12 @@ export default function CampaignUpdates({ campaignId }: { campaignId: string }) 
     <div className={cn('rounded-2xl p-5 mb-5', isDark ? 'bg-slate-700/50' : 'bg-gray-50')}>
       <div className="flex items-center justify-between mb-4">
         <h3 className={cn('text-sm font-bold flex items-center gap-2', isDark ? 'text-white' : 'text-gray-900')}>
-          <Clock className="w-4 h-4 text-green-600" /> {t('campaign.updates', { defaultValue: 'Campaign Updates' })}
+          <Clock className="w-4 h-4 text-green-600" /> {t('common.ui.campaignUpdates')}
         </h3>
         {isOwner && (
           <Button size="sm" variant="outline" onClick={() => setShowForm(!showForm)}
             leftIcon={<Plus className="w-3.5 h-3.5" />}>
-            {t('campaign.newUpdate', { defaultValue: 'New Update' })}
+            {t('common.ui.newUpdate')}
           </Button>
         )}
       </div>
@@ -66,18 +66,18 @@ export default function CampaignUpdates({ campaignId }: { campaignId: string }) 
       {showForm && (
         <div className={cn('p-4 rounded-xl mb-4 border', isDark ? 'bg-slate-800 border-slate-600' : 'bg-white border-gray-200')}>
           <input value={title} onChange={e => setTitle(e.target.value)}
-            placeholder="Update title..."
+            placeholder={t('common.ui.updateTitle')}
             className={cn('w-full px-3 py-2 rounded-lg text-sm mb-2 border', isDark ? 'bg-slate-700 border-slate-600 text-white' : 'bg-white border-gray-200')} />
           <textarea value={content} onChange={e => setContent(e.target.value)}
-            placeholder="What's new with this campaign?"
+            placeholder={t('common.ui.updateContent')}
             rows={3}
             className={cn('w-full px-3 py-2 rounded-lg text-sm mb-2 border resize-none', isDark ? 'bg-slate-700 border-slate-600 text-white' : 'bg-white border-gray-200')} />
           <div className="flex gap-2 justify-end">
-            <Button size="sm" variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
+            <Button size="sm" variant="outline" onClick={() => setShowForm(false)}>{t('common.ui.cancel')}</Button>
             <Button size="sm" onClick={() => createMutation.mutate()}
               disabled={!title.trim() || !content.trim() || createMutation.isPending}
               leftIcon={<Send className="w-3.5 h-3.5" />}>
-              {createMutation.isPending ? 'Posting...' : 'Post Update'}
+              {createMutation.isPending ? t('common.ui.posting') : t('common.ui.postUpdate')}
             </Button>
           </div>
         </div>
@@ -85,7 +85,7 @@ export default function CampaignUpdates({ campaignId }: { campaignId: string }) 
 
       {updates.length === 0 ? (
         <p className={cn('text-xs text-center py-4', isDark ? 'text-slate-500' : 'text-gray-400')}>
-          No updates posted yet.
+          {t('common.ui.noUpdates')}
         </p>
       ) : (
         <div className="space-y-3">

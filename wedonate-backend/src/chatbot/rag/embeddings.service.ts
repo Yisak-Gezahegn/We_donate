@@ -7,17 +7,21 @@ export class AIProvider {
   private ai: GoogleGenerativeAI | null = null;
 
   constructor() {
-    const key = process.env.AI_API_KEY || process.env.OPENAI_API_KEY;
+    const key = process.env.AI_API_KEY;
     if (key) {
       this.ai = new GoogleGenerativeAI(key);
     } else {
-      console.warn("⚠️ No AI_API_KEY found. Running in MOCK AI mode.");
+      console.warn("⚠️ AI_API_KEY is not configured. WeDonate AI responses are unavailable.");
     }
+  }
+
+  get isConfigured(): boolean {
+    return this.ai !== null;
   }
 
   async createEmbedding(text: string): Promise<number[]> {
     if (!this.ai) {
-      return Array(3072).fill(0).map(() => Math.random() * 2 - 1);
+      throw new Error('AI_API_KEY is required to create knowledge embeddings.');
     }
     
     try {
@@ -28,14 +32,14 @@ export class AIProvider {
       }
       return result.embedding.values;
     } catch (err) {
-      console.warn("⚠️ Embedding failed. Falling back to mock 768-d vector. Error:", err);
-      return Array(3072).fill(0).map(() => Math.random() * 2 - 1);
+      console.error("Embedding generation failed; refusing to create an invalid knowledge vector.", err);
+      throw err;
     }
   }
 
   async generateResponse(systemPrompt: string, userMessage: string, maxTokens: number = 1000): Promise<string> {
     if (!this.ai) {
-      return "This is a mock response from the WeDonate AI Assistant because no API key was provided in the .env file.";
+      return "The WeDonate AI Assistant is not configured yet. Please contact the site administrator.";
     }
     
     const modelName = process.env.AI_MODEL || "gemini-3.6-flash";

@@ -5,6 +5,10 @@ import { loadKnowledgeDocuments } from './knowledgeLoader';
 import { v4 as uuidv4 } from 'uuid';
 
 export async function ingestKnowledgeBase() {
+  if (!aiProvider.isConfigured) {
+    throw new Error('Set AI_API_KEY in wedonate-backend/.env before ingesting chatbot knowledge.');
+  }
+
   console.log('Loading documents...');
   const docs = loadKnowledgeDocuments();
   console.log(`Found ${docs.length} documents.`);

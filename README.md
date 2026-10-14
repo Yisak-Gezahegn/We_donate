@@ -47,7 +47,7 @@ We_donate/
 - PostgreSQL 18+ (running as a service, with `pgvector` extension installed)
 
 ### 1. Database Configuration
-Update `wedonate-backend/.env`:
+Update `wedonate-backend/.env` and set a valid Google Gemini API key (keep this file private):
 ```env
 DATABASE_URL="postgresql://postgres:password@localhost:5432/wedonate_db"
 AI_API_KEY="your-google-gemini-api-key"
@@ -66,8 +66,10 @@ npm run db:seed
 To enable the WeDonate AI Assistant, ingest the documentation into the vector database:
 ```bash
 cd wedonate-backend
-npx tsx src/ingest.ts
+npm run chatbot:ingest
 ```
+
+For Docker Compose, provide `AI_API_KEY` in the environment used to run Compose or in the repository-root `.env` file. Compose passes it to the backend container. Do not commit either environment file. Restart the backend after changing the key, then run the knowledge ingestion command again.
 
 ### 3. Start Backend Server
 ```bash

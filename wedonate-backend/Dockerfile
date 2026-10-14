@@ -42,7 +42,7 @@ RUN mkdir -p uploads && chown -R node:node uploads
 # Run as non-root user
 USER node
 
-EXPOSE 3000
+EXPOSE 5000
 
 # Entry point starts the application
 CMD ["npm", "start"]

@@ -111,6 +111,7 @@ async function main() {
       status: 'PUBLISHED',
       familySize: 6,
       location: 'Kebele 01, Adama City',
+      imageUrl: 'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=800&q=80',
       telebirrAccount: '0911000001',
       cbeAccount: '1000123456789',
       requesterPhone: '+251911000001',
@@ -133,6 +134,7 @@ async function main() {
       status: 'PUBLISHED',
       familySize: 2,
       location: 'Kebele 02, Adama City',
+      imageUrl: 'https://images.unsplash.com/photo-1584820927498-cfe5211fd8bf?w=800&q=80',
       telebirrAccount: '0911000002',
       requesterPhone: '+251911000002',
     },
@@ -154,6 +156,7 @@ async function main() {
       status: 'PUBLISHED',
       familySize: 4,
       location: 'Kebele 01, Adama City',
+      imageUrl: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=800&q=80',
       telebirrAccount: '0911000001',
       requesterPhone: '+251911000001',
     },
@@ -175,6 +178,7 @@ async function main() {
       goalAmount: 150000,
       raisedAmount: 62000,
       status: 'PUBLISHED',
+      imageUrl: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=800&q=80',
       telebirrAccount: '0922000001',
       cbeAccount: '1000987654321',
       boaAccount: '0040123456789',
@@ -194,6 +198,7 @@ async function main() {
       goalAmount: 80000,
       raisedAmount: 28000,
       status: 'PUBLISHED',
+      imageUrl: 'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=800&q=80',
       telebirrAccount: '0922000001',
       cbeAccount: '1000987654321',
       deadline: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000),
@@ -297,17 +302,12 @@ async function main() {
     });
   }
 
-  // ── 10. Hero Images ─────────────────────────────────────────────────────────
-  const heroImages = [
-    { caption: 'Together We Build a Wealthy Community', imageUrl: 'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=1920&q=80', sortOrder: 1 },
-    { caption: 'Every Donation Changes a Life', imageUrl: 'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=1920&q=80', sortOrder: 2 },
-    { caption: 'Connecting Hearts Across Adama City', imageUrl: 'https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=1920&q=80', sortOrder: 3 },
-  ];
-  for (const img of heroImages) {
-    const existing = await prisma.heroImage.findFirst({ where: { caption: img.caption } });
-    if (!existing) {
-      await prisma.heroImage.create({ data: { id: uuidv4(), ...img, isActive: true } });
-    }
+  // ── 10. Hero Images — only seed if none exist (don't override user-uploaded ones) ─
+  const heroCount = await prisma.heroImage.count();
+  if (heroCount === 0) {
+    // Leave empty — the frontend uses the local Adama City images as fallback
+    // Admin can upload real hero images via the dashboard
+    console.log('  (No hero images seeded — frontend fallback images will be used)');
   }
 
   console.log('✅ Seed complete!');

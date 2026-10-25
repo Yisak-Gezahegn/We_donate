@@ -76,8 +76,8 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isOrg && (!firstName || !lastName || !email || !password)) return toast.error(t('register.fillAll'));
-    if (isOrg && (!orgName || !licenseNumber || !officeAddress || !email || !password)) return toast.error(t('register.fillAll'));
+    if (!isOrg && (!firstName || !lastName || !email || !phone || !password)) return toast.error(t('register.fillAll'));
+    if (isOrg && (!orgName || !licenseNumber || !officeAddress || !email || !phone || !password)) return toast.error(t('register.fillAll'));
     if (password.length < 8) return toast.error(t('register.passwordMin'));
     if (password !== confirmPassword) return toast.error(t('register.passwordMismatch'));
     if (isOrg && !agreed) return toast.error(t('register.certify'));
@@ -199,7 +199,9 @@ export default function RegisterPage() {
 
             {/* Email */}
             <div>
-              <label className={label}>{isOrg ? t('register.officialEmail') : t('register.email')}</label>
+              <label className={label}>
+                {isOrg ? t('register.officialEmail') : t('register.email')} <span className="text-red-500">*</span>
+              </label>
               <div className="relative">
                 <Mail className={cn('absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4', isDark ? 'text-slate-500' : 'text-gray-400')} />
                 <input type="email" className={cn(input, 'pl-10')} placeholder={isOrg ? "org@example.com" : "you@example.com"}
@@ -209,12 +211,15 @@ export default function RegisterPage() {
 
             {/* Phone */}
             <div>
-              <label className={label}>{t('register.phoneOptional')}</label>
+              <label className={label}>
+                {t('register.phone')} <span className="text-red-500">*</span>
+              </label>
               <div className="relative">
                 <Phone className={cn('absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4', isDark ? 'text-slate-500' : 'text-gray-400')} />
-                <input className={cn(input, 'pl-10')} placeholder="+251 911 234 567"
+                <input required className={cn(input, 'pl-10')} placeholder="+251 911 234 567"
                   value={phone} onChange={e => setPhone(e.target.value)} />
               </div>
+              {!phone && <p className="text-xs text-gray-400 mt-1">Phone number is required</p>}
             </div>
 
             {/* Kebele Selection for Individuals */}

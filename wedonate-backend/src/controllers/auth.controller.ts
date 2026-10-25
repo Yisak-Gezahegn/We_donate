@@ -22,8 +22,8 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
       kebeleId,
     } = req.body;
 
-    if (!firstName || !lastName || !email || !password)
-      return next(createError('Please provide all required fields', 400));
+    if (!firstName || !lastName || !email || !password || !phone)
+      return next(createError('Please provide all required fields including phone number', 400));
 
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) return next(createError('Email already in use', 409));

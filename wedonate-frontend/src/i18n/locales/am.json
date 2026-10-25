@@ -645,6 +645,7 @@
     "firstName": "የመጀመሪያ ስም *",
     "lastName": "የአባት ስም *",
     "phoneOptional": "ስልክ (አማራጭ)",
+    "phone": "ስልክ ቁጥር *",
     "kebeleOptional": "ቀበሌ (አማራጭ)",
     "organizationName": "የድርጅት ስም *",
     "organizationType": "የድርጅት ዓይነት *",

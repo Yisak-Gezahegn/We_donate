@@ -645,6 +645,7 @@
     "firstName": "First Name *",
     "lastName": "Last Name *",
     "phoneOptional": "Phone (optional)",
+    "phone": "Phone Number *",
     "kebeleOptional": "Kebele (optional)",
     "organizationName": "Organization Name *",
     "organizationType": "Organization Type *",

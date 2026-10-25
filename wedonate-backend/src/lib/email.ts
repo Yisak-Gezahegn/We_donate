@@ -1,20 +1,38 @@
 import nodemailer from 'nodemailer';
 
-const transporter = nodemailer.createTransport({
-  host:   process.env.SMTP_HOST  || 'smtp.gmail.com',
-  port:   Number(process.env.SMTP_PORT) || 587,
-  secure: false, // TLS
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
+const isSmtpConfigured =
+  process.env.SMTP_USER &&
+  process.env.SMTP_PASS &&
+  !process.env.SMTP_USER.includes('your@') &&
+  !process.env.SMTP_PASS.includes('your-app');
+
+const transporter = isSmtpConfigured
+  ? nodemailer.createTransport({
+      host:   process.env.SMTP_HOST  || 'smtp.gmail.com',
+      port:   Number(process.env.SMTP_PORT) || 587,
+      secure: false,
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+    })
+  : null;
 
 export async function sendPasswordResetEmail(
   toEmail: string,
   firstName: string,
   resetUrl: string
 ): Promise<void> {
+
+  // If SMTP not configured, log to console (useful for dev/testing)
+  if (!transporter) {
+    console.log('\n========================================');
+    console.log('📧 PASSWORD RESET EMAIL (SMTP not configured)');
+    console.log(`To: ${toEmail}`);
+    console.log(`Reset URL: ${resetUrl}`);
+    console.log('========================================\n');
+    return;
+  }
   const html = `
     <!DOCTYPE html>
     <html>
@@ -98,7 +116,7 @@ export async function sendPasswordResetEmail(
     </html>
   `;
 
-  await transporter.sendMail({
+  await transporter!.sendMail({
     from: `"WeDonate Adama" <${process.env.SMTP_USER}>`,
     to:   toEmail,
     subject: 'Reset Your WeDonate Password',

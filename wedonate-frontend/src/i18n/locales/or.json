@@ -645,6 +645,7 @@
     "firstName": "Maqaa *",
     "lastName": "Maqaa abbaa *",
     "phoneOptional": "Lakkoofsa bilbilaa (dirqama miti)",
+    "phone": "Lakkoofsa bilbilaa *",
     "kebeleOptional": "Ganda (dirqama miti)",
     "organizationName": "Maqaa dhaabbataa *",
     "organizationType": "Gosa dhaabbataa *",

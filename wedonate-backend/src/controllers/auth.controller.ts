@@ -1,10 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import prisma from '../lib/prisma';
 import { createError } from '../middleware/errorHandler';
 import { AuthRequest } from '../middleware/auth.middleware';
+import { sendPasswordResetEmail } from '../lib/email';
 
 const generateToken = (userId: string, email: string, role: string, kebeleId?: string | null) =>
   jwt.sign({ userId, email, role, kebeleId }, process.env.JWT_SECRET!, {
@@ -117,4 +119,86 @@ export const refreshToken = async (req: AuthRequest, res: Response, next: NextFu
     const token = generateToken(req.user!.userId, req.user!.email, req.user!.role, req.user!.kebeleId);
     res.json({ success: true, data: { token } });
   } catch (error) { next(error); }
+};
+
+export const forgotPassword = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { email } = req.body;
+    if (!email) return next(createError('Email is required', 400));
+
+    const user = await prisma.user.findUnique({ where: { email } });
+
+    // Always return success to prevent email enumeration attacks
+    if (!user || !user.isActive) {
+      return res.json({ success: true, message: 'If that email exists, a reset link has been sent.' });
+    }
+
+    // Generate a secure random token
+    const resetToken    = crypto.randomBytes(32).toString('hex');
+    const hashedToken   = crypto.createHash('sha256').update(resetToken).digest('hex');
+    const resetExpiry   = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data:  { resetToken: hashedToken, resetTokenExpiry: resetExpiry },
+    });
+
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const resetUrl    = `${frontendUrl}/reset-password?token=${resetToken}&email=${encodeURIComponent(email)}`;
+
+    await sendPasswordResetEmail(email, user.firstName, resetUrl);
+
+    await prisma.auditLog.create({
+      data: { id: uuidv4(), userId: user.id, action: 'PASSWORD_RESET_REQUESTED', resource: 'auth', ipAddress: req.ip },
+    });
+
+    res.json({ success: true, message: 'If that email exists, a reset link has been sent.' });
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    next(createError('Failed to send reset email. Please try again.', 500));
+  }
+};
+
+export const resetPassword = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { token, email, password } = req.body;
+
+    if (!token || !email || !password)
+      return next(createError('Token, email and new password are required', 400));
+
+    if (password.length < 6)
+      return next(createError('Password must be at least 6 characters', 400));
+
+    // Hash the incoming token to compare with stored hash
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+    const user = await prisma.user.findFirst({
+      where: {
+        email,
+        resetToken:       hashedToken,
+        resetTokenExpiry: { gt: new Date() }, // not expired
+      },
+    });
+
+    if (!user) return next(createError('Invalid or expired reset link. Please request a new one.', 400));
+
+    const hashedPassword = await bcrypt.hash(password, 12);
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        password:         hashedPassword,
+        resetToken:       null,
+        resetTokenExpiry: null,
+      },
+    });
+
+    await prisma.auditLog.create({
+      data: { id: uuidv4(), userId: user.id, action: 'PASSWORD_RESET_SUCCESS', resource: 'auth', ipAddress: req.ip },
+    });
+
+    res.json({ success: true, message: 'Password reset successfully. You can now log in.' });
+  } catch (error) {
+    next(error);
+  }
 };

@@ -132,6 +132,10 @@ model User {
   accountSource      String   @default("SELF_REGISTERED")
   createdByAdminId   String?
 
+  // Password reset fields
+  resetToken         String?
+  resetTokenExpiry   DateTime?
+
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

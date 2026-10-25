@@ -16,6 +16,8 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DonatePage from './pages/DonatePage';
 import PaymentSuccessPage from './pages/PaymentSuccessPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 
 // Dashboard Pages
 import DashboardHome from './pages/dashboard/DashboardHome';
@@ -172,6 +174,8 @@ export default function App() {
       <Route path="/donate"         element={<PublicDonateRoute><MainLayout><DonatePage /></MainLayout></PublicDonateRoute>} />
       <Route path="/login"          element={<LoginPage />} />
       <Route path="/register"       element={<RegisterPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password"  element={<ResetPasswordPage />} />
       <Route path="/payment/success" element={<MainLayout><PaymentSuccessPage /></MainLayout>} />
       <Route path="/payment/verify"  element={<MainLayout><PaymentSuccessPage /></MainLayout>} />
 

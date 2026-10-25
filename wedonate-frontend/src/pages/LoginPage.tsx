@@ -163,7 +163,9 @@ export default function LoginPage() {
             </div>
 
             <div className="flex justify-end">
-              <span className="text-sm text-gray-400 cursor-not-allowed" title="Coming soon">{t('auth.forgot_password')}</span>
+              <Link to="/forgot-password" className="text-sm text-green-600 hover:underline font-medium">
+                {t('auth.forgot_password')}
+              </Link>
             </div>
 
             <Button type="submit" className="w-full" size="lg" isLoading={loading}>

@@ -146,7 +146,6 @@ export const getApprovedRequests = async (req: Request, res: Response, next: Nex
     const requests = await prisma.supportRequest.findMany({
       where: { 
         status: { in: ['PUBLISHED', 'APPROVED'] },
-        isPublished: true,
         ...(category ? { category: category as any } : {})
       },
       include: {

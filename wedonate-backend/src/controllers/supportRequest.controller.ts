@@ -144,7 +144,11 @@ export const getApprovedRequests = async (req: Request, res: Response, next: Nex
   try {
     const { category, limit } = req.query;
     const requests = await prisma.supportRequest.findMany({
-      where: { status: 'PUBLISHED', ...(category ? { category: category as any } : {}) },
+      where: { 
+        status: { in: ['PUBLISHED', 'APPROVED'] },
+        isPublished: true,
+        ...(category ? { category: category as any } : {})
+      },
       include: {
         user: { select: { firstName: true, lastName: true, profileImage: true } },
         _count: { select: { donations: true } },
@@ -327,7 +331,12 @@ export const updateRequestStatus = async (req: AuthRequest, res: Response, next:
       data: { 
         status: finalStatus, 
         adminNote: adminNote || null,
-        ...(finalStatus === 'PUBLISHED' ? { isPublished: true, publishedAt: new Date() } : {})
+        ...(finalStatus === 'PUBLISHED' || finalStatus === 'APPROVED' 
+          ? { isPublished: true, publishedAt: new Date() } 
+          : finalStatus === 'REJECTED' || finalStatus === 'CANCELLED'
+          ? { isPublished: false }
+          : {}
+        )
       },
     });
 

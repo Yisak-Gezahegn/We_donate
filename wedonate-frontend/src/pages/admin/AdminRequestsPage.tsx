@@ -473,8 +473,17 @@ export default function AdminRequestsPage() {
                     isDark ? 'bg-slate-700 border-slate-600 text-white placeholder-slate-500' : 'bg-white border-gray-200')} />
                 <div className="flex gap-2">
                   <Button size="sm" leftIcon={<CheckCircle className="w-3.5 h-3.5" />}
-                    isLoading={mutate.isPending}
-                    onClick={() => mutate.mutate({ id: item.id, status: type === 'campaigns' ? 'PUBLISHED' : 'APPROVED', adminNote: notes[item.id] })}>
+                    isLoading={mutate.isPending || publishMutate.isPending}
+                    onClick={async () => {
+                      if (type === 'campaigns') {
+                        // Campaigns: approve → publish in one step
+                        mutate.mutate({ id: item.id, status: 'PUBLISHED', adminNote: notes[item.id] });
+                      } else {
+                        // Requests: approve then immediately publish so it appears on donate page
+                        await mutate.mutateAsync({ id: item.id, status: 'APPROVED', adminNote: notes[item.id] });
+                        publishMutate.mutate(item.id);
+                      }
+                    }}>
                     {t('admin.approve')}
                   </Button>
                   <Button size="sm" variant="danger" leftIcon={<XCircle className="w-3.5 h-3.5" />}

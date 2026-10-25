@@ -1,15 +1,17 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import multer from 'multer';
 import path from 'path';
-import { v4 as uuidv4 } from 'uuid';
-import { createClient } from '@supabase/supabase-js';
+import { v2 as cloudinary } from 'cloudinary';
+import { Readable } from 'stream';
 
-// ── Supabase Storage client ──────────────────────────────────────────────────
-const supabaseUrl  = process.env.SUPABASE_URL!;
-const supabaseKey  = process.env.SUPABASE_SERVICE_KEY!;
-const BUCKET       = 'wedonate-uploads';
+// ── Cloudinary config ────────────────────────────────────────────────────────
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key:    process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
-// Use memory storage — we stream directly to Supabase, no local disk needed
+// Memory storage — buffer streamed to Cloudinary, no local disk needed
 const upload = multer({
   storage: multer.memoryStorage(),
   fileFilter: (_req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
@@ -30,37 +32,25 @@ router.post('/', upload.single('image'), async (req: Request, res: Response, nex
       return;
     }
 
-    // If Supabase credentials are configured, upload to Supabase Storage
-    if (supabaseUrl && supabaseKey) {
-      const supabase = createClient(supabaseUrl, supabaseKey);
-      const ext      = path.extname(req.file.originalname).toLowerCase();
-      const filename = `${uuidv4()}${ext}`;
-      const filePath = `images/${filename}`;
+    // Upload buffer to Cloudinary via stream
+    const uploadToCloudinary = (): Promise<string> =>
+      new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          { folder: 'wedonate', resource_type: 'auto' },
+          (error, result) => {
+            if (error || !result) return reject(error || new Error('Upload failed'));
+            resolve(result.secure_url);
+          }
+        );
+        Readable.from(req.file!.buffer).pipe(stream);
+      });
 
-      const { error } = await supabase.storage
-        .from(BUCKET)
-        .upload(filePath, req.file.buffer, {
-          contentType: req.file.mimetype,
-          upsert: false,
-        });
+    const imageUrl = await uploadToCloudinary();
+    res.json({ success: true, data: { imageUrl, filename: path.basename(imageUrl) } });
 
-      if (error) {
-        console.error('Supabase upload error:', error.message);
-        return next(new Error('File upload to storage failed: ' + error.message));
-      }
-
-      const { data: publicUrlData } = supabase.storage
-        .from(BUCKET)
-        .getPublicUrl(filePath);
-
-      res.json({ success: true, data: { imageUrl: publicUrlData.publicUrl, filename } });
-      return;
-    }
-
-    // Fallback: local disk (dev only — not suitable for production)
-    res.status(500).json({ success: false, message: 'Storage not configured. Set SUPABASE_URL and SUPABASE_SERVICE_KEY.' });
-  } catch (error) {
-    next(error);
+  } catch (error: any) {
+    console.error('Cloudinary upload error:', error.message);
+    next(new Error('File upload failed: ' + error.message));
   }
 });
 
